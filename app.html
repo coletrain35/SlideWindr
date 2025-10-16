@@ -1,0 +1,992 @@
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+
+// --- Helper Functions & Constants ---
+const GHOST_ELEMENT_ID = 'ghost-drag-image';
+const REVEAL_THEMES = ["black", "white", "league", "beige", "sky", "night", "serif", "simple", "solarized", "blood", "moon"];
+const TRANSITION_STYLES = ['none', 'fade', 'slide', 'convex', 'concave', 'zoom'];
+
+
+const createGhostImage = () => {
+    let ghost = document.getElementById(GHOST_ELEMENT_ID);
+    if (!ghost) {
+        ghost = document.createElement('div');
+        ghost.id = GHOST_ELEMENT_ID;
+        ghost.style.position = 'absolute';
+        ghost.style.top = '-1000px';
+        document.body.appendChild(ghost);
+    }
+    return ghost;
+};
+
+// --- Main App Component ---
+export default function App() {
+    const [presentation, setPresentation] = useState({
+        title: "My Presentation",
+        theme: "black",
+        slides: [{ 
+            id: crypto.randomUUID(), 
+            elements: [],
+            background: { type: 'color', value: '#ffffff' }
+        }],
+        settings: {
+            transition: 'slide',
+            backgroundTransition: 'fade',
+            controls: true,
+            progress: true,
+            slideNumber: false,
+            center: true,
+            loop: false,
+            autoSlide: 0,
+            mouseWheel: false,
+        }
+    });
+    const [currentSlideId, setCurrentSlideId] = useState(presentation.slides[0].id);
+    const [selectedElementId, setSelectedElementId] = useState(null);
+    const [dragging, setDragging] = useState(null);
+    const [resizing, setResizing] = useState(null);
+    const [interactingElementId, setInteractingElementId] = useState(null);
+    const [librariesLoaded, setLibrariesLoaded] = useState({ babel: false, three: false, postprocessing: false });
+    const canvasRef = useRef(null);
+
+    useEffect(() => {
+        const loadScript = (id, src, onReady) => {
+            if (document.getElementById(id) || (window[id.split('-')[0].toUpperCase()] && id !== 'babel-standalone-script')) {
+                onReady();
+                return;
+            }
+            const script = document.createElement('script');
+            script.id = id;
+            script.src = src;
+            script.async = true;
+            script.onload = () => {
+                console.log(`${id} loaded.`);
+                onReady();
+            };
+            script.onerror = () => console.error(`Failed to load ${id}.`);
+            document.body.appendChild(script);
+        };
+
+        loadScript('babel-standalone-script', "https://unpkg.com/@babel/standalone/babel.min.js", () => {
+            setLibrariesLoaded(prev => ({...prev, babel: true}));
+        });
+
+        loadScript('three-js-script', "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js", () => {
+             setLibrariesLoaded(prev => ({...prev, three: true}));
+        });
+        
+        loadScript('postprocessing-script', "https://unpkg.com/postprocessing@6.23.5/build/postprocessing.min.js", () => {
+             setLibrariesLoaded(prev => ({...prev, postprocessing: true}));
+        });
+    }, []);
+
+    const currentSlide = presentation.slides.find(s => s.id === currentSlideId);
+    const selectedElement = currentSlide?.elements.find(e => e.id === selectedElementId);
+
+    const updateElement = useCallback((elementId, updates) => {
+        setPresentation(prev => ({
+            ...prev,
+            slides: prev.slides.map(slide => 
+                slide.id === currentSlideId
+                    ? { ...slide, elements: slide.elements.map(el => el.id === elementId ? { ...el, ...updates } : el) }
+                    : slide
+            )
+        }));
+    }, [currentSlideId]);
+
+    const updateSlideSettings = useCallback((slideId, newSettings) => {
+        setPresentation(prev => ({
+            ...prev,
+            slides: prev.slides.map(slide => 
+                slide.id === slideId
+                    ? { ...slide, ...newSettings }
+                    : slide
+            )
+        }));
+    }, []);
+    
+    const updatePresentationSettings = useCallback((newSettings) => {
+        setPresentation(prev => ({
+            ...prev,
+            settings: { ...prev.settings, ...newSettings }
+        }));
+    }, []);
+
+    const addElement = useCallback((type) => {
+        const baseElement = {
+            id: crypto.randomUUID(),
+            x: 50,
+            y: 50,
+            width: 200,
+            height: 100,
+            rotation: 0,
+        };
+        let newElement;
+        switch (type) {
+            case 'text':
+                newElement = { ...baseElement, type, content: 'New Text', fontSize: 24, color: '#000000', height: 50, width: 150 };
+                break;
+            case 'shape':
+                newElement = { ...baseElement, type, shapeType: 'rectangle', backgroundColor: '#3b82f6' };
+                break;
+            case 'image':
+                const src = prompt("Enter image URL:", "https://placehold.co/600x400/d1d5db/374151?text=My+Image");
+                if (!src) return;
+                newElement = { ...baseElement, type, src, width: 300, height: 200 };
+                break;
+            case 'iframe':
+                newElement = { ...baseElement, type, htmlContent: '<div style="font-family: sans-serif; text-align: center; padding: 20px;">\n  <h1 style="color: #3b82f6;">Hello, World!</h1>\n  <p>Edit this code in the properties panel.</p>\n</div>', width: 400, height: 300 };
+                break;
+            default:
+                return;
+        }
+
+        setPresentation(prev => ({
+            ...prev,
+            slides: prev.slides.map(slide =>
+                slide.id === currentSlideId ? { ...slide, elements: [...slide.elements, newElement] } : slide
+            )
+        }));
+        setSelectedElementId(newElement.id);
+    }, [currentSlideId]);
+    
+    const deleteElement = useCallback(() => {
+        if (!selectedElementId) return;
+        setPresentation(prev => ({
+            ...prev,
+            slides: prev.slides.map(slide => 
+                slide.id === currentSlideId
+                    ? { ...slide, elements: slide.elements.filter(el => el.id !== selectedElementId) }
+                    : slide
+            )
+        }));
+        setSelectedElementId(null);
+    }, [currentSlideId, selectedElementId]);
+
+    const addSlide = useCallback(() => {
+        const newSlide = { 
+            id: crypto.randomUUID(), 
+            elements: [],
+            background: { type: 'color', value: '#ffffff' }
+        };
+        setPresentation(prev => ({
+            ...prev,
+            slides: [...prev.slides, newSlide]
+        }));
+        setCurrentSlideId(newSlide.id);
+    }, []);
+
+    const deleteSlide = useCallback((slideId) => {
+        setPresentation(prev => {
+            if (prev.slides.length <= 1) return prev;
+            const newSlides = prev.slides.filter(s => s.id !== slideId);
+            if (currentSlideId === slideId) {
+                setCurrentSlideId(newSlides[0].id);
+            }
+            return { ...prev, slides: newSlides };
+        });
+    }, [currentSlideId]);
+    
+    const duplicateSlide = useCallback((slideId) => {
+        setPresentation(prev => {
+            const slideToDuplicate = prev.slides.find(s => s.id === slideId);
+            if (!slideToDuplicate) return prev;
+            const newSlide = {
+                ...slideToDuplicate,
+                id: crypto.randomUUID(),
+                elements: slideToDuplicate.elements.map(el => ({ ...el, id: crypto.randomUUID() }))
+            };
+            const slideIndex = prev.slides.findIndex(s => s.id === slideId);
+            const newSlides = [...prev.slides];
+            newSlides.splice(slideIndex + 1, 0, newSlide);
+            setCurrentSlideId(newSlide.id);
+            return { ...prev, slides: newSlides };
+        });
+    }, []);
+
+    const moveSlide = useCallback((slideId, direction) => {
+        setPresentation(prev => {
+            const index = prev.slides.findIndex(s => s.id === slideId);
+            if ((index === 0 && direction === -1) || (index === prev.slides.length - 1 && direction === 1)) return prev;
+            
+            const newSlides = [...prev.slides];
+            const [movedSlide] = newSlides.splice(index, 1);
+            newSlides.splice(index + direction, 0, movedSlide);
+            return {...prev, slides: newSlides};
+        });
+    }, []);
+
+
+    const handleMouseDown = (e, elementId) => {
+        e.stopPropagation();
+        setInteractingElementId(null);
+        setSelectedElementId(elementId);
+        const element = currentSlide.elements.find(el => el.id === elementId);
+        const canvasRect = canvasRef.current.getBoundingClientRect();
+        setDragging({
+            element,
+            offsetX: e.clientX - canvasRect.left - element.x,
+            offsetY: e.clientY - canvasRect.top - element.y,
+        });
+    };
+
+    const handleResizeMouseDown = (e, elementId, handle) => {
+        e.stopPropagation();
+        setInteractingElementId(null);
+        setSelectedElementId(elementId);
+        const element = currentSlide.elements.find(el => el.id === elementId);
+        const canvasRect = canvasRef.current.getBoundingClientRect();
+        setResizing({
+            element,
+            handle,
+            initialMouseX: e.clientX,
+            initialMouseY: e.clientY,
+            initialX: element.x,
+            initialY: element.y,
+            initialWidth: element.width,
+            initialHeight: element.height,
+        });
+    };
+
+    const handleCanvasMouseMove = useCallback((e) => {
+        if (interactingElementId) return;
+        const canvasRect = canvasRef.current.getBoundingClientRect();
+        if (dragging) {
+            let newX = e.clientX - canvasRect.left - dragging.offsetX;
+            let newY = e.clientY - canvasRect.top - dragging.offsetY;
+            updateElement(dragging.element.id, { x: newX, y: newY });
+        }
+        if (resizing) {
+            const dx = e.clientX - resizing.initialMouseX;
+            const dy = e.clientY - resizing.initialMouseY;
+            let { initialX, initialY, initialWidth, initialHeight } = resizing;
+            let newX = initialX, newY = initialY, newWidth = initialWidth, newHeight = initialHeight;
+            
+            if (resizing.handle.includes('right')) newWidth = initialWidth + dx;
+            if (resizing.handle.includes('left')) {
+                newWidth = initialWidth - dx;
+                newX = initialX + dx;
+            }
+            if (resizing.handle.includes('bottom')) newHeight = initialHeight + dy;
+            if (resizing.handle.includes('top')) {
+                newHeight = initialHeight - dy;
+                newY = initialY + dy;
+            }
+
+            if (newWidth > 20 && newHeight > 20) {
+                 updateElement(resizing.element.id, { x: newX, y: newY, width: newWidth, height: newHeight });
+            }
+        }
+    }, [dragging, resizing, updateElement, interactingElementId]);
+
+    const handleCanvasMouseUp = useCallback(() => {
+        setDragging(null);
+        setResizing(null);
+    }, []);
+
+    const handleCanvasMouseLeave = useCallback(() => {
+        setDragging(null);
+        setResizing(null);
+    }, []);
+    
+    const getBackgroundStyle = (bg) => {
+        if (!bg) return { backgroundColor: '#ffffff' };
+        if (bg.type === 'color') return { backgroundColor: bg.value };
+        if (bg.type === 'image') return { backgroundImage: `url(${bg.value})`, backgroundSize: 'cover', backgroundPosition: 'center' };
+        return { backgroundColor: '#ffffff' };
+    };
+
+    useEffect(() => {
+        const handleKeyUp = (e) => {
+            if (e.key === 'Delete' || e.key === 'Backspace') {
+                if(selectedElementId && document.activeElement.tagName !== "INPUT" && document.activeElement.tagName !== "TEXTAREA" && !document.activeElement.isContentEditable) {
+                    deleteElement();
+                }
+            }
+        };
+        window.addEventListener('keyup', handleKeyUp);
+        return () => window.removeEventListener('keyup', handleKeyUp);
+    }, [selectedElementId, deleteElement]);
+
+    const generateHTML = () => {
+        const allComponentCss = presentation.slides
+            .flatMap(slide => [
+                slide.background?.reactComponent?.css,
+                ...slide.elements.map(el => el.reactComponent?.css)
+            ])
+            .filter(Boolean)
+            .join('\n\n');
+
+        const slidesHtml = presentation.slides.map(slide => {
+             const bg = slide.background || { type: 'color', value: '#ffffff' };
+             let bgAttrs = '';
+             if (bg.type === 'color' && !bg.reactComponent) {
+                 bgAttrs = `data-background-color="${bg.value}"`;
+             } else if (bg.type === 'image' && !bg.reactComponent) {
+                 bgAttrs = `data-background-image="${bg.value}"`;
+             }
+
+            let bgReactContainer = '';
+            if (slide.background?.reactComponent) {
+                const code = (slide.background.reactComponent.code || '').replace(/\\/g, '\\\\').replace(/'/g, '&#39;').replace(/\n/g, '\\n');
+                const props = (slide.background.reactComponent.props || '{}').replace(/'/g, '&#39;');
+                bgReactContainer = `<div class='absolute inset-0 w-full h-full' data-react-code='${code}' data-react-props='${props}'></div>`;
+            }
+
+            const elementsHtml = slide.elements.map(el => {
+                const style = `position: absolute; left: ${el.x}px; top: ${el.y}px; width: ${el.width}px; height: ${el.height}px; transform: rotate(${el.rotation || 0}deg);`;
+                
+                let reactContainer = '';
+                if (el.reactComponent) {
+                    const code = (el.reactComponent.code || '').replace(/\\/g, '\\\\').replace(/'/g, '&#39;').replace(/\n/g, '\\n');
+                    const props = (el.reactComponent.props || '{}').replace(/'/g, '&#39;');
+                    reactContainer = `<div class='absolute inset-0 w-full h-full pointer-events-none' data-react-code='${code}' data-react-props='${props}'></div>`;
+                }
+
+                let baseElementHtml = '';
+                switch (el.type) {
+                    case 'text':
+                        baseElementHtml = `<div style="color: ${el.color}; font-size: ${el.fontSize}px; width: 100%; height: 100%;">${el.content}</div>`;
+                        break;
+                    case 'shape':
+                        baseElementHtml = `<div style="background-color: ${el.backgroundColor}; width: 100%; height: 100%;"></div>`;
+                        break;
+                    case 'image':
+                        baseElementHtml = `<img src="${el.src}" style="object-fit: cover; width: 100%; height: 100%;" draggable="false">`;
+                        break;
+                    case 'iframe':
+                         const escapedHtml = (el.htmlContent || '').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                         baseElementHtml = `<iframe srcdoc="${escapedHtml}" style="border: none; width: 100%; height: 100%;"></iframe>`;
+                         break;
+                }
+                
+                return `<div style="${style}">${baseElementHtml}${reactContainer}</div>`;
+            }).join('\n');
+            
+            return `<section ${bgAttrs}>${bgReactContainer}${elementsHtml}</section>`;
+        }).join('\n');
+
+        const settingsForReveal = {
+            ...presentation.settings,
+            hash: true,
+            embedded: true,
+            plugins: []
+        };
+
+        const html = `
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>${presentation.title}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reset.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/theme/${presentation.theme}.min.css">
+    <style>
+    ${allComponentCss}
+    </style>
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+            ${slidesHtml}
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.min.js"></script>
+    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/postprocessing@6.23.5/build/postprocessing.min.js"></script>
+    <script>
+        Reveal.initialize(${JSON.stringify(settingsForReveal, null, 2)});
+
+        const dependencyResolver = (dep) => {
+            if (dep === 'react') return React;
+            if (dep === 'three') return THREE;
+            if (dep === 'postprocessing') return POSTPROCESSING;
+            throw new Error('Unknown dependency: ' + dep);
+        };
+
+        Reveal.on('ready', event => {
+            document.querySelectorAll('[data-react-code]').forEach(container => {
+                const code = container.dataset.reactCode.replace(/\\\\/g, '\\\\').replace(/&#39;/g, "'").replace(/\\n/g, '\\n');
+                const propsString = container.dataset.reactProps.replace(/&#39;/g, "'");
+                
+                try {
+                    const transformed = Babel.transform(code, {
+                        presets: ['react'],
+                        plugins: [ ["transform-modules-commonjs", { "loose": true }] ]
+                    }).code;
+
+                    const exports = {};
+                    new Function('exports', 'require', transformed)(
+                        exports,
+                        dependencyResolver
+                    );
+                    
+                    const Component = exports.default;
+                    if (!Component) throw new Error("Component must have a default export.");
+
+                    const props = JSON.parse(propsString);
+
+                    ReactDOM.render(React.createElement(Component, props), container);
+                } catch (e) {
+                    console.error("Failed to render React component:", { code, propsString, error: e });
+                    container.innerHTML = '<div style="color:red; background: #fee; padding: 10px; font-size: 12px; text-align: left;">Error: ' + e.message + '</div>';
+                }
+            });
+        });
+    </script>
+</body>
+</html>`;
+
+        const blob = new Blob([html], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'presentation.html';
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    return (
+        <div className="bg-gray-100 font-sans flex flex-col h-screen w-screen overflow-hidden">
+            {/* Header */}
+            <header className="bg-white border-b border-gray-200 p-2 flex justify-between items-center shadow-sm">
+                <h1 className="text-lg font-bold text-gray-700">Presenta-React</h1>
+                <div className="flex items-center gap-4">
+                    <label className="flex items-center gap-2 text-sm">
+                        Theme:
+                        <select 
+                            value={presentation.theme}
+                            onChange={(e) => setPresentation(p => ({...p, theme: e.target.value}))}
+                            className="border border-gray-300 rounded px-2 py-1"
+                        >
+                            {REVEAL_THEMES.map(theme => <option key={theme} value={theme}>{theme}</option>)}
+                        </select>
+                    </label>
+                    <button onClick={generateHTML} className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded text-sm">
+                        Export to reveal.js
+                    </button>
+                </div>
+            </header>
+
+            <div className="flex flex-1 overflow-hidden">
+                {/* Sidebar */}
+                <aside className="w-64 bg-white border-r border-gray-200 p-4 flex flex-col">
+                    <button onClick={addSlide} className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded mb-4">
+                        Add Slide
+                    </button>
+                    <div className="flex-1 overflow-y-auto space-y-2">
+                        {presentation.slides.map((slide, index) => (
+                            <div key={slide.id} onClick={() => setCurrentSlideId(slide.id)} className={`relative group cursor-pointer border-2 rounded ${currentSlideId === slide.id ? 'border-blue-500' : 'border-transparent'}`}>
+                                <div className="absolute top-1 right-1 z-10 text-xs bg-gray-700 text-white rounded-full h-5 w-5 flex items-center justify-center">{index + 1}</div>
+                                <div className="bg-gray-200 aspect-video rounded-sm overflow-hidden pointer-events-none" style={getBackgroundStyle(slide.background)}>
+                                    <div className="w-full h-full transform scale-[0.2] origin-top-left">
+                                        {slide.elements.map(el => {
+                                            const style = { position: 'absolute', left: el.x, top: el.y, width: el.width, height: el.height, transform: `rotate(${el.rotation || 0}deg)` };
+                                            if (el.type === 'text') return <div key={el.id} style={{...style, fontSize: el.fontSize, color: el.color, overflow: 'hidden'}}>{el.content}</div>
+                                            if (el.type === 'shape') return <div key={el.id} style={{...style, backgroundColor: el.backgroundColor}}></div>
+                                            if (el.type === 'image' || el.type === 'iframe') return <div key={el.id} style={{...style, border: '1px solid #ccc', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>MEDIA</div>
+                                            return null;
+                                        })}
+                                    </div>
+                                </div>
+                                <div className="absolute inset-0 bg-black bg-opacity-50 group-hover:opacity-100 opacity-0 transition-opacity flex items-center justify-center gap-1">
+                                    <button title="Move Up" onClick={(e) => {e.stopPropagation(); moveSlide(slide.id, -1)}} className="p-1 rounded-full bg-white/80 hover:bg-white text-gray-700"><ChevronUpIcon/></button>
+                                    <button title="Move Down" onClick={(e) => {e.stopPropagation(); moveSlide(slide.id, 1)}} className="p-1 rounded-full bg-white/80 hover:bg-white text-gray-700"><ChevronDownIcon/></button>
+                                    <button title="Duplicate" onClick={(e) => {e.stopPropagation(); duplicateSlide(slide.id)}} className="p-1 rounded-full bg-white/80 hover:bg-white text-gray-700"><CopyIcon/></button>
+                                    <button title="Delete" onClick={(e) => {e.stopPropagation(); deleteSlide(slide.id)}} className="p-1 rounded-full bg-white/80 hover:bg-white text-red-500"><TrashIcon/></button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </aside>
+
+                {/* Main Content */}
+                <main className="flex-1 flex flex-col p-4 bg-gray-200">
+                     <PresentationToolbar settings={presentation.settings} updateSettings={updatePresentationSettings} />
+                     {/* Element Toolbar */}
+                    <div className="mb-4 bg-white p-2 rounded shadow-md flex items-center justify-center gap-2">
+                         <button onClick={() => addElement('text')} className="flex items-center gap-2 p-2 rounded hover:bg-gray-100 text-sm"><TypeIcon/> Text</button>
+                         <button onClick={() => addElement('shape')} className="flex items-center gap-2 p-2 rounded hover:bg-gray-100 text-sm"><SquareIcon/> Shape</button>
+                         <button onClick={() => addElement('image')} className="flex items-center gap-2 p-2 rounded hover:bg-gray-100 text-sm"><ImageIcon/> Image</button>
+                         <button onClick={() => addElement('iframe')} className="flex items-center gap-2 p-2 rounded hover:bg-gray-100 text-sm"><CodeIcon/> HTML Embed</button>
+                    </div>
+
+                    <div className="flex-1 flex items-center justify-center">
+                        <div
+                            ref={canvasRef}
+                            className="shadow-lg relative bg-cover bg-center"
+                            style={{ width: 960, height: 700, ...getBackgroundStyle(currentSlide?.background) }}
+                            onMouseMove={handleCanvasMouseMove}
+                            onMouseUp={handleCanvasMouseUp}
+                            onMouseLeave={handleCanvasMouseLeave}
+                            onClick={() => { setSelectedElementId(null); setInteractingElementId(null); }}
+                        >
+                            <div className="absolute inset-0 w-full h-full pointer-events-none">
+                                {Object.values(librariesLoaded).every(Boolean) && currentSlide?.background?.reactComponent && (
+                                    <LiveReactRenderer 
+                                        id={currentSlide.id}
+                                        component={currentSlide.background.reactComponent}
+                                    />
+                                )}
+                            </div>
+                            {currentSlide?.elements.map(el => (
+                                <ElementComponent
+                                    key={el.id}
+                                    element={el}
+                                    onMouseDown={handleMouseDown}
+                                    onResizeMouseDown={handleResizeMouseDown}
+                                    isSelected={selectedElementId === el.id}
+                                    updateElement={updateElement}
+                                    isInteracting={interactingElementId === el.id}
+                                    setInteractingElementId={setInteractingElementId}
+                                    librariesLoaded={librariesLoaded}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                </main>
+
+                {/* Properties Panel */}
+                <aside className="w-72 bg-white border-l border-gray-200 p-4 overflow-y-auto">
+                     {selectedElement ? (
+                        <ElementProperties selectedElement={selectedElement} updateElement={updateElement} deleteElement={deleteElement} />
+                    ) : (
+                        <SlideProperties currentSlide={currentSlide} updateSlideSettings={updateSlideSettings} />
+                    )}
+                </aside>
+            </div>
+        </div>
+    );
+}
+
+// --- Sub Components ---
+
+const ComponentContainer = React.memo(({ code, propsString }) => {
+    const [Renderable, setRenderable] = useState(null);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        if (!code) {
+            setRenderable(null);
+            setError(null);
+            return;
+        }
+
+        if (typeof Babel === 'undefined' || typeof THREE === 'undefined' || typeof POSTPROCESSING === 'undefined') {
+            setError({ message: 'Waiting for libraries to load...' });
+            return;
+        }
+
+        const dependencyResolver = (dep) => {
+            if (dep === 'react') return React;
+            if (dep === 'three') return THREE;
+            if (dep === 'postprocessing') return POSTPROCESSING;
+            // Allow relative path imports for CSS by ignoring them, since CSS is handled separately
+            if (dep.startsWith('./') && dep.endsWith('.css')) return {};
+            throw new Error(`Unknown dependency: ${dep}`)
+        };
+
+        try {
+            const transformed = Babel.transform(code, {
+                presets: ['react'],
+                plugins: [["transform-modules-commonjs", { "loose": true }]]
+            }).code;
+
+            const exports = {};
+            new Function('exports', 'require', transformed)(
+                exports, dependencyResolver
+            );
+            
+            const Component = exports.default;
+            if (typeof Component !== 'function' && typeof Component !== 'object') {
+                throw new Error("The code must have a default export which is a React component.");
+            }
+            
+            let props = {};
+            if(propsString) {
+                try {
+                    props = JSON.parse(propsString);
+                } catch (e) {
+                     throw new Error("Invalid JSON in props.");
+                }
+            }
+
+            setRenderable(React.createElement(Component, props));
+            setError(null);
+        } catch (e) {
+            setRenderable(null);
+            setError(prevError => {
+                if (prevError && prevError.message === e.message) {
+                    return prevError;
+                }
+                return e;
+            });
+        }
+    }, [code, propsString]);
+
+    if (error) {
+        return <div className="absolute inset-0 bg-red-100 text-red-700 p-2 text-xs font-mono overflow-auto" title={error.stack}>Error: {error.message}</div>;
+    }
+    
+    return Renderable ? <>{Renderable}</> : null;
+});
+
+const LiveReactRenderer = ({ id, component }) => {
+    const { code, props: propsString, css } = component;
+    
+    useEffect(() => {
+        const styleId = `dynamic-style-${id}`;
+        let styleElement = document.getElementById(styleId);
+        if (css) {
+            if (!styleElement) {
+                styleElement = document.createElement('style');
+                styleElement.id = styleId;
+                document.head.appendChild(styleElement);
+            }
+            styleElement.innerHTML = css;
+        }
+        
+        return () => {
+            if (styleElement) {
+                 styleElement.remove();
+            }
+        };
+    }, [id, css]);
+
+    return <ComponentContainer code={code} propsString={propsString} />;
+};
+
+
+const ReactComponentEditor = ({ componentData, onChange, title }) => {
+    const handleCodeChange = (e) => onChange({ ...componentData, code: e.target.value });
+    const handlePropsChange = (e) => onChange({ ...componentData, props: e.target.value });
+    const handleCssChange = (e) => onChange({ ...componentData, css: e.target.value });
+
+    const addComponent = () => {
+        onChange({
+            code: `// Your component must be the default export.
+// It will be rendered inside a container with 100% width/height.
+export default function MyComponent({ text }) {
+    return <div className="my-component-style">{text}</div>;
+}`,
+            props: '{ "text": "Hello from React!" }',
+            css: `.my-component-style {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    background: rgba(0, 0, 100, 0.5);
+    font-size: 24px;
+}`
+        });
+    };
+
+    const removeComponent = () => onChange(null);
+
+    if (!componentData) {
+        return <button onClick={addComponent} className="w-full bg-green-100 hover:bg-green-200 text-green-800 font-bold py-2 px-4 rounded text-sm">Add React Component</button>;
+    }
+
+    return (
+        <div className="space-y-2 p-2 border rounded bg-gray-50">
+            <div className="flex justify-between items-center">
+                <h3 className="font-medium text-base">{title}</h3>
+                <button onClick={removeComponent} className="text-red-500 hover:text-red-700"><TrashIcon/></button>
+            </div>
+            <div>
+                <label className="text-xs font-bold">Component Code (JSX):</label>
+                <textarea value={componentData.code} onChange={handleCodeChange} className="w-full h-48 border rounded p-1 font-mono text-xs" spellCheck="false" />
+            </div>
+            <div>
+                <label className="text-xs font-bold">Props (JSON string):</label>
+                 <textarea value={componentData.props} onChange={handlePropsChange} className="w-full h-20 border rounded p-1 font-mono text-xs" spellCheck="false"/>
+            </div>
+            <div>
+                <label className="text-xs font-bold">Component CSS:</label>
+                 <textarea value={componentData.css} onChange={handleCssChange} className="w-full h-24 border rounded p-1 font-mono text-xs" spellCheck="false"/>
+            </div>
+        </div>
+    );
+};
+
+const SlideProperties = ({ currentSlide, updateSlideSettings }) => {
+    if (!currentSlide) return <p>No slide selected.</p>;
+    
+    const { background } = currentSlide;
+    
+    const handleBgChange = (prop, value) => {
+        const newBg = { ...background, [prop]: value };
+        updateSlideSettings(currentSlide.id, { background: newBg });
+    };
+    
+    const handleBgTypeChange = (newType) => {
+        let newValue = background.value || '';
+        if (newType === 'color' && !background.value?.startsWith('#')) newValue = '#ffffff';
+        handleBgChange('type', newType);
+        handleBgChange('value', newValue);
+    };
+
+    return (
+        <div>
+            <h2 className="font-bold text-lg mb-4">Slide Properties</h2>
+            <div className="space-y-4 text-sm">
+                <fieldset>
+                    <legend className="font-medium mb-2">Background</legend>
+                    <div className="flex gap-2 mb-2">
+                        <button onClick={() => handleBgTypeChange('color')} className={`px-3 py-1 text-sm rounded ${background.type === 'color' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}>Color</button>
+                        <button onClick={() => handleBgTypeChange('image')} className={`px-3 py-1 text-sm rounded ${background.type === 'image' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}>Image</button>
+                    </div>
+                    {background.type === 'color' && (
+                        <div>
+                            <label htmlFor="bg-color">Color:</label>
+                            <input id="bg-color" type="color" value={background.value} onChange={e => handleBgChange('value', e.target.value)} className="w-full h-8" />
+                        </div>
+                    )}
+                     {background.type === 'image' && (
+                        <div>
+                            <label htmlFor="bg-image-url">Image URL:</label>
+                            <input id="bg-image-url" type="text" value={background.value} onChange={e => handleBgChange('value', e.target.value)} className="w-full border rounded px-1" />
+                        </div>
+                    )}
+                </fieldset>
+                <hr/>
+                <ReactComponentEditor 
+                    title="Background Component"
+                    componentData={background.reactComponent}
+                    onChange={(data) => handleBgChange('reactComponent', data)}
+                />
+            </div>
+        </div>
+    );
+};
+
+const ElementProperties = ({ selectedElement, updateElement, deleteElement }) => (
+    <>
+        <h2 className="font-bold text-lg mb-4">Element Properties</h2>
+        <div className="space-y-4 text-sm">
+            <div className="grid grid-cols-2 gap-2">
+                <div><label>X:</label><input type="number" value={Math.round(selectedElement.x)} onChange={e => updateElement(selectedElement.id, {x: +e.target.value})} className="w-full border rounded px-1" /></div>
+                <div><label>Y:</label><input type="number" value={Math.round(selectedElement.y)} onChange={e => updateElement(selectedElement.id, {y: +e.target.value})} className="w-full border rounded px-1" /></div>
+                <div><label>Width:</label><input type="number" value={Math.round(selectedElement.width)} onChange={e => updateElement(selectedElement.id, {width: +e.target.value})} className="w-full border rounded px-1" /></div>
+                <div><label>Height:</label><input type="number" value={Math.round(selectedElement.height)} onChange={e => updateElement(selectedElement.id, {height: +e.target.value})} className="w-full border rounded px-1" /></div>
+            </div>
+            <div><label>Rotation:</label><input type="range" min="0" max="360" value={selectedElement.rotation || 0} onChange={e => updateElement(selectedElement.id, {rotation: +e.target.value})} className="w-full" /></div>
+            
+            {selectedElement.type === 'text' && (
+                <>
+                    <div><label>Font Size:</label><input type="number" value={selectedElement.fontSize} onChange={e => updateElement(selectedElement.id, {fontSize: +e.target.value})} className="w-full border rounded px-1" /></div>
+                    <div><label>Color:</label><input type="color" value={selectedElement.color} onChange={e => updateElement(selectedElement.id, {color: e.target.value})} className="w-full" /></div>
+                </>
+            )}
+            {selectedElement.type === 'shape' && (
+                <div><label>Background Color:</label><input type="color" value={selectedElement.backgroundColor} onChange={e => updateElement(selectedElement.id, {backgroundColor: e.target.value})} className="w-full" /></div>
+            )}
+            {selectedElement.type === 'image' && (
+                <div><label>Image URL:</label><input type="text" value={selectedElement.src} onChange={e => updateElement(selectedElement.id, {src: e.target.value})} className="w-full border rounded px-1" /></div>
+            )}
+            {selectedElement.type === 'iframe' && (
+                <div>
+                    <label>HTML Code:</label>
+                    <textarea 
+                        value={selectedElement.htmlContent}
+                        onChange={e => updateElement(selectedElement.id, {htmlContent: e.target.value})}
+                        className="w-full h-48 border rounded p-1 font-mono text-xs"
+                    />
+                </div>
+            )}
+            <hr/>
+             <ReactComponentEditor 
+                title="Element Component"
+                componentData={selectedElement.reactComponent}
+                onChange={(data) => updateElement(selectedElement.id, { reactComponent: data })}
+            />
+           <button onClick={deleteElement} className="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded text-sm mt-4">
+                Delete Element
+           </button>
+        </div>
+    </>
+);
+
+const PresentationToolbar = ({ settings, updateSettings }) => {
+    const handleCheckboxChange = (key) => {
+        updateSettings({ [key]: !settings[key] });
+    };
+
+    const handleValueChange = (key, value) => {
+        updateSettings({ [key]: value });
+    };
+
+    return (
+        <div className="mb-2 bg-white p-2 rounded shadow-md flex items-center justify-center gap-x-6 gap-y-2 flex-wrap text-sm">
+            <div className="flex items-center gap-2">
+                <LayersIcon />
+                <label htmlFor="transition-select" className="font-medium">Transition:</label>
+                <select id="transition-select" value={settings.transition} onChange={e => handleValueChange('transition', e.target.value)} className="border-gray-300 border rounded px-2 py-1 text-sm">
+                    {TRANSITION_STYLES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
+                </select>
+            </div>
+             <div className="flex items-center gap-2">
+                <LayersIcon />
+                <label htmlFor="bg-transition-select" className="font-medium">BG Transition:</label>
+                <select id="bg-transition-select" value={settings.backgroundTransition} onChange={e => handleValueChange('backgroundTransition', e.target.value)} className="border-gray-300 border rounded px-2 py-1 text-sm">
+                     {TRANSITION_STYLES.map(t => <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</option>)}
+                </select>
+            </div>
+            
+            <div className="flex items-center gap-2 border-l border-gray-200 pl-6">
+                <ToggleButton checked={settings.controls} onChange={() => handleCheckboxChange('controls')} title="Navigation Controls"><MoveHorizontalIcon /></ToggleButton>
+                <ToggleButton checked={settings.progress} onChange={() => handleCheckboxChange('progress')} title="Progress Bar"><MinusIcon/></ToggleButton>
+                <ToggleButton checked={settings.slideNumber} onChange={() => handleCheckboxChange('slideNumber')} title="Slide Number"><HashIcon/></ToggleButton>
+                <ToggleButton checked={settings.center} onChange={() => handleCheckboxChange('center')} title="Center Vertically"><AlignCenterVerticalIcon/></ToggleButton>
+                <ToggleButton checked={settings.loop} onChange={() => handleCheckboxChange('loop')} title="Loop Presentation"><RepeatIcon/></ToggleButton>
+                <ToggleButton checked={settings.mouseWheel} onChange={() => handleCheckboxChange('mouseWheel')} title="Mouse Wheel Navigation"><MouseIcon/></ToggleButton>
+            </div>
+
+            <div className="flex items-center gap-2 border-l border-gray-200 pl-6">
+                <TimerIcon />
+                <label htmlFor="autoslide-input" className="font-medium">Auto-Slide (ms):</label>
+                <input id="autoslide-input" type="number" value={settings.autoSlide} onChange={e => handleValueChange('autoSlide', +e.target.value)} step="100" min="0" className="w-20 border-gray-300 border rounded px-2 py-1 text-sm" />
+            </div>
+        </div>
+    );
+};
+
+const ToggleButton = ({ checked, onChange, title, children }) => (
+    <button
+        onClick={onChange}
+        title={title}
+        className={`p-2 rounded transition-colors ${checked ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'}`}
+    >
+        {children}
+    </button>
+);
+
+const ElementComponent = ({ element, onMouseDown, onResizeMouseDown, isSelected, updateElement, isInteracting, setInteractingElementId, librariesLoaded }) => {
+    const style = {
+        left: `${element.x}px`,
+        top: `${element.y}px`,
+        width: `${element.width}px`,
+        height: `${element.height}px`,
+        transform: `rotate(${element.rotation || 0}deg)`,
+    };
+    
+    const handleContentChange = (e) => {
+        updateElement(element.id, { content: e.target.innerHTML });
+    };
+
+    const renderContent = () => {
+        switch (element.type) {
+            case 'text':
+                return (
+                    <div
+                        contentEditable={isSelected && !element.reactComponent}
+                        suppressContentEditableWarning={true}
+                        onBlur={handleContentChange}
+                        dangerouslySetInnerHTML={{ __html: element.content }}
+                        style={{ fontSize: `${element.fontSize}px`, color: element.color, width: '100%', height: '100%', outline: 'none' }}
+                        className="prose"
+                    />
+                );
+            case 'shape':
+                return <div style={{ width: '100%', height: '100%', backgroundColor: element.backgroundColor }}></div>;
+            case 'image':
+                return <img src={element.src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable="false" />;
+            case 'iframe':
+                if (!element.htmlContent) {
+                    return (
+                        <div className="w-full h-full bg-gray-50 border-2 border-dashed border-gray-400 flex flex-col items-center justify-center text-center p-4 pointer-events-none">
+                            <CodeIcon />
+                            <p className="text-sm text-gray-600 mt-2 font-semibold">HTML Embed</p>
+                            <p className="text-xs text-gray-500 mt-1">Paste your code into the properties panel to see it here.</p>
+                        </div>
+                    );
+                }
+                return <iframe srcDoc={element.htmlContent} style={{ width: '100%', height: '100%', border: 'none', pointerEvents: isInteracting ? 'auto' : 'none' }} title="Embedded Content"></iframe>;
+            default:
+                return null;
+        }
+    };
+    
+    return (
+        <div
+            className={`absolute ${isSelected ? 'z-10' : ''} ${isInteracting ? 'z-20' : ''}`}
+            style={style}
+            onMouseDown={!isInteracting ? (e) => onMouseDown(e, element.id) : undefined}
+            onClick={(e) => e.stopPropagation()}
+        >
+            {renderContent()}
+            <div className="absolute inset-0 w-full h-full pointer-events-none">
+                {Object.values(librariesLoaded).every(Boolean) && element.reactComponent && (
+                    <LiveReactRenderer 
+                        id={element.id}
+                        component={element.reactComponent}
+                    />
+                )}
+            </div>
+            {isSelected && !isInteracting && (
+                <>
+                    <div className="absolute -inset-1 border-2 border-blue-500 pointer-events-none"></div>
+                    {element.type === 'iframe' && (element.htmlContent &&
+                        <button 
+                            onClick={() => setInteractingElementId(element.id)} 
+                            className="absolute -top-10 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-xs font-bold py-1 px-3 rounded-full shadow-lg flex items-center gap-1.5 hover:bg-blue-600"
+                            title="Interact with this content"
+                        >
+                            <MousePointerClickIcon />
+                            Interact
+                        </button>
+                    )}
+                    {['top-left', 'top-right', 'bottom-left', 'bottom-right'].map(handle => (
+                         <div
+                            key={handle}
+                            onMouseDown={e => onResizeMouseDown(e, element.id, handle)}
+                            className="absolute bg-white border-2 border-blue-500 w-3 h-3 -m-1.5"
+                            style={{
+                                cursor: `${handle.includes('top') ? 'n' : 's'}${handle.includes('left') ? 'w' : 'e'}-resize`,
+                                top: handle.includes('top') ? '0' : '100%',
+                                left: handle.includes('left') ? '0' : '100%',
+                            }}
+                         ></div>
+                    ))}
+                </>
+            )}
+             {isInteracting && (
+                <button 
+                    onClick={() => setInteractingElementId(null)} 
+                    className="absolute -top-10 left-1/2 -translate-x-1/2 bg-red-500 text-white text-xs font-bold py-1 px-3 rounded-full shadow-lg flex items-center gap-1.5 hover:bg-red-600"
+                    title="Stop interacting"
+                >
+                    <StopCircleIcon/>
+                    Done
+                </button>
+             )}
+        </div>
+    );
+};
+
+// --- Icons (Lucide) ---
+const Icon = ({ children }) => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{children}</svg>;
+const TypeIcon = () => <Icon><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></Icon>;
+const SquareIcon = () => <Icon><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></Icon>;
+const ImageIcon = () => <Icon><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></Icon>;
+const CodeIcon = () => <Icon><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></Icon>;
+const ChevronUpIcon = () => <Icon><path d="m18 15-6-6-6 6"/></Icon>;
+const ChevronDownIcon = () => <Icon><path d="m6 9 6 6 6-6"/></Icon>;
+const CopyIcon = () => <Icon><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></Icon>;
+const TrashIcon = () => <Icon><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></Icon>;
+const MousePointerClickIcon = () => <Icon><path d="m9 9 5 12 1.8-5.2L21 14Z"/><path d="M14.5 2.5 18 6l-4.5 4.5"/></Icon>;
+const StopCircleIcon = () => <Icon><circle cx="12" cy="12" r="10"/><rect width="6" height="6" x="9" y="9"/></Icon>;
+const LayersIcon = () => <Icon><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-8.58 3.9a2 2 0 0 1-1.66 0L3.2 17.65"/><path d="m22 12.65-8.58 3.9a2 2 0 0 1-1.66 0L3.2 12.65"/></Icon>;
+const MoveHorizontalIcon = () => <Icon><path d="M8 18L2 12l6-6"/><path d="M16 6l6 6-6 6"/><path d="M2 12h20"/></Icon>;
+const MinusIcon = () => <Icon><path d="M5 12h14"/></Icon>;
+const HashIcon = () => <Icon><path d="M4 9h16"/><path d="M4 15h16"/><path d="M10 3L8 21"/><path d="M16 3l-2 18"/></Icon>;
+const AlignCenterVerticalIcon = () => <Icon><path d="M3 12h18"/><path d="M11 20v-4h2v4"/><path d="M11 8V4h2v4"/></Icon>;
+const RepeatIcon = () => <Icon><path d="M17 2.1l4 4-4 4"/><path d="M3 12.6V8c0-1.1.9-2 2-2h14"/><path d="M7 21.9l-4-4 4-4"/><path d="M21 11.4V16c0 1.1-.9 2-2 2H5"/></Icon>;
+const MouseIcon = () => <Icon><rect x="5" y="2" width="14" height="20" rx="7"/><path d="M12 6v4"/></Icon>;
+const TimerIcon = () => <Icon><path d="M10 2h4"/><path d="M12 14v-4"/><path d="M4 13a8 8 0 0 1 16 0H4Z"/><circle cx="12" cy="12" r="10"/></Icon>;
