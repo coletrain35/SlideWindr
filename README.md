@@ -49,7 +49,16 @@ A modern, interactive presentation builder built with React, Three.js, and Tailw
 
 ### Installation
 
+**IMPORTANT:** The application code is in the `presenta-react` subdirectory. All npm commands must be run from there.
+
 ```bash
+# Clone the repository
+git clone <your-repo-url>
+cd SlideWinder
+
+# Navigate to the app directory
+cd presenta-react
+
 # Install dependencies
 npm install
 
@@ -58,6 +67,13 @@ npm run dev
 
 # Build for production
 npm run build
+```
+
+**Quick Start Scripts** (from project root):
+```bash
+# Windows users can use these convenient scripts:
+dev.bat      # Starts development server
+build.bat    # Builds for production
 ```
 
 ## Usage

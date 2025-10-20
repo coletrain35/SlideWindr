@@ -11,7 +11,10 @@
       "Bash(npm run lint)",
       "Bash(cat:*)",
       "Bash(rm \"D:\\App_Dev\\SlideWinder\\IMPLEMENTATION_PLAN.md\")",
-      "Bash(find presenta-react/src -type f ( -name \"*.js\" -o -name \"*.jsx\" ) -exec grep -l \"SlideWinder\" {} ;)"
+      "Bash(find presenta-react/src -type f ( -name \"*.js\" -o -name \"*.jsx\" ) -exec grep -l \"SlideWinder\" {} ;)",
+      "Bash(npm run build)",
+      "Bash(npm run preview)",
+      "Bash(git add .)"
     ],
     "deny": [],
     "ask": []
