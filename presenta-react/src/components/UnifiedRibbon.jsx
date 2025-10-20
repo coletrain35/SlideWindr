@@ -428,9 +428,27 @@ const ImageFormatTools = ({ selectedElement, updateElement }) => {
 // Component formatting tools
 const ComponentFormatTools = ({ selectedElement, updateElement }) => {
     return (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+            {/* Font Size */}
+            <div className="flex items-center gap-2">
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                    Size:
+                </label>
+                <input
+                    type="number"
+                    value={selectedElement.fontSize || 48}
+                    onChange={(e) => updateElement(selectedElement.id, { fontSize: parseInt(e.target.value) || 48 })}
+                    className="w-16 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                    min="8"
+                    max="200"
+                />
+                <span className="text-xs text-gray-500 dark:text-gray-400">px</span>
+            </div>
+
+            <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" />
+
             <span className="text-xs font-medium text-purple-600 dark:text-purple-400">
-                React Component - Edit code in the properties panel →
+                Edit component code in the properties panel →
             </span>
         </div>
     );

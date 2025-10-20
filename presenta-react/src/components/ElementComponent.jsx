@@ -80,7 +80,7 @@ const ElementComponent = ({ element, onMouseDown, onResizeMouseDown, isSelected,
             {renderContent()}
             {/* For component type, render directly (not as overlay) */}
             {element.type === 'component' && Object.values(librariesLoaded).every(Boolean) && element.reactComponent && (
-                <div className="absolute inset-0 w-full h-full" style={{ pointerEvents: isInteracting ? 'auto' : 'none' }}>
+                <div className="absolute inset-0 w-full h-full flex items-center justify-center" style={{ pointerEvents: isInteracting ? 'auto' : 'none', fontSize: `${element.fontSize || 48}px` }}>
                     <ErrorBoundary fallbackMessage="Failed to render component">
                         <LiveReactRenderer
                             id={element.id}

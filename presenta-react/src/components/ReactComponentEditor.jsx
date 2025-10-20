@@ -32,6 +32,17 @@ const ReactComponentEditor = ({ componentData, onChange, title }) => {
         debouncedCodeChange(value);
     };
 
+    // Auto-extract props when code changes (if props are empty)
+    useEffect(() => {
+        if (localCode && localCode.trim() && (!localProps || localProps.trim() === '' || localProps === '{}')) {
+            // Small delay to avoid running on every keystroke
+            const timer = setTimeout(() => {
+                extractPropsFromCode(true); // silent mode
+            }, 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [localCode]);
+
     const handlePropsChange = (e) => {
         const value = e.target.value;
         setLocalProps(value);
@@ -62,6 +73,11 @@ const ReactComponentEditor = ({ componentData, onChange, title }) => {
             const parsed = JSON.parse(localProps);
             setParsedProps(parsed);
             setPropsError(null);
+            // Auto-show visual editor when props are available
+            if (Object.keys(parsed).length > 0 && !showAdvanced) {
+                // Don't collapse it if it's already showing advanced
+                setShowAdvanced(false);
+            }
         } catch (e) {
             setParsedProps(null);
             setPropsError(e.message);
@@ -81,7 +97,7 @@ const ReactComponentEditor = ({ componentData, onChange, title }) => {
     };
 
     // Extract default props from component code
-    const extractPropsFromCode = () => {
+    const extractPropsFromCode = (silent = false) => {
         try {
             // Look for function parameters with destructuring and default values
             // This regex handles multi-line prop definitions
@@ -94,8 +110,10 @@ const ReactComponentEditor = ({ componentData, onChange, title }) => {
             }
 
             if (!funcMatch) {
-                alert('Could not find component props in the code. Make sure your component uses destructured props like:\nconst MyComponent = ({ prop1 = value, prop2 = value }) => { ... }');
-                return;
+                if (!silent) {
+                    alert('Could not find component props in the code. Make sure your component uses destructured props like:\nconst MyComponent = ({ prop1 = value, prop2 = value }) => { ... }');
+                }
+                return null;
             }
 
             const propsString = funcMatch[2]; // The content between { and }
@@ -103,7 +121,9 @@ const ReactComponentEditor = ({ componentData, onChange, title }) => {
 
             // Match individual props with default values
             // This handles: propName = defaultValue (with optional comma/newline after)
-            const propMatches = propsString.matchAll(/(\w+)\s*=\s*([^,\n]+?)(?:,|\s*\n|$)/gs);
+            // Updated regex to handle arrays, objects, and strings properly
+            // Matches: arrays [...], objects {...}, strings "..." or '...', or simple values
+            const propMatches = propsString.matchAll(/(\w+)\s*=\s*(\[[^\]]*\]|\{[^}]*\}|"[^"]*"|'[^']*'|[^,\n]+?)(?:\s*,|\s*\n|$)/gs);
 
             for (const match of propMatches) {
                 const propName = match[1].trim();
@@ -111,8 +131,24 @@ const ReactComponentEditor = ({ componentData, onChange, title }) => {
 
                 // Evaluate the default value
                 try {
+                    // Handle arrays
+                    if (defaultValue.startsWith('[') && defaultValue.endsWith(']')) {
+                        try {
+                            // Try to parse as JSON
+                            props[propName] = JSON.parse(defaultValue);
+                        } catch {
+                            // Fallback: simple array parsing
+                            const items = defaultValue.slice(1, -1).split(',').map(v => {
+                                v = v.trim();
+                                if (v.startsWith('"') || v.startsWith("'")) return v.slice(1, -1);
+                                if (!isNaN(v)) return parseFloat(v);
+                                return v;
+                            });
+                            props[propName] = items;
+                        }
+                    }
                     // Handle common cases
-                    if (defaultValue === 'true') props[propName] = true;
+                    else if (defaultValue === 'true') props[propName] = true;
                     else if (defaultValue === 'false') props[propName] = false;
                     else if (defaultValue.startsWith("'") || defaultValue.startsWith('"')) {
                         props[propName] = defaultValue.slice(1, -1); // Remove quotes
@@ -127,23 +163,97 @@ const ReactComponentEditor = ({ componentData, onChange, title }) => {
                 }
             }
 
+            // Add smart defaults for common props that might not have default values
+            const propsStringLower = propsString.toLowerCase();
+            if (propsStringLower.includes('children') && !props.children) {
+                props.children = 'Your text here';
+            }
+            if (propsStringLower.includes('text') && !props.text) {
+                props.text = 'Your text here';
+            }
+            if (propsStringLower.includes('label') && !props.label) {
+                props.label = 'Label';
+            }
+            if (propsStringLower.includes('title') && !props.title) {
+                props.title = 'Title';
+            }
+
             if (Object.keys(props).length === 0) {
-                alert('No props with default values found. Add default values to your component props like:\nconst MyComponent = ({ color = "#ffffff", size = 10 }) => { ... }');
-                return;
+                if (!silent) {
+                    alert('No props with default values found. Add default values to your component props like:\nconst MyComponent = ({ color = "#ffffff", size = 10 }) => { ... }');
+                }
+                return null;
             }
 
             const jsonString = JSON.stringify(props, null, 2);
             setLocalProps(jsonString);
             debouncedPropsChange(jsonString);
+            return props;
         } catch (e) {
             console.error('Error extracting props:', e);
-            alert('Error extracting props from code. Make sure your component has a valid function signature.');
+            if (!silent) {
+                alert('Error extracting props from code. Make sure your component has a valid function signature.');
+            }
+            return null;
         }
     };
 
     // Render visual control for a prop based on its type and value
     const renderPropControl = (key, value) => {
         const type = typeof value;
+
+        // Array handling (for colors, items, etc.)
+        if (Array.isArray(value)) {
+            // Special handling for color arrays
+            if (key.toLowerCase().includes('color') && value.every(v => typeof v === 'string' && v.match(/^#[0-9a-fA-F]{6}$/))) {
+                return (
+                    <div key={key} className="mb-3">
+                        <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block capitalize">
+                            {key.replace(/([A-Z])/g, ' $1').trim()}:
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                            {value.map((color, idx) => (
+                                <input
+                                    key={idx}
+                                    type="color"
+                                    value={color}
+                                    onChange={(e) => {
+                                        const newArray = [...value];
+                                        newArray[idx] = e.target.value;
+                                        updatePropValue(key, newArray);
+                                    }}
+                                    className="w-12 h-10 rounded-lg border border-gray-300 dark:border-gray-600 cursor-pointer"
+                                />
+                            ))}
+                            <button
+                                onClick={() => updatePropValue(key, [...value, '#000000'])}
+                                className="w-12 h-10 rounded-lg border-2 border-dashed border-gray-400 dark:border-gray-600 hover:border-blue-500 dark:hover:border-blue-400 flex items-center justify-center text-gray-400 hover:text-blue-500"
+                                title="Add color"
+                            >
+                                +
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+            // Generic array as comma-separated text
+            return (
+                <div key={key} className="mb-3">
+                    <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block capitalize">
+                        {key.replace(/([A-Z])/g, ' $1').trim()}: (comma-separated)
+                    </label>
+                    <input
+                        type="text"
+                        value={value.join(', ')}
+                        onChange={(e) => {
+                            const newArray = e.target.value.split(',').map(v => v.trim()).filter(v => v);
+                            updatePropValue(key, newArray);
+                        }}
+                        className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                    />
+                </div>
+            );
+        }
 
         // Color picker for hex colors
         if (type === 'string' && value.match(/^#[0-9A-Fa-f]{6}$/)) {
@@ -270,17 +380,30 @@ const ReactComponentEditor = ({ componentData, onChange, title }) => {
 
         // Text input for other strings
         if (type === 'string') {
+            // Use textarea for longer text fields (children, text, content, etc.)
+            const isLongText = ['children', 'text', 'content', 'description', 'message'].includes(key.toLowerCase());
+
             return (
                 <div key={key} className="mb-3">
                     <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block capitalize">
                         {key.replace(/([A-Z])/g, ' $1').trim()}:
                     </label>
-                    <input
-                        type="text"
-                        value={value}
-                        onChange={(e) => updatePropValue(key, e.target.value)}
-                        className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                    />
+                    {isLongText ? (
+                        <textarea
+                            value={value}
+                            onChange={(e) => updatePropValue(key, e.target.value)}
+                            rows={3}
+                            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-mono"
+                            placeholder="Enter text here..."
+                        />
+                    ) : (
+                        <input
+                            type="text"
+                            value={value}
+                            onChange={(e) => updatePropValue(key, e.target.value)}
+                            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                        />
+                    )}
                 </div>
             );
         }

@@ -999,6 +999,32 @@ export default function App() {
                                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                                     Add custom React components with Three.js, animations, and more.
                                 </p>
+                                {/* Font Size Control for React Components */}
+                                <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                                    <label className="text-xs font-bold text-blue-600 dark:text-blue-400 mb-2 block uppercase tracking-wide">
+                                        Text Size
+                                    </label>
+                                    <div className="flex items-center gap-3">
+                                        <input
+                                            type="range"
+                                            min="12"
+                                            max="200"
+                                            value={selectedElement.fontSize || 48}
+                                            onChange={(e) => updateElement(selectedElement.id, { fontSize: parseInt(e.target.value) })}
+                                            className="flex-1"
+                                        />
+                                        <input
+                                            type="number"
+                                            min="12"
+                                            max="200"
+                                            value={selectedElement.fontSize || 48}
+                                            onChange={(e) => updateElement(selectedElement.id, { fontSize: parseInt(e.target.value) || 48 })}
+                                            className="w-16 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                                        />
+                                        <span className="text-xs text-gray-600 dark:text-gray-400">px</span>
+                                    </div>
+                                </div>
+
                                 <ReactComponentEditor
                                     componentData={selectedElement.reactComponent}
                                     onChange={(newComponentData) => {
