@@ -4,7 +4,9 @@ import LiveReactRenderer from './components/LiveReactRenderer';
 import ElementComponent from './components/ElementComponent';
 import SlideProperties from './components/SlideProperties';
 import ElementProperties from './components/ElementProperties';
-import PresentationToolbar from './components/PresentationToolbar';
+import AlignmentGuides from './components/AlignmentGuides';
+import UnifiedRibbon from './components/UnifiedRibbon';
+import ReactComponentEditor from './components/ReactComponentEditor';
 import {
     TypeIcon,
     SquareIcon,
@@ -26,6 +28,7 @@ import { generateRevealHTML } from './utils/htmlGenerator';
 import { useHistory } from './hooks/useHistory';
 import { useAutoSave } from './hooks/useAutoSave';
 import { exportSlidesAsPDF, exportAllSlidesAsImages, exportAsJSON, importFromJSON } from './utils/exportUtils';
+import { alignHorizontal, alignVertical, distributeElements, snapToGrid as snapPositionToGrid, findAlignmentGuides, reorderElement } from './utils/alignmentUtils';
 import ExportDialog from './components/ExportDialog';
 import ImportDialog from './components/ImportDialog';
 
@@ -70,6 +73,11 @@ export default function App() {
     const [selectedShapeType, setSelectedShapeType] = useState('rectangle');
     const [showExportDialog, setShowExportDialog] = useState(false);
     const [showImportDialog, setShowImportDialog] = useState(false);
+    const [showGrid, setShowGrid] = useState(false);
+    const [snapToGrid, setSnapToGrid] = useState(false);
+    const [alignmentGuides, setAlignmentGuides] = useState(null);
+    const [textEditor, setTextEditor] = useState(null); // Store TipTap editor instance
+    const gridSize = 20;
     const canvasRef = useRef(null);
     const slideRefs = useRef([]);
     const hasCheckedRecovery = useRef(false);
@@ -195,6 +203,19 @@ export default function App() {
             case 'iframe':
                 newElement = { ...baseElement, type, htmlContent: '<div style="font-family: sans-serif; text-align: center; padding: 20px;">\n  <h1 style="color: #3b82f6;">Hello, World!</h1>\n  <p>Edit this code in the properties panel.</p>\n</div>', width: 400, height: 300 };
                 break;
+            case 'component':
+                newElement = {
+                    ...baseElement,
+                    type,
+                    width: 400,
+                    height: 300,
+                    reactComponent: {
+                        code: '// Paste your React component code here\n// Example:\nexport default function Component() {\n  return (\n    <div style={{ padding: "20px", textAlign: "center" }}>\n      <h1>Your Component</h1>\n      <p>Edit this code in the properties panel →</p>\n    </div>\n  );\n}',
+                        props: '{}',
+                        css: ''
+                    }
+                };
+                break;
             default:
                 return;
         }
@@ -302,6 +323,88 @@ export default function App() {
         });
     }, []);
 
+    // Alignment and arrangement functions
+    const handleAlign = useCallback((alignment) => {
+        if (selectedElementIds.length < 2) return;
+
+        setPresentation(prev => ({
+            ...prev,
+            slides: prev.slides.map(slide => {
+                if (slide.id !== currentSlideId) return slide;
+
+                const selectedElements = slide.elements.filter(el => selectedElementIds.includes(el.id));
+                let alignedElements;
+
+                if (['left', 'center', 'right'].includes(alignment)) {
+                    alignedElements = alignHorizontal(selectedElements, alignment);
+                } else if (['top', 'middle', 'bottom'].includes(alignment)) {
+                    alignedElements = alignVertical(selectedElements, alignment);
+                } else {
+                    return slide;
+                }
+
+                // Create a map of aligned elements for quick lookup
+                const alignedMap = new Map(alignedElements.map(el => [el.id, el]));
+
+                return {
+                    ...slide,
+                    elements: slide.elements.map(el =>
+                        alignedMap.has(el.id) ? alignedMap.get(el.id) : el
+                    )
+                };
+            })
+        }));
+    }, [selectedElementIds, currentSlideId]);
+
+    const handleDistribute = useCallback((direction) => {
+        if (selectedElementIds.length < 3) return;
+
+        setPresentation(prev => ({
+            ...prev,
+            slides: prev.slides.map(slide => {
+                if (slide.id !== currentSlideId) return slide;
+
+                const selectedElements = slide.elements.filter(el => selectedElementIds.includes(el.id));
+                const distributedElements = distributeElements(selectedElements, direction);
+
+                // Create a map of distributed elements for quick lookup
+                const distributedMap = new Map(distributedElements.map(el => [el.id, el]));
+
+                return {
+                    ...slide,
+                    elements: slide.elements.map(el =>
+                        distributedMap.has(el.id) ? distributedMap.get(el.id) : el
+                    )
+                };
+            })
+        }));
+    }, [selectedElementIds, currentSlideId]);
+
+    const handleReorder = useCallback((action) => {
+        if (selectedElementIds.length === 0) return;
+
+        setPresentation(prev => ({
+            ...prev,
+            slides: prev.slides.map(slide => {
+                if (slide.id !== currentSlideId) return slide;
+
+                let newElements = [...slide.elements];
+
+                // Apply reorder action to each selected element
+                // Do it in reverse order for 'forward'/'front' to maintain relative order
+                const idsToReorder = action === 'forward' || action === 'front'
+                    ? [...selectedElementIds].reverse()
+                    : selectedElementIds;
+
+                idsToReorder.forEach(elementId => {
+                    newElements = reorderElement(newElements, elementId, action);
+                });
+
+                return { ...slide, elements: newElements };
+            })
+        }));
+    }, [selectedElementIds, currentSlideId]);
+
     const handleMouseDown = useCallback((e, elementId) => {
         e.stopPropagation();
         setInteractingElementId(null);
@@ -379,10 +482,38 @@ export default function App() {
         if (interactingElementId) return;
         const canvasRect = canvasRef.current.getBoundingClientRect();
         if (dragging) {
+            // Get current slide for smart guides
+            const slide = presentationRef.current.slides.find(s => s.id === currentSlideId);
+            if (!slide) return;
+
             // Move all selected elements using their respective offsets
-            dragging.offsets.forEach(offset => {
+            dragging.offsets.forEach((offset, index) => {
                 let newX = e.clientX - canvasRect.left - offset.offsetX;
                 let newY = e.clientY - canvasRect.top - offset.offsetY;
+
+                // Apply snap-to-grid if enabled (only for first element to avoid desync)
+                if (snapToGrid && index === 0) {
+                    newX = snapPositionToGrid(newX, gridSize);
+                    newY = snapPositionToGrid(newY, gridSize);
+                }
+
+                // Find smart guides (only for first/primary dragging element)
+                if (index === 0) {
+                    const draggedElement = slide.elements.find(el => el.id === offset.id);
+                    if (draggedElement) {
+                        const otherElements = slide.elements.filter(el => !selectedElementIds.includes(el.id));
+                        const tempElement = { ...draggedElement, x: newX, y: newY };
+                        const guides = findAlignmentGuides(tempElement, otherElements);
+
+                        // Apply snap if guides are found
+                        if (guides.snapX !== null) newX = guides.snapX;
+                        if (guides.snapY !== null) newY = guides.snapY;
+
+                        // Update alignment guides for visual display
+                        setAlignmentGuides(guides.vertical.length > 0 || guides.horizontal.length > 0 ? guides : null);
+                    }
+                }
+
                 updateElement(offset.id, { x: newX, y: newY });
             });
         }
@@ -403,21 +534,31 @@ export default function App() {
                 newY = initialY + dy;
             }
 
+            // Apply snap-to-grid if enabled
+            if (snapToGrid) {
+                newX = snapPositionToGrid(newX, gridSize);
+                newY = snapPositionToGrid(newY, gridSize);
+                newWidth = snapPositionToGrid(newWidth, gridSize);
+                newHeight = snapPositionToGrid(newHeight, gridSize);
+            }
+
             if (newWidth > 20 && newHeight > 20) {
                 updateElement(resizing.elementId, { x: newX, y: newY, width: newWidth, height: newHeight });
             }
         }
-    }, [dragging, resizing, updateElement, interactingElementId]);
+    }, [dragging, resizing, updateElement, interactingElementId, snapToGrid, gridSize, currentSlideId, selectedElementIds]);
 
     const handleCanvasMouseUp = useCallback(() => {
         isDraggingOrResizingRef.current = false;
         setDragging(null);
         setResizing(null);
+        setAlignmentGuides(null); // Clear guides when done dragging
     }, []);
 
     const handleCanvasMouseLeave = useCallback(() => {
         setDragging(null);
         setResizing(null);
+        setAlignmentGuides(null); // Clear guides when leaving canvas
     }, []);
 
     const getBackgroundStyle = useCallback((bg) => {
@@ -773,63 +914,32 @@ export default function App() {
 
                 {/* Main Content */}
                 <main className="flex-1 flex flex-col p-4 bg-gray-200 dark:bg-gray-900">
-                    <PresentationToolbar
+                    {/* Unified Ribbon - Single adaptive toolbar */}
+                    <UnifiedRibbon
                         settings={presentation.settings}
                         updateSettings={updatePresentationSettings}
                         undo={undo}
                         redo={redo}
                         canUndo={canUndo}
                         canRedo={canRedo}
+                        addElement={addElement}
+                        selectedShapeType={selectedShapeType}
+                        setSelectedShapeType={setSelectedShapeType}
+                        selectedElement={selectedElement}
+                        selectedElementIds={selectedElementIds}
+                        updateElement={updateElement}
+                        deleteElement={deleteElement}
+                        copyElement={copyElement}
+                        pasteElement={pasteElement}
+                        onAlign={handleAlign}
+                        onDistribute={handleDistribute}
+                        onReorder={handleReorder}
+                        showGrid={showGrid}
+                        onToggleGrid={() => setShowGrid(!showGrid)}
+                        snapToGrid={snapToGrid}
+                        onToggleSnapToGrid={() => setSnapToGrid(!snapToGrid)}
+                        editor={textEditor}
                     />
-                    {/* Modern Element Toolbar */}
-                    <div className="mb-4 bg-white dark:bg-gray-800 p-3 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 flex items-center justify-center gap-2">
-                        <button
-                            onClick={() => addElement('text')}
-                            className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-all text-sm font-medium"
-                        >
-                            <TypeIcon /> Text
-                        </button>
-                        <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" />
-                        <div className="flex items-center bg-gray-50 dark:bg-gray-700/50 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600">
-                            <button
-                                onClick={() => addElement('shape')}
-                                className="flex items-center gap-2 px-4 py-2 hover:bg-purple-50 dark:hover:bg-purple-900/30 text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-all text-sm font-medium whitespace-nowrap"
-                            >
-                                <SquareIcon /> {selectedShapeType.charAt(0).toUpperCase() + selectedShapeType.slice(1)}
-                            </button>
-                            <div className="w-px h-6 bg-gray-200 dark:bg-gray-600" />
-                            <select
-                                value={selectedShapeType}
-                                onChange={(e) => setSelectedShapeType(e.target.value)}
-                                className="px-3 py-2 bg-transparent text-gray-700 dark:text-gray-300 text-sm font-medium cursor-pointer border-none outline-none hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all"
-                            >
-                                <option value="rectangle">Rectangle</option>
-                                <option value="circle">Circle</option>
-                                <option value="ellipse">Ellipse</option>
-                                <option value="triangle">Triangle</option>
-                                <option value="diamond">Diamond</option>
-                                <option value="arrow">Arrow</option>
-                                <option value="line">Line</option>
-                                <option value="star">Star</option>
-                                <option value="pentagon">Pentagon</option>
-                                <option value="hexagon">Hexagon</option>
-                            </select>
-                        </div>
-                        <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" />
-                        <button
-                            onClick={() => addElement('image')}
-                            className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/30 text-gray-700 dark:text-gray-300 hover:text-green-600 dark:hover:text-green-400 transition-all text-sm font-medium"
-                        >
-                            <ImageIcon /> Image
-                        </button>
-                        <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" />
-                        <button
-                            onClick={() => addElement('iframe')}
-                            className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-orange-50 dark:hover:bg-orange-900/30 text-gray-700 dark:text-gray-300 hover:text-orange-600 dark:hover:text-orange-400 transition-all text-sm font-medium"
-                        >
-                            <CodeIcon /> HTML Embed
-                        </button>
-                    </div>
 
                     <div className="flex-1 flex items-center justify-center">
                         <div
@@ -851,6 +961,14 @@ export default function App() {
                                     </ErrorBoundary>
                                 )}
                             </div>
+                            {/* Alignment Guides and Grid */}
+                            <AlignmentGuides
+                                guides={alignmentGuides}
+                                showGrid={showGrid}
+                                gridSize={gridSize}
+                                canvasWidth={960}
+                                canvasHeight={700}
+                            />
                             {currentSlide?.elements.map(el => (
                                 <ElementComponent
                                     key={el.id}
@@ -863,18 +981,47 @@ export default function App() {
                                     isInteracting={interactingElementId === el.id}
                                     setInteractingElementId={setInteractingElementId}
                                     librariesLoaded={librariesLoaded}
+                                    onEditorReady={setTextEditor}
                                 />
                             ))}
                         </div>
                     </div>
                 </main>
 
-                {/* Modern Properties Panel */}
-                <aside className="w-72 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 p-4 overflow-y-auto">
+                {/* Right Panel - React Component Editor & Slide Background */}
+                <aside className="w-96 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 p-4 overflow-y-auto">
                     {selectedElement ? (
-                        <ElementProperties selectedElement={selectedElement} updateElement={updateElement} deleteElement={deleteElement} copyElement={copyElement} pasteElement={pasteElement} />
+                        <div className="space-y-6">
+                            <div>
+                                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                                    Advanced Features
+                                </h3>
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                                    Add custom React components with Three.js, animations, and more.
+                                </p>
+                                <ReactComponentEditor
+                                    componentData={selectedElement.reactComponent}
+                                    onChange={(newComponentData) => {
+                                        updateElement(selectedElement.id, { reactComponent: newComponentData });
+                                    }}
+                                    title="React Component"
+                                />
+                            </div>
+                        </div>
+                    ) : currentSlide ? (
+                        <div>
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                                Slide Background
+                            </h3>
+                            <SlideProperties
+                                currentSlide={currentSlide}
+                                updateSlideSettings={updateSlideSettings}
+                            />
+                        </div>
                     ) : (
-                        <SlideProperties currentSlide={currentSlide} updateSlideSettings={updateSlideSettings} />
+                        <div className="text-center text-gray-500 dark:text-gray-400 mt-8">
+                            <p className="text-sm">Select a slide or element</p>
+                        </div>
                     )}
                 </aside>
             </div>

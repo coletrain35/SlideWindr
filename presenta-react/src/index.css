@@ -9,6 +9,8 @@
   --breakpoint-2xl: 1536px;
 }
 
+@variant dark (&:where(.dark, .dark *));
+
 body {
   margin: 0;
   padding: 0;

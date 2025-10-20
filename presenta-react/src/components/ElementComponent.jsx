@@ -6,7 +6,7 @@ import ShapeRenderer from './shapes/ShapeRenderer';
 import RichTextEditor from './RichTextEditor';
 import { CodeIcon, MousePointerClickIcon, StopCircleIcon } from './Icons';
 
-const ElementComponent = ({ element, onMouseDown, onResizeMouseDown, isSelected, isMultiSelected, updateElement, isInteracting, setInteractingElementId, librariesLoaded }) => {
+const ElementComponent = ({ element, onMouseDown, onResizeMouseDown, isSelected, isMultiSelected, updateElement, isInteracting, setInteractingElementId, librariesLoaded, onEditorReady }) => {
     const style = {
         left: `${element.x}px`,
         top: `${element.y}px`,
@@ -28,6 +28,7 @@ const ElementComponent = ({ element, onMouseDown, onResizeMouseDown, isSelected,
                         onChange={(html) => updateElement(element.id, { content: html })}
                         fontSize={element.fontSize}
                         color={element.color}
+                        onEditorReady={onEditorReady}
                     />
                 ) : (
                     <div
@@ -51,6 +52,19 @@ const ElementComponent = ({ element, onMouseDown, onResizeMouseDown, isSelected,
                     );
                 }
                 return <iframe srcDoc={element.htmlContent} style={{ width: '100%', height: '100%', border: 'none', pointerEvents: isInteracting ? 'auto' : 'none' }} title="Embedded Content"></iframe>;
+            case 'component':
+                if (!element.reactComponent?.code || element.reactComponent.code.trim() === '' || element.reactComponent.code.includes('// Paste your React component code here')) {
+                    return (
+                        <div className="w-full h-full bg-purple-50 dark:bg-purple-900/20 border-2 border-dashed border-purple-400 dark:border-purple-600 flex flex-col items-center justify-center text-center p-4 pointer-events-none">
+                            <CodeIcon className="w-12 h-12 text-purple-400 dark:text-purple-500 mb-2" />
+                            <p className="text-sm text-purple-600 dark:text-purple-300 font-semibold">React Component</p>
+                            <p className="text-xs text-purple-500 dark:text-purple-400 mt-1">
+                                Paste your component code in the properties panel →
+                            </p>
+                        </div>
+                    );
+                }
+                return null; // Component renders via LiveReactRenderer below
             default:
                 return null;
         }
@@ -64,24 +78,48 @@ const ElementComponent = ({ element, onMouseDown, onResizeMouseDown, isSelected,
             onClick={(e) => e.stopPropagation()}
         >
             {renderContent()}
-            <div className="absolute inset-0 w-full h-full pointer-events-none">
-                {Object.values(librariesLoaded).every(Boolean) && element.reactComponent && (
-                    <ErrorBoundary fallbackMessage="Failed to render element component">
+            {/* For component type, render directly (not as overlay) */}
+            {element.type === 'component' && Object.values(librariesLoaded).every(Boolean) && element.reactComponent && (
+                <div className="absolute inset-0 w-full h-full" style={{ pointerEvents: isInteracting ? 'auto' : 'none' }}>
+                    <ErrorBoundary fallbackMessage="Failed to render component">
                         <LiveReactRenderer
                             id={element.id}
                             component={element.reactComponent}
                         />
                     </ErrorBoundary>
-                )}
-            </div>
+                </div>
+            )}
+            {/* For other types, render as overlay */}
+            {element.type !== 'component' && (
+                <div className="absolute inset-0 w-full h-full pointer-events-none">
+                    {Object.values(librariesLoaded).every(Boolean) && element.reactComponent && (
+                        <ErrorBoundary fallbackMessage="Failed to render element component">
+                            <LiveReactRenderer
+                                id={element.id}
+                                component={element.reactComponent}
+                            />
+                        </ErrorBoundary>
+                    )}
+                </div>
+            )}
             {isSelected && !isInteracting && (
                 <>
                     <div className={`absolute -inset-1 border-2 ${isMultiSelected ? 'border-purple-500' : 'border-blue-500'} pointer-events-none`}></div>
-                    {element.type === 'iframe' && (element.htmlContent &&
+                    {(element.type === 'iframe' && element.htmlContent) && (
                         <button
                             onClick={() => setInteractingElementId(element.id)}
                             className="absolute -top-10 left-1/2 -translate-x-1/2 bg-blue-500 text-white text-xs font-bold py-1 px-3 rounded-full shadow-lg flex items-center gap-1.5 hover:bg-blue-600"
                             title="Interact with this content"
+                        >
+                            <MousePointerClickIcon />
+                            Interact
+                        </button>
+                    )}
+                    {element.type === 'component' && element.reactComponent?.code && !element.reactComponent.code.includes('// Paste your React component code here') && (
+                        <button
+                            onClick={() => setInteractingElementId(element.id)}
+                            className="absolute -top-10 left-1/2 -translate-x-1/2 bg-purple-500 text-white text-xs font-bold py-1 px-3 rounded-full shadow-lg flex items-center gap-1.5 hover:bg-purple-600"
+                            title="Interact with this component"
                         >
                             <MousePointerClickIcon />
                             Interact
@@ -118,7 +156,7 @@ const ElementComponent = ({ element, onMouseDown, onResizeMouseDown, isSelected,
 ElementComponent.propTypes = {
     element: PropTypes.shape({
         id: PropTypes.string.isRequired,
-        type: PropTypes.oneOf(['text', 'shape', 'image', 'iframe']).isRequired,
+        type: PropTypes.oneOf(['text', 'shape', 'image', 'iframe', 'component']).isRequired,
         x: PropTypes.number.isRequired,
         y: PropTypes.number.isRequired,
         width: PropTypes.number.isRequired,
@@ -143,7 +181,8 @@ ElementComponent.propTypes = {
     updateElement: PropTypes.func.isRequired,
     isInteracting: PropTypes.bool.isRequired,
     setInteractingElementId: PropTypes.func.isRequired,
-    librariesLoaded: PropTypes.object.isRequired
+    librariesLoaded: PropTypes.object.isRequired,
+    onEditorReady: PropTypes.func
 };
 
 // Memoize component to prevent unnecessary re-renders
