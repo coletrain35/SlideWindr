@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import ReactComponentEditor from './ReactComponentEditor';
+import ImageUploader from './ImageUploader';
 import { useDebouncedCallback } from '../utils/debounce';
 
-const ElementProperties = ({ selectedElement, updateElement, deleteElement }) => {
+const ElementProperties = ({ selectedElement, updateElement, deleteElement, copyElement, pasteElement }) => {
     // Local state for immediate UI updates on numeric inputs
     const [localX, setLocalX] = useState(selectedElement.x);
     const [localY, setLocalY] = useState(selectedElement.y);
@@ -146,16 +147,18 @@ const ElementProperties = ({ selectedElement, updateElement, deleteElement }) =>
                         <h3 className="text-xs font-semibold text-blue-600 dark:text-blue-400 mb-2 uppercase tracking-wide">Text Properties</h3>
                         <div className="space-y-2">
                             <div>
-                                <label className="text-xs text-gray-600 dark:text-gray-400">Font Size:</label>
+                                <label className="text-xs text-gray-600 dark:text-gray-400">Font Size: {Math.round(localFontSize)}px</label>
                                 <input
-                                    type="number"
-                                    value={Math.round(localFontSize)}
+                                    type="range"
+                                    min="8"
+                                    max="120"
+                                    value={localFontSize}
                                     onChange={handleFontSizeChange}
-                                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 transition-all"
+                                    className="w-full accent-blue-500"
                                 />
                             </div>
                             <div>
-                                <label className="text-xs text-gray-600 dark:text-gray-400">Color:</label>
+                                <label className="text-xs text-gray-600 dark:text-gray-400">Text Color:</label>
                                 <input
                                     type="color"
                                     value={selectedElement.color}
@@ -163,34 +166,154 @@ const ElementProperties = ({ selectedElement, updateElement, deleteElement }) =>
                                     className="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 cursor-pointer"
                                 />
                             </div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400 pt-1 border-t border-gray-200 dark:border-gray-600">
+                                <p>💡 Tip: Select text to access rich formatting options (bold, italic, alignment, lists, etc.)</p>
+                            </div>
                         </div>
                     </div>
                 )}
                 {selectedElement.type === 'shape' && (
                     <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3 border border-purple-200 dark:border-purple-800">
                         <h3 className="text-xs font-semibold text-purple-600 dark:text-purple-400 mb-2 uppercase tracking-wide">Shape Properties</h3>
-                        <div>
-                            <label className="text-xs text-gray-600 dark:text-gray-400">Background Color:</label>
-                            <input
-                                type="color"
-                                value={selectedElement.backgroundColor}
-                                onChange={e => updateElement(selectedElement.id, { backgroundColor: e.target.value })}
-                                className="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 cursor-pointer"
-                            />
+                        <div className="space-y-2">
+                            <div>
+                                <label className="text-xs text-gray-600 dark:text-gray-400">Shape Type:</label>
+                                <select
+                                    value={selectedElement.shapeType || 'rectangle'}
+                                    onChange={e => {
+                                        const newShapeType = e.target.value;
+                                        const updates = { shapeType: newShapeType };
+
+                                        // Adjust dimensions when switching to shapes that need specific aspect ratios
+                                        const squareShapes = ['circle', 'star', 'pentagon', 'hexagon', 'diamond'];
+
+                                        if (squareShapes.includes(newShapeType)) {
+                                            // For shapes that should be square, use the smaller dimension
+                                            const size = Math.min(selectedElement.width, selectedElement.height);
+                                            updates.width = size;
+                                            updates.height = size;
+                                        } else if (newShapeType === 'triangle') {
+                                            // Triangle looks good with slight height adjustment
+                                            const width = selectedElement.width;
+                                            updates.height = Math.round(width * 0.87); // ~√3/2 ratio
+                                        }
+                                        // For rectangle, ellipse, arrow, line - keep existing dimensions
+
+                                        updateElement(selectedElement.id, updates);
+                                    }}
+                                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 transition-all"
+                                >
+                                    <option value="rectangle">Rectangle</option>
+                                    <option value="circle">Circle</option>
+                                    <option value="ellipse">Ellipse</option>
+                                    <option value="triangle">Triangle</option>
+                                    <option value="diamond">Diamond</option>
+                                    <option value="arrow">Arrow</option>
+                                    <option value="line">Line</option>
+                                    <option value="star">Star</option>
+                                    <option value="pentagon">Pentagon</option>
+                                    <option value="hexagon">Hexagon</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="text-xs text-gray-600 dark:text-gray-400">Fill Color:</label>
+                                <input
+                                    type="color"
+                                    value={selectedElement.backgroundColor || '#3b82f6'}
+                                    onChange={e => updateElement(selectedElement.id, { backgroundColor: e.target.value })}
+                                    className="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 cursor-pointer"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs text-gray-600 dark:text-gray-400">Border Width: {selectedElement.borderWidth || 0}px</label>
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="20"
+                                    value={selectedElement.borderWidth || 0}
+                                    onChange={e => updateElement(selectedElement.id, { borderWidth: +e.target.value })}
+                                    className="w-full accent-purple-500"
+                                />
+                            </div>
+                            {(selectedElement.borderWidth || 0) > 0 && (
+                                <>
+                                    <div>
+                                        <label className="text-xs text-gray-600 dark:text-gray-400">Border Color:</label>
+                                        <input
+                                            type="color"
+                                            value={selectedElement.borderColor || '#000000'}
+                                            onChange={e => updateElement(selectedElement.id, { borderColor: e.target.value })}
+                                            className="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 cursor-pointer"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-gray-600 dark:text-gray-400">Border Style:</label>
+                                        <select
+                                            value={selectedElement.borderStyle || 'solid'}
+                                            onChange={e => updateElement(selectedElement.id, { borderStyle: e.target.value })}
+                                            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 transition-all"
+                                        >
+                                            <option value="solid">Solid</option>
+                                            <option value="dashed">Dashed</option>
+                                            <option value="dotted">Dotted</option>
+                                        </select>
+                                    </div>
+                                </>
+                            )}
+                            {selectedElement.shapeType === 'rectangle' && (
+                                <div>
+                                    <label className="text-xs text-gray-600 dark:text-gray-400">Corner Radius: {selectedElement.borderRadius || 0}px</label>
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="100"
+                                        value={selectedElement.borderRadius || 0}
+                                        onChange={e => updateElement(selectedElement.id, { borderRadius: +e.target.value })}
+                                        className="w-full accent-purple-500"
+                                    />
+                                </div>
+                            )}
+                            <div>
+                                <label className="text-xs text-gray-600 dark:text-gray-400">Opacity: {Math.round((selectedElement.opacity || 1) * 100)}%</label>
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="1"
+                                    step="0.01"
+                                    value={selectedElement.opacity || 1}
+                                    onChange={e => updateElement(selectedElement.id, { opacity: +e.target.value })}
+                                    className="w-full accent-purple-500"
+                                />
+                            </div>
                         </div>
                     </div>
                 )}
                 {selectedElement.type === 'image' && (
                     <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 border border-green-200 dark:border-green-800">
                         <h3 className="text-xs font-semibold text-green-600 dark:text-green-400 mb-2 uppercase tracking-wide">Image Properties</h3>
-                        <div>
-                            <label className="text-xs text-gray-600 dark:text-gray-400">Image URL:</label>
-                            <input
-                                type="text"
-                                value={selectedElement.src}
-                                onChange={e => updateElement(selectedElement.id, { src: e.target.value })}
-                                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 transition-all"
-                            />
+                        <div className="space-y-3">
+                            <div>
+                                <label className="text-xs text-gray-600 dark:text-gray-400 mb-1 block">Upload Image:</label>
+                                <ImageUploader
+                                    currentImage={selectedElement.imageData || selectedElement.src}
+                                    onImageUpload={(base64) => updateElement(selectedElement.id, { imageData: base64, src: base64 })}
+                                />
+                            </div>
+                            <div className="flex items-center">
+                                <div className="flex-1 border-t border-gray-300 dark:border-gray-600"></div>
+                                <span className="px-2 text-xs text-gray-500 dark:text-gray-400">OR</span>
+                                <div className="flex-1 border-t border-gray-300 dark:border-gray-600"></div>
+                            </div>
+                            <div>
+                                <label className="text-xs text-gray-600 dark:text-gray-400">Image URL:</label>
+                                <input
+                                    type="text"
+                                    value={selectedElement.imageData ? '' : (selectedElement.src || '')}
+                                    onChange={e => updateElement(selectedElement.id, { src: e.target.value, imageData: '' })}
+                                    placeholder="https://example.com/image.jpg"
+                                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-2 py-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 transition-all"
+                                />
+                            </div>
                         </div>
                     </div>
                 )}
@@ -216,12 +339,30 @@ const ElementProperties = ({ selectedElement, updateElement, deleteElement }) =>
                     />
                 </div>
 
-                <button
-                    onClick={deleteElement}
-                    className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold py-2.5 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105 text-sm mt-4"
-                >
-                    Delete Element
-                </button>
+                <div className="space-y-2 mt-4">
+                    <div className="grid grid-cols-2 gap-2">
+                        <button
+                            onClick={copyElement}
+                            title="Copy (Ctrl+C)"
+                            className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold py-2.5 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105 text-sm"
+                        >
+                            Copy
+                        </button>
+                        <button
+                            onClick={pasteElement}
+                            title="Paste (Ctrl+V)"
+                            className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-2.5 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105 text-sm"
+                        >
+                            Paste
+                        </button>
+                    </div>
+                    <button
+                        onClick={deleteElement}
+                        className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold py-2.5 px-4 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105 text-sm"
+                    >
+                        Delete Element
+                    </button>
+                </div>
             </div>
         </>
     );
@@ -249,7 +390,9 @@ ElementProperties.propTypes = {
         })
     }).isRequired,
     updateElement: PropTypes.func.isRequired,
-    deleteElement: PropTypes.func.isRequired
+    deleteElement: PropTypes.func.isRequired,
+    copyElement: PropTypes.func.isRequired,
+    pasteElement: PropTypes.func.isRequired
 };
 
 // Memoize to prevent re-renders when selected element hasn't changed

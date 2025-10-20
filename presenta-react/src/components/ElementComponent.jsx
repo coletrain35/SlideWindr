@@ -2,9 +2,11 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import ErrorBoundary from './ErrorBoundary';
 import LiveReactRenderer from './LiveReactRenderer';
+import ShapeRenderer from './shapes/ShapeRenderer';
+import RichTextEditor from './RichTextEditor';
 import { CodeIcon, MousePointerClickIcon, StopCircleIcon } from './Icons';
 
-const ElementComponent = ({ element, onMouseDown, onResizeMouseDown, isSelected, updateElement, isInteracting, setInteractingElementId, librariesLoaded }) => {
+const ElementComponent = ({ element, onMouseDown, onResizeMouseDown, isSelected, isMultiSelected, updateElement, isInteracting, setInteractingElementId, librariesLoaded }) => {
     const style = {
         left: `${element.x}px`,
         top: `${element.y}px`,
@@ -20,20 +22,24 @@ const ElementComponent = ({ element, onMouseDown, onResizeMouseDown, isSelected,
     const renderContent = () => {
         switch (element.type) {
             case 'text':
-                return (
+                return isSelected && !element.reactComponent ? (
+                    <RichTextEditor
+                        content={element.content}
+                        onChange={(html) => updateElement(element.id, { content: html })}
+                        fontSize={element.fontSize}
+                        color={element.color}
+                    />
+                ) : (
                     <div
-                        contentEditable={isSelected && !element.reactComponent}
-                        suppressContentEditableWarning={true}
-                        onBlur={handleContentChange}
                         dangerouslySetInnerHTML={{ __html: element.content }}
-                        style={{ fontSize: `${element.fontSize}px`, color: element.color, width: '100%', height: '100%', outline: 'none' }}
+                        style={{ fontSize: `${element.fontSize}px`, color: element.color, width: '100%', height: '100%', pointerEvents: 'none' }}
                         className="prose"
                     />
                 );
             case 'shape':
-                return <div style={{ width: '100%', height: '100%', backgroundColor: element.backgroundColor }}></div>;
+                return <ShapeRenderer element={element} />;
             case 'image':
-                return <img src={element.src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable="false" />;
+                return <img src={element.imageData || element.src} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} draggable="false" />;
             case 'iframe':
                 if (!element.htmlContent) {
                     return (
@@ -70,7 +76,7 @@ const ElementComponent = ({ element, onMouseDown, onResizeMouseDown, isSelected,
             </div>
             {isSelected && !isInteracting && (
                 <>
-                    <div className="absolute -inset-1 border-2 border-blue-500 pointer-events-none"></div>
+                    <div className={`absolute -inset-1 border-2 ${isMultiSelected ? 'border-purple-500' : 'border-blue-500'} pointer-events-none`}></div>
                     {element.type === 'iframe' && (element.htmlContent &&
                         <button
                             onClick={() => setInteractingElementId(element.id)}
@@ -133,6 +139,7 @@ ElementComponent.propTypes = {
     onMouseDown: PropTypes.func.isRequired,
     onResizeMouseDown: PropTypes.func.isRequired,
     isSelected: PropTypes.bool.isRequired,
+    isMultiSelected: PropTypes.bool,
     updateElement: PropTypes.func.isRequired,
     isInteracting: PropTypes.bool.isRequired,
     setInteractingElementId: PropTypes.func.isRequired,

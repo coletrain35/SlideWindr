@@ -363,3 +363,50 @@ export const RedoIcon = ({ label, className }) => (
     </svg>
 );
 RedoIcon.propTypes = { label: PropTypes.string, className: PropTypes.string };
+
+
+export const UploadIcon = ({ label, className }) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden={!label}
+        role={label ? "img" : undefined}
+        aria-label={label}
+        className={className}
+    >
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+        <polyline points="17 8 12 3 7 8"/>
+        <line x1="12" y1="3" x2="12" y2="15"/>
+    </svg>
+);
+UploadIcon.propTypes = { label: PropTypes.string, className: PropTypes.string };
+
+export const XIcon = ({ label, className }) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden={!label}
+        role={label ? "img" : undefined}
+        aria-label={label}
+        className={className}
+    >
+        <line x1="18" y1="6" x2="6" y2="18"/>
+        <line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+);
+XIcon.propTypes = { label: PropTypes.string, className: PropTypes.string };
+

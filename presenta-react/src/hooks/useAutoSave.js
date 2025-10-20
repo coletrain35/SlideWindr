@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 
-const STORAGE_KEY = 'slidewinder_presentation_autosave';
+const STORAGE_KEY = 'slidewindr_presentation_autosave';
 const AUTOSAVE_DELAY = 2000; // 2 seconds
 
 /**

@@ -9,7 +9,9 @@
       "Bash(npm run dev)",
       "mcp__ide__getDiagnostics",
       "Bash(npm run lint)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(rm \"D:\\App_Dev\\SlideWinder\\IMPLEMENTATION_PLAN.md\")",
+      "Bash(find presenta-react/src -type f ( -name \"*.js\" -o -name \"*.jsx\" ) -exec grep -l \"SlideWinder\" {} ;)"
     ],
     "deny": [],
     "ask": []

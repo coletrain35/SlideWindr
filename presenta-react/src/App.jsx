@@ -55,22 +55,19 @@ export default function App() {
         }
     };
 
-    // Temporarily using regular useState to debug the issue
-    const [presentation, setPresentation] = useState(initialPresentation);
-    const undo = () => {};
-    const redo = () => {};
-    const canUndo = false;
-    const canRedo = false;
-    // const { state: presentation, setState: setPresentation, undo, redo, canUndo, canRedo } = useHistory(initialPresentation);
+    // Use history hook for undo/redo functionality
+    const { state: presentation, setState: setPresentation, undo, redo, canUndo, canRedo } = useHistory(initialPresentation);
     const { saveStatus, loadSave, clearSave } = useAutoSave(presentation);
     const [currentSlideId, setCurrentSlideId] = useState(presentation?.slides?.[0]?.id || initialPresentation.slides[0].id);
-    const [selectedElementId, setSelectedElementId] = useState(null);
+    const [selectedElementIds, setSelectedElementIds] = useState([]);
+    const selectedElementId = selectedElementIds[0] || null; // For backward compatibility
     const [dragging, setDragging] = useState(null);
     const [resizing, setResizing] = useState(null);
     const [interactingElementId, setInteractingElementId] = useState(null);
     const [librariesLoaded] = useState({ babel: true, three: true, postprocessing: true });
     const [isDarkMode, setIsDarkMode] = useState(false);
     const [showRecoveryDialog, setShowRecoveryDialog] = useState(false);
+    const [selectedShapeType, setSelectedShapeType] = useState('rectangle');
     const [showExportDialog, setShowExportDialog] = useState(false);
     const [showImportDialog, setShowImportDialog] = useState(false);
     const canvasRef = useRef(null);
@@ -153,15 +150,48 @@ export default function App() {
             case 'text':
                 newElement = { ...baseElement, type, content: 'New Text', fontSize: 24, color: '#000000', height: 50, width: 150 };
                 break;
-            case 'shape':
-                newElement = { ...baseElement, type, shapeType: 'rectangle', backgroundColor: '#3b82f6' };
-                break;
-            case 'image': {
-                const src = prompt("Enter image URL:", "https://placehold.co/600x400/d1d5db/374151?text=My+Image");
-                if (!src) return;
-                newElement = { ...baseElement, type, src, width: 300, height: 200 };
+            case 'shape': {
+                // Adjust dimensions based on shape type for proper aspect ratios
+                let shapeWidth = 200;
+                let shapeHeight = 100;
+
+                // For circular/square shapes, make them square
+                if (['circle', 'star', 'pentagon', 'hexagon'].includes(selectedShapeType)) {
+                    shapeWidth = 150;
+                    shapeHeight = 150;
+                }
+                // For diamond, use square aspect
+                else if (selectedShapeType === 'diamond') {
+                    shapeWidth = 150;
+                    shapeHeight = 150;
+                }
+                // For triangle, use reasonable proportions
+                else if (selectedShapeType === 'triangle') {
+                    shapeWidth = 150;
+                    shapeHeight = 130;
+                }
+
+                newElement = {
+                    ...baseElement,
+                    type,
+                    shapeType: selectedShapeType,
+                    backgroundColor: '#3b82f6',
+                    width: shapeWidth,
+                    height: shapeHeight
+                };
                 break;
             }
+            case 'image':
+                // Create placeholder image that can be updated via properties panel
+                newElement = {
+                    ...baseElement,
+                    type,
+                    src: 'https://placehold.co/600x400/d1d5db/374151?text=Upload+Image',
+                    imageData: null,
+                    width: 300,
+                    height: 200
+                };
+                break;
             case 'iframe':
                 newElement = { ...baseElement, type, htmlContent: '<div style="font-family: sans-serif; text-align: center; padding: 20px;">\n  <h1 style="color: #3b82f6;">Hello, World!</h1>\n  <p>Edit this code in the properties panel.</p>\n</div>', width: 400, height: 300 };
                 break;
@@ -175,21 +205,49 @@ export default function App() {
                 slide.id === currentSlideId ? { ...slide, elements: [...slide.elements, newElement] } : slide
             )
         }));
-        setSelectedElementId(newElement.id);
-    }, [currentSlideId]);
+        setSelectedElementIds([newElement.id]);
+    }, [currentSlideId, selectedShapeType]);
 
     const deleteElement = useCallback(() => {
-        if (!selectedElementId) return;
+        if (selectedElementIds.length === 0) return;
         setPresentation(prev => ({
             ...prev,
             slides: prev.slides.map(slide =>
                 slide.id === currentSlideId
-                    ? { ...slide, elements: slide.elements.filter(el => el.id !== selectedElementId) }
+                    ? { ...slide, elements: slide.elements.filter(el => !selectedElementIds.includes(el.id)) }
                     : slide
             )
         }));
-        setSelectedElementId(null);
-    }, [currentSlideId, selectedElementId]);
+        setSelectedElementIds([]);
+    }, [currentSlideId, selectedElementIds]);
+
+    // Clipboard state for copy/paste
+    const [copiedElement, setCopiedElement] = useState(null);
+
+    const copyElement = useCallback(() => {
+        if (!selectedElementId) return;
+        const element = currentSlide?.elements?.find(e => e.id === selectedElementId);
+        if (element) {
+            setCopiedElement(element);
+        }
+    }, [selectedElementId, currentSlide]);
+
+    const pasteElement = useCallback(() => {
+        if (!copiedElement) return;
+        const newElement = {
+            ...copiedElement,
+            id: crypto.randomUUID(),
+            x: copiedElement.x + 20,
+            y: copiedElement.y + 20
+        };
+        setPresentation(prev => ({
+            ...prev,
+            slides: prev.slides.map(slide =>
+                slide.id === currentSlideId ? { ...slide, elements: [...slide.elements, newElement] } : slide
+            )
+        }));
+        setSelectedElementIds([newElement.id]);
+    }, [copiedElement, currentSlideId]);
 
     const addSlide = useCallback(() => {
         const newSlide = {
@@ -247,7 +305,23 @@ export default function App() {
     const handleMouseDown = useCallback((e, elementId) => {
         e.stopPropagation();
         setInteractingElementId(null);
-        setSelectedElementId(elementId);
+
+        // Handle multi-selection with Ctrl/Cmd key
+        if (e.ctrlKey || e.metaKey) {
+            setSelectedElementIds(prev => {
+                if (prev.includes(elementId)) {
+                    // Remove from selection if already selected
+                    return prev.filter(id => id !== elementId);
+                } else {
+                    // Add to selection
+                    return [...prev, elementId];
+                }
+            });
+            return; // Don't start dragging when multi-selecting
+        } else {
+            // Single selection (replace existing selection)
+            setSelectedElementIds([elementId]);
+        }
 
         // Get fresh element data from current presentation state
         const slide = presentationRef.current.slides.find(s => s.id === currentSlideId);
@@ -258,17 +332,28 @@ export default function App() {
 
         const canvasRect = canvasRef.current.getBoundingClientRect();
         isDraggingOrResizingRef.current = true;
+
+        // For multi-selection, store offsets for all selected elements
+        const elementsToMove = selectedElementIds.length > 1 ?
+            slide.elements.filter(el => selectedElementIds.includes(el.id)) :
+            [element];
+
+        const offsets = elementsToMove.map(el => ({
+            id: el.id,
+            offsetX: e.clientX - canvasRect.left - el.x,
+            offsetY: e.clientY - canvasRect.top - el.y,
+        }));
+
         setDragging({
-            elementId: element.id, // Store ID instead of whole element
-            offsetX: e.clientX - canvasRect.left - element.x,
-            offsetY: e.clientY - canvasRect.top - element.y,
+            elementId: element.id,
+            offsets: offsets, // Store all element offsets for multi-move
         });
-    }, [currentSlideId]);
+    }, [currentSlideId, selectedElementIds]);
 
     const handleResizeMouseDown = useCallback((e, elementId, handle) => {
         e.stopPropagation();
         setInteractingElementId(null);
-        setSelectedElementId(elementId);
+        setSelectedElementIds([elementId]);
 
         // Get fresh element data from current presentation state
         const slide = presentationRef.current.slides.find(s => s.id === currentSlideId);
@@ -294,9 +379,12 @@ export default function App() {
         if (interactingElementId) return;
         const canvasRect = canvasRef.current.getBoundingClientRect();
         if (dragging) {
-            let newX = e.clientX - canvasRect.left - dragging.offsetX;
-            let newY = e.clientY - canvasRect.top - dragging.offsetY;
-            updateElement(dragging.elementId, { x: newX, y: newY });
+            // Move all selected elements using their respective offsets
+            dragging.offsets.forEach(offset => {
+                let newX = e.clientX - canvasRect.left - offset.offsetX;
+                let newY = e.clientY - canvasRect.top - offset.offsetY;
+                updateElement(offset.id, { x: newX, y: newY });
+            });
         }
         if (resizing) {
             const dx = e.clientX - resizing.initialMouseX;
@@ -358,11 +446,29 @@ export default function App() {
                     redo();
                 }
             }
+            // Copy: Ctrl+C or Cmd+C
+            else if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !isInputFocused && selectedElementId) {
+                e.preventDefault();
+                copyElement();
+            }
+            // Paste: Ctrl+V or Cmd+V
+            else if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !isInputFocused) {
+                e.preventDefault();
+                pasteElement();
+            }
+            // Select All: Ctrl+A or Cmd+A
+            else if ((e.ctrlKey || e.metaKey) && e.key === 'a' && !isInputFocused) {
+                e.preventDefault();
+                const slide = presentationRef.current.slides.find(s => s.id === currentSlideId);
+                if (slide && slide.elements.length > 0) {
+                    setSelectedElementIds(slide.elements.map(el => el.id));
+                }
+            }
         };
 
         const handleKeyUp = (e) => {
             if (e.key === 'Delete' || e.key === 'Backspace') {
-                if (selectedElementId && document.activeElement.tagName !== "INPUT" && document.activeElement.tagName !== "TEXTAREA" && !document.activeElement.isContentEditable) {
+                if (selectedElementIds.length > 0 && document.activeElement.tagName !== "INPUT" && document.activeElement.tagName !== "TEXTAREA" && !document.activeElement.isContentEditable) {
                     deleteElement();
                 }
             }
@@ -374,7 +480,7 @@ export default function App() {
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('keyup', handleKeyUp);
         };
-    }, [selectedElementId, deleteElement, undo, redo]);
+    }, [selectedElementIds, deleteElement, undo, redo, copyElement, pasteElement, currentSlideId]);
 
     const generateHTML = () => {
         generateRevealHTML(presentation);
@@ -443,7 +549,7 @@ export default function App() {
             if (mode === 'replace') {
                 setPresentation(importedData);
                 setCurrentSlideId(importedData.slides[0]?.id);
-                setSelectedElementId(null);
+                setSelectedElementIds([]);
             } else if (mode === 'merge') {
                 setPresentation(prev => ({
                     ...prev,
@@ -474,19 +580,16 @@ export default function App() {
                     {/* Left: Logo & Title */}
                     <div className="flex items-center gap-4">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                                <svg className="w-6 h-6 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <rect x="3" y="3" width="18" height="18" rx="2" />
-                                    <line x1="9" y1="9" x2="15" y2="9" />
-                                    <line x1="9" y1="15" x2="15" y2="15" />
-                                </svg>
-                            </div>
-                            <div>
-                                <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                                    SlideWinder
-                                </h1>
-                                <p className="text-xs text-gray-500 dark:text-gray-400">Presentation Builder</p>
-                            </div>
+                            <img
+                                src="/slidewindr-icon.png"
+                                alt="SlideWindr"
+                                className="w-10 h-10 object-contain"
+                            />
+                            <img
+                                src="/slidewindr-wordmark.png"
+                                alt="SlideWindr"
+                                className="h-8 object-contain hidden sm:block"
+                            />
                         </div>
 
                         {/* Presentation Title - Editable */}
@@ -687,12 +790,31 @@ export default function App() {
                             <TypeIcon /> Text
                         </button>
                         <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" />
-                        <button
-                            onClick={() => addElement('shape')}
-                            className="flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/30 text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-all text-sm font-medium"
-                        >
-                            <SquareIcon /> Shape
-                        </button>
+                        <div className="flex items-center bg-gray-50 dark:bg-gray-700/50 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600">
+                            <button
+                                onClick={() => addElement('shape')}
+                                className="flex items-center gap-2 px-4 py-2 hover:bg-purple-50 dark:hover:bg-purple-900/30 text-gray-700 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-all text-sm font-medium whitespace-nowrap"
+                            >
+                                <SquareIcon /> {selectedShapeType.charAt(0).toUpperCase() + selectedShapeType.slice(1)}
+                            </button>
+                            <div className="w-px h-6 bg-gray-200 dark:bg-gray-600" />
+                            <select
+                                value={selectedShapeType}
+                                onChange={(e) => setSelectedShapeType(e.target.value)}
+                                className="px-3 py-2 bg-transparent text-gray-700 dark:text-gray-300 text-sm font-medium cursor-pointer border-none outline-none hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all"
+                            >
+                                <option value="rectangle">Rectangle</option>
+                                <option value="circle">Circle</option>
+                                <option value="ellipse">Ellipse</option>
+                                <option value="triangle">Triangle</option>
+                                <option value="diamond">Diamond</option>
+                                <option value="arrow">Arrow</option>
+                                <option value="line">Line</option>
+                                <option value="star">Star</option>
+                                <option value="pentagon">Pentagon</option>
+                                <option value="hexagon">Hexagon</option>
+                            </select>
+                        </div>
                         <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" />
                         <button
                             onClick={() => addElement('image')}
@@ -717,7 +839,7 @@ export default function App() {
                             onMouseMove={handleCanvasMouseMove}
                             onMouseUp={handleCanvasMouseUp}
                             onMouseLeave={handleCanvasMouseLeave}
-                            onClick={() => { setSelectedElementId(null); setInteractingElementId(null); }}
+                            onClick={() => { setSelectedElementIds([]); setInteractingElementId(null); }}
                         >
                             <div className="absolute inset-0 w-full h-full pointer-events-none">
                                 {Object.values(librariesLoaded).every(Boolean) && currentSlide?.background?.reactComponent && (
@@ -735,7 +857,8 @@ export default function App() {
                                     element={el}
                                     onMouseDown={handleMouseDown}
                                     onResizeMouseDown={handleResizeMouseDown}
-                                    isSelected={selectedElementId === el.id}
+                                    isSelected={selectedElementIds.includes(el.id)}
+                                    isMultiSelected={selectedElementIds.length > 1 && selectedElementIds.includes(el.id)}
                                     updateElement={updateElement}
                                     isInteracting={interactingElementId === el.id}
                                     setInteractingElementId={setInteractingElementId}
@@ -749,7 +872,7 @@ export default function App() {
                 {/* Modern Properties Panel */}
                 <aside className="w-72 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 p-4 overflow-y-auto">
                     {selectedElement ? (
-                        <ElementProperties selectedElement={selectedElement} updateElement={updateElement} deleteElement={deleteElement} />
+                        <ElementProperties selectedElement={selectedElement} updateElement={updateElement} deleteElement={deleteElement} copyElement={copyElement} pasteElement={pasteElement} />
                     ) : (
                         <SlideProperties currentSlide={currentSlide} updateSlideSettings={updateSlideSettings} />
                     )}
