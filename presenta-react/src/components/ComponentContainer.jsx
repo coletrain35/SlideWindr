@@ -24,6 +24,7 @@ import * as Drei from '@react-three/drei';
 import * as PP from '@react-three/postprocessing';
 import * as Postprocessing from 'postprocessing';
 import * as Babel from '@babel/standalone';
+import gsap from 'gsap';
 
 const ComponentContainer = React.memo(({ code, propsString }) => {
     const [Renderable, setRenderable] = useState(null);
@@ -44,6 +45,7 @@ const ComponentContainer = React.memo(({ code, propsString }) => {
             if (dep === '@react-three/drei') return Drei;
             if (dep === '@react-three/postprocessing') return PP;
             if (dep === 'postprocessing') return Postprocessing;
+            if (dep === 'gsap') return gsap;
             // Allow relative path imports for CSS by ignoring them
             if (dep.startsWith('./') && dep.endsWith('.css')) return {};
             console.warn(`Unknown dependency: ${dep}`);
@@ -108,12 +110,22 @@ const ComponentContainer = React.memo(({ code, propsString }) => {
                     'React',
                     'useState',
                     'useEffect',
+                    'useLayoutEffect',
                     'useRef',
                     'useMemo',
                     'useCallback',
                     'useContext',
+                    'useReducer',
+                    'useImperativeHandle',
+                    'useDebugValue',
+                    'useId',
+                    'useDeferredValue',
+                    'useTransition',
+                    'useInsertionEffect',
+                    'useSyncExternalStore',
                     'THREE',
                     'OGL',
+                    'gsap',
                     'Effect',
                     'EffectComposer',
                     'EffectPass',
@@ -126,12 +138,22 @@ const ComponentContainer = React.memo(({ code, propsString }) => {
                     React,
                     React.useState,
                     React.useEffect,
+                    React.useLayoutEffect,
                     React.useRef,
                     React.useMemo,
                     React.useCallback,
                     React.useContext,
+                    React.useReducer,
+                    React.useImperativeHandle,
+                    React.useDebugValue,
+                    React.useId,
+                    React.useDeferredValue,
+                    React.useTransition,
+                    React.useInsertionEffect,
+                    React.useSyncExternalStore,
                     THREE,
                     OGL,
+                    gsap,
                     Postprocessing.Effect,
                     Postprocessing.EffectComposer,
                     Postprocessing.EffectPass,

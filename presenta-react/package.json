@@ -25,6 +25,7 @@
     "@tiptap/react": "^3.7.2",
     "@tiptap/starter-kit": "^3.7.2",
     "dompurify": "^3.3.0",
+    "gsap": "^3.13.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^3.0.3",
     "ogl": "^1.0.11",
