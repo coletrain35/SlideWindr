@@ -189,6 +189,11 @@ const ComponentContainer = React.memo(({ code, propsString }) => {
                 return e;
             });
         }
+
+        // Cleanup function
+        return () => {
+            setRenderable(null);
+        };
     }, [code, propsString]);
 
     if (error) {

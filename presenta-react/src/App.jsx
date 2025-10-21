@@ -28,6 +28,7 @@ import { generateRevealHTML } from './utils/htmlGenerator';
 import { useHistory } from './hooks/useHistory';
 import { useAutoSave } from './hooks/useAutoSave';
 import { exportSlidesAsPDF, exportAllSlidesAsImages, exportAsJSON, importFromJSON } from './utils/exportUtils';
+import { importRevealHTML } from './utils/revealImporter';
 import { alignHorizontal, alignVertical, distributeElements, snapToGrid as snapPositionToGrid, findAlignmentGuides, reorderElement } from './utils/alignmentUtils';
 import ExportDialog from './components/ExportDialog';
 import ImportDialog from './components/ImportDialog';
@@ -683,9 +684,15 @@ export default function App() {
         }
     };
 
-    const handleImport = async (file, mode) => {
+    const handleImport = async (file, mode, fileType) => {
         try {
-            const importedData = await importFromJSON(file);
+            let importedData;
+
+            if (fileType === 'html') {
+                importedData = await importRevealHTML(file);
+            } else {
+                importedData = await importFromJSON(file);
+            }
 
             if (mode === 'replace') {
                 setPresentation(importedData);

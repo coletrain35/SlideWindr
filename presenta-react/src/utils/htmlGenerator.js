@@ -34,7 +34,7 @@ export function generateRevealHTML(presentation) {
                 .replace(/\n/g, '\\n');
             const props = (slide.background.reactComponent.props || '{}')
                 .replace(/'/g, '&#39;');
-            bgReactContainer = `<div class='absolute inset-0 w-full h-full' data-react-code='${code}' data-react-props='${props}'></div>`;
+            bgReactContainer = `<div class='absolute inset-0' style='width: 100%; height: 100%;' data-react-code='${code}' data-react-props='${props}'></div>`;
         }
 
         // Generate HTML for each element
@@ -50,7 +50,7 @@ export function generateRevealHTML(presentation) {
                     .replace(/\n/g, '\\n');
                 const props = (el.reactComponent.props || '{}')
                     .replace(/'/g, '&#39;');
-                reactContainer = `<div class='absolute inset-0 w-full h-full pointer-events-none' data-react-code='${code}' data-react-props='${props}'></div>`;
+                reactContainer = `<div class='absolute inset-0 pointer-events-none' style='width: 100%; height: 100%; max-width: ${el.width}px; max-height: ${el.height}px; overflow: hidden;' data-react-code='${code}' data-react-props='${props}'></div>`;
             }
 
             // Generate base element HTML based on type
@@ -84,8 +84,10 @@ export function generateRevealHTML(presentation) {
     // Configure reveal.js settings
     const settingsForReveal = {
         ...presentation.settings,
+        width: 1920,
+        height: 1080,
         hash: true,
-        embedded: true,
+        embedded: false,
         plugins: []
     };
 
@@ -101,6 +103,22 @@ export function generateRevealHTML(presentation) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/theme/${presentation.theme}.min.css">
     <style>
+    /* Set explicit slide dimensions */
+    .reveal .slides section {
+        width: 1920px !important;
+        height: 1080px !important;
+    }
+    /* Ensure React component containers have proper dimensions */
+    [data-react-code] {
+        position: absolute;
+        inset: 0;
+        width: 1920px;
+        height: 1080px;
+    }
+    .pixel-blast-container {
+        width: 100%;
+        height: 100%;
+    }
     ${allComponentCss}
     </style>
 </head>
@@ -116,6 +134,7 @@ export function generateRevealHTML(presentation) {
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://unpkg.com/postprocessing@6.23.5/build/postprocessing.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script>
         Reveal.initialize(${JSON.stringify(settingsForReveal, null, 2)});
 
@@ -123,13 +142,32 @@ export function generateRevealHTML(presentation) {
             if (dep === 'react') return React;
             if (dep === 'three') return THREE;
             if (dep === 'postprocessing') return POSTPROCESSING;
-            throw new Error('Unknown dependency: ' + dep);
+            if (dep === 'gsap') return gsap;
+            // Allow relative path imports for CSS by ignoring them
+            if (dep.startsWith('./') && dep.endsWith('.css')) return {};
+            console.warn('Unknown dependency:', dep);
+            return {};
         };
 
+        // Track which containers have been rendered to prevent re-renders
+        const renderedContainers = new Set();
+
+        // Render all React components once on load
         Reveal.on('ready', event => {
-            document.querySelectorAll('[data-react-code]').forEach(container => {
+            const containers = document.querySelectorAll('[data-react-code]');
+            console.log('Found', containers.length, 'React component(s) to render');
+
+            containers.forEach((container, index) => {
+                // Skip if already rendered
+                if (renderedContainers.has(container)) {
+                    console.log('Skipping already rendered container', index);
+                    return;
+                }
+
                 const code = container.dataset.reactCode.replace(/\\\\\\\\/g, '\\\\').replace(/&#39;/g, "'").replace(/\\\\n/g, '\\n');
                 const propsString = container.dataset.reactProps.replace(/&#39;/g, "'");
+
+                console.log('Rendering React component', index);
 
                 try {
                     const transformed = Babel.transform(code, {
@@ -138,9 +176,51 @@ export function generateRevealHTML(presentation) {
                     }).code;
 
                     const exports = {};
-                    new Function('exports', 'require', transformed)(
+                    new Function(
+                        'exports',
+                        'require',
+                        'React',
+                        'useState',
+                        'useEffect',
+                        'useLayoutEffect',
+                        'useRef',
+                        'useMemo',
+                        'useCallback',
+                        'useContext',
+                        'useReducer',
+                        'useImperativeHandle',
+                        'useDebugValue',
+                        'useId',
+                        'useDeferredValue',
+                        'useTransition',
+                        'useInsertionEffect',
+                        'useSyncExternalStore',
+                        'THREE',
+                        'POSTPROCESSING',
+                        'gsap',
+                        transformed
+                    )(
                         exports,
-                        dependencyResolver
+                        dependencyResolver,
+                        React,
+                        React.useState,
+                        React.useEffect,
+                        React.useLayoutEffect,
+                        React.useRef,
+                        React.useMemo,
+                        React.useCallback,
+                        React.useContext,
+                        React.useReducer,
+                        React.useImperativeHandle,
+                        React.useDebugValue,
+                        React.useId,
+                        React.useDeferredValue,
+                        React.useTransition,
+                        React.useInsertionEffect,
+                        React.useSyncExternalStore,
+                        typeof THREE !== 'undefined' ? THREE : {},
+                        typeof POSTPROCESSING !== 'undefined' ? POSTPROCESSING : {},
+                        typeof gsap !== 'undefined' ? gsap : {}
                     );
 
                     const Component = exports.default;
@@ -149,12 +229,24 @@ export function generateRevealHTML(presentation) {
                     const props = JSON.parse(propsString);
 
                     ReactDOM.render(React.createElement(Component, props), container);
+                    renderedContainers.add(container);
+                    console.log('Successfully rendered React component', index);
                 } catch (e) {
-                    console.error("Failed to render React component:", { code, propsString, error: e });
+                    console.error("Failed to render React component", index, ":", e);
                     container.innerHTML = '<div style="color:red; background: #fee; padding: 10px; font-size: 12px; text-align: left;">Error: ' + e.message + '</div>';
                 }
             });
         });
+
+        // Detect WebGL context loss
+        window.addEventListener('webglcontextlost', (e) => {
+            console.error('WebGL context lost detected on element:', e.target);
+            e.preventDefault(); // Prevent default behavior
+        }, true);
+
+        window.addEventListener('webglcontextrestored', (e) => {
+            console.log('WebGL context restored on element:', e.target);
+        }, true);
     </script>
 </body>
 </html>`;

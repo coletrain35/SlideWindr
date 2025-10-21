@@ -4,6 +4,7 @@ import PropTypes from 'prop-types';
 const ImportDialog = ({ isOpen, onClose, onImport }) => {
     const [importMode, setImportMode] = useState('replace'); // 'replace' or 'merge'
     const [selectedFile, setSelectedFile] = useState(null);
+    const [fileType, setFileType] = useState(null); // 'json' or 'html'
     const [isImporting, setIsImporting] = useState(false);
     const [error, setError] = useState(null);
     const fileInputRef = useRef(null);
@@ -15,6 +16,17 @@ const ImportDialog = ({ isOpen, onClose, onImport }) => {
         if (file) {
             setSelectedFile(file);
             setError(null);
+
+            // Determine file type
+            const fileName = file.name.toLowerCase();
+            if (fileName.endsWith('.json')) {
+                setFileType('json');
+            } else if (fileName.endsWith('.html') || fileName.endsWith('.htm')) {
+                setFileType('html');
+            } else {
+                setFileType(null);
+                setError('Please select a JSON or HTML file');
+            }
         }
     };
 
@@ -24,13 +36,19 @@ const ImportDialog = ({ isOpen, onClose, onImport }) => {
             return;
         }
 
+        if (!fileType) {
+            setError('Invalid file type. Please select a JSON or HTML file');
+            return;
+        }
+
         setIsImporting(true);
         setError(null);
 
         try {
-            await onImport(selectedFile, importMode);
+            await onImport(selectedFile, importMode, fileType);
             onClose();
             setSelectedFile(null);
+            setFileType(null);
             if (fileInputRef.current) {
                 fileInputRef.current.value = '';
             }
@@ -43,6 +61,7 @@ const ImportDialog = ({ isOpen, onClose, onImport }) => {
 
     const handleClose = () => {
         setSelectedFile(null);
+        setFileType(null);
         setError(null);
         if (fileInputRef.current) {
             fileInputRef.current.value = '';
@@ -59,7 +78,7 @@ const ImportDialog = ({ isOpen, onClose, onImport }) => {
                         Import Presentation
                     </h2>
                     <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                        Load a presentation from a JSON file
+                        Load a presentation from JSON or Reveal.js HTML
                     </p>
                 </div>
 
@@ -68,23 +87,23 @@ const ImportDialog = ({ isOpen, onClose, onImport }) => {
                     {/* File Selection */}
                     <div>
                         <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                            Select JSON File
+                            Select Presentation File
                         </label>
                         <div className="relative">
                             <input
                                 ref={fileInputRef}
                                 type="file"
-                                accept=".json,application/json"
+                                accept=".json,.html,.htm,application/json,text/html"
                                 onChange={handleFileSelect}
                                 className="block w-full text-sm text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-lg cursor-pointer bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 dark:file:bg-blue-900/30 file:text-blue-700 dark:file:text-blue-300 hover:file:bg-blue-100 dark:hover:file:bg-blue-900/50"
                             />
                         </div>
-                        {selectedFile && (
+                        {selectedFile && fileType && (
                             <p className="mt-2 text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                 </svg>
-                                {selectedFile.name} ({(selectedFile.size / 1024).toFixed(2)} KB)
+                                {selectedFile.name} ({(selectedFile.size / 1024).toFixed(2)} KB) - {fileType.toUpperCase()}
                             </p>
                         )}
                     </div>
