@@ -4,14 +4,160 @@
  */
 
 /**
+ * Detect unsupported Reveal.js features in the presentation
+ * @param {Document} doc - The parsed HTML document
+ * @returns {Object} - Object containing warnings about unsupported features
+ */
+function detectUnsupportedFeatures(doc) {
+  const warnings = {
+    hasWarnings: false,
+    features: []
+  };
+
+  // Check for fragments
+  const fragments = doc.querySelectorAll('.fragment');
+  if (fragments.length > 0) {
+    warnings.hasWarnings = true;
+    warnings.features.push({
+      name: 'Fragments (Progressive Reveal)',
+      count: fragments.length,
+      description: 'Elements that appear progressively will be imported as regular elements',
+      severity: 'medium'
+    });
+  }
+
+  // Check for auto-animate
+  const autoAnimateSlides = doc.querySelectorAll('section[data-auto-animate]');
+  if (autoAnimateSlides.length > 0) {
+    warnings.hasWarnings = true;
+    warnings.features.push({
+      name: 'Auto-Animate',
+      count: autoAnimateSlides.length,
+      description: 'Slide-to-slide animations will not be preserved',
+      severity: 'medium'
+    });
+  }
+
+  // Check for speaker notes
+  const notes = doc.querySelectorAll('aside.notes');
+  if (notes.length > 0) {
+    warnings.hasWarnings = true;
+    warnings.features.push({
+      name: 'Speaker Notes',
+      count: notes.length,
+      description: 'Speaker notes will be lost during import',
+      severity: 'low'
+    });
+  }
+
+  // Check for vertical slides (nested sections)
+  const verticalSlides = doc.querySelectorAll('.reveal .slides > section > section');
+  if (verticalSlides.length > 0) {
+    warnings.hasWarnings = true;
+    warnings.features.push({
+      name: 'Vertical Slides',
+      count: verticalSlides.length,
+      description: 'Vertical slide hierarchy will be flattened to single-level slides',
+      severity: 'high'
+    });
+  }
+
+  // Check for markdown content
+  const markdownSlides = doc.querySelectorAll('section[data-markdown]');
+  if (markdownSlides.length > 0) {
+    warnings.hasWarnings = true;
+    warnings.features.push({
+      name: 'Markdown Content',
+      count: markdownSlides.length,
+      description: 'Markdown will be converted to HTML (formatting may change)',
+      severity: 'low'
+    });
+  }
+
+  // Check for custom transitions
+  const customTransitions = doc.querySelectorAll('section[data-transition]');
+  if (customTransitions.length > 0) {
+    warnings.hasWarnings = true;
+    warnings.features.push({
+      name: 'Per-Slide Transitions',
+      count: customTransitions.length,
+      description: 'Custom slide transitions will use global transition setting',
+      severity: 'low'
+    });
+  }
+
+  // Check for backgrounds with special features
+  const parallaxBg = doc.querySelector('[data-background-parallax]');
+  const videoBg = doc.querySelectorAll('section[data-background-video]');
+  const iframeBg = doc.querySelectorAll('section[data-background-iframe]');
+
+  if (parallaxBg) {
+    warnings.hasWarnings = true;
+    warnings.features.push({
+      name: 'Parallax Backgrounds',
+      count: 1,
+      description: 'Parallax scrolling effect will be lost',
+      severity: 'medium'
+    });
+  }
+
+  if (videoBg.length > 0) {
+    warnings.hasWarnings = true;
+    warnings.features.push({
+      name: 'Video Backgrounds',
+      count: videoBg.length,
+      description: 'Video backgrounds are not currently supported',
+      severity: 'high'
+    });
+  }
+
+  if (iframeBg.length > 0) {
+    warnings.hasWarnings = true;
+    warnings.features.push({
+      name: 'iFrame Backgrounds',
+      count: iframeBg.length,
+      description: 'iFrame backgrounds are not currently supported',
+      severity: 'high'
+    });
+  }
+
+  // Check for plugins
+  const scripts = doc.querySelectorAll('script');
+  let hasPlugins = false;
+  scripts.forEach(script => {
+    const content = script.textContent;
+    if (content.includes('RevealMath') || content.includes('RevealHighlight') ||
+        content.includes('RevealNotes') || content.includes('RevealSearch') ||
+        content.includes('RevealZoom') || content.includes('plugins:')) {
+      hasPlugins = true;
+    }
+  });
+
+  if (hasPlugins) {
+    warnings.hasWarnings = true;
+    warnings.features.push({
+      name: 'Reveal.js Plugins',
+      count: 1,
+      description: 'Plugin functionality (Math, Syntax Highlighting, etc.) will be lost',
+      severity: 'medium'
+    });
+  }
+
+  return warnings;
+}
+
+/**
  * Parse a reveal.js HTML file and convert it to SlideWindr format
  * @param {string} htmlContent - The HTML content of the reveal.js presentation
- * @returns {Object} - Presentation object in SlideWindr format
+ * @returns {Object} - Presentation object in SlideWindr format with warnings
  */
 export function parseRevealHTML(htmlContent) {
   // Create a temporary DOM parser
   const parser = new DOMParser();
   const doc = parser.parseFromString(htmlContent, 'text/html');
+
+  // Detect unsupported features
+  const warnings = detectUnsupportedFeatures(doc);
 
   // Extract presentation title
   const titleElement = doc.querySelector('title');
@@ -27,13 +173,25 @@ export function parseRevealHTML(htmlContent) {
     }
   }
 
-  // Extract slides
+  // Extract slides (including vertical slides - flatten them)
   const slideElements = doc.querySelectorAll('.reveal .slides > section');
   const slides = [];
 
   slideElements.forEach((slideEl) => {
-    const slide = parseSlide(slideEl);
-    slides.push(slide);
+    // Check for vertical slides (nested sections)
+    const verticalSlides = slideEl.querySelectorAll(':scope > section');
+
+    if (verticalSlides.length > 0) {
+      // Has vertical slides - process each one
+      verticalSlides.forEach((verticalSlide) => {
+        const slide = parseSlide(verticalSlide);
+        slides.push(slide);
+      });
+    } else {
+      // No vertical slides - process normally
+      const slide = parseSlide(slideEl);
+      slides.push(slide);
+    }
   });
 
   // Extract settings from Reveal.initialize call if present
@@ -43,7 +201,8 @@ export function parseRevealHTML(htmlContent) {
     title,
     theme,
     slides: slides.length > 0 ? slides : [createEmptySlide()],
-    settings: settings || createDefaultSettings()
+    settings: settings || createDefaultSettings(),
+    warnings
   };
 }
 
@@ -283,11 +442,30 @@ function extractRevealSettings(doc) {
       const match = content.match(/Reveal\.initialize\s*\(\s*({[\s\S]*?})\s*\)/);
       if (match) {
         try {
-          // Use Function constructor to safely evaluate the object
-          const configStr = match[1];
-          // Replace common reveal.js plugins that we don't need
-          const cleanConfig = configStr.replace(/plugins:\s*\[[^\]]*\]/g, '');
-          const config = new Function(`return ${cleanConfig}`)();
+          let configStr = match[1];
+
+          // Clean up the config string to make it valid JSON-like
+          // Remove plugins array
+          configStr = configStr.replace(/plugins:\s*\[[^\]]*\]/g, '');
+
+          // Remove trailing commas before closing braces
+          configStr = configStr.replace(/,(\s*})/g, '$1');
+          configStr = configStr.replace(/,(\s*])/g, '$1');
+
+          // Remove comments (both // and /* */ style)
+          configStr = configStr.replace(/\/\/.*$/gm, '');
+          configStr = configStr.replace(/\/\*[\s\S]*?\*\//g, '');
+
+          // Try to parse as JSON first (safest)
+          let config;
+          try {
+            // Convert to proper JSON by wrapping keys in quotes
+            const jsonStr = configStr.replace(/(\w+):/g, '"$1":');
+            config = JSON.parse(jsonStr);
+          } catch (jsonError) {
+            // If JSON parsing fails, try Function constructor
+            config = new Function(`return ${configStr}`)();
+          }
 
           settings = {
             transition: config.transition || 'slide',
@@ -302,6 +480,7 @@ function extractRevealSettings(doc) {
           };
         } catch (e) {
           console.warn('Could not parse Reveal.js settings:', e);
+          // Return null and use defaults
         }
       }
     }

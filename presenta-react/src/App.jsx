@@ -690,6 +690,15 @@ export default function App() {
 
             if (fileType === 'html') {
                 importedData = await importRevealHTML(file);
+
+                // Show warnings if any unsupported features were detected
+                if (importedData.warnings?.hasWarnings) {
+                    const warningMessage = buildWarningMessage(importedData.warnings);
+                    const proceed = window.confirm(warningMessage);
+                    if (!proceed) {
+                        throw new Error('Import cancelled by user');
+                    }
+                }
             } else {
                 importedData = await importFromJSON(file);
             }
@@ -708,6 +717,42 @@ export default function App() {
             console.error('Import failed:', error);
             throw error;
         }
+    };
+
+    const buildWarningMessage = (warnings) => {
+        let message = '⚠️ IMPORT WARNINGS\n\n';
+        message += 'The following Reveal.js features are not supported and will be lost:\n\n';
+
+        const highSeverity = warnings.features.filter(f => f.severity === 'high');
+        const mediumSeverity = warnings.features.filter(f => f.severity === 'medium');
+        const lowSeverity = warnings.features.filter(f => f.severity === 'low');
+
+        if (highSeverity.length > 0) {
+            message += '🔴 HIGH IMPACT:\n';
+            highSeverity.forEach(f => {
+                message += `  • ${f.name} (${f.count}x): ${f.description}\n`;
+            });
+            message += '\n';
+        }
+
+        if (mediumSeverity.length > 0) {
+            message += '🟡 MEDIUM IMPACT:\n';
+            mediumSeverity.forEach(f => {
+                message += `  • ${f.name} (${f.count}x): ${f.description}\n`;
+            });
+            message += '\n';
+        }
+
+        if (lowSeverity.length > 0) {
+            message += '🟢 LOW IMPACT:\n';
+            lowSeverity.forEach(f => {
+                message += `  • ${f.name} (${f.count}x): ${f.description}\n`;
+            });
+            message += '\n';
+        }
+
+        message += 'Do you want to continue with the import?';
+        return message;
     };
 
     const toggleTheme = () => {
