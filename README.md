@@ -1,4 +1,4 @@
-# SlideWinder
+# SlideWindr
 
 A modern, interactive presentation builder built with React, Three.js, and Tailwind CSS. Create stunning presentations with a visual editor, custom React components, and powerful export capabilities.
 
