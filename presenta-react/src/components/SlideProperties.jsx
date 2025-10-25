@@ -75,6 +75,29 @@ const SlideProperties = ({ currentSlide, updateSlideSettings }) => {
                         </div>
                     )}
                 </div>
+
+                {/* Slide Transition */}
+                <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-lg p-4 border border-emerald-200 dark:border-emerald-800">
+                    <h3 className="font-semibold text-emerald-600 dark:text-emerald-400 mb-3 uppercase tracking-wide text-xs">Slide Transition</h3>
+                    <label htmlFor="slide-transition" className="text-xs text-gray-600 dark:text-gray-400 mb-2 block">
+                        Transition Effect (leave empty to use global setting):
+                    </label>
+                    <select
+                        id="slide-transition"
+                        value={currentSlide.transition || ''}
+                        onChange={e => updateSlideSettings(currentSlide.id, { transition: e.target.value || null })}
+                        className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-emerald-500 transition-all"
+                    >
+                        <option value="">Use Global Transition</option>
+                        <option value="none">None</option>
+                        <option value="fade">Fade</option>
+                        <option value="slide">Slide</option>
+                        <option value="convex">Convex</option>
+                        <option value="concave">Concave</option>
+                        <option value="zoom">Zoom</option>
+                    </select>
+                </div>
+
                 <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
                     <ReactComponentEditor
                         title="Background Component"
@@ -99,6 +122,7 @@ SlideProperties.propTypes = {
                 css: PropTypes.string
             })
         }).isRequired,
+        transition: PropTypes.string,
         elements: PropTypes.array
     }),
     updateSlideSettings: PropTypes.func.isRequired

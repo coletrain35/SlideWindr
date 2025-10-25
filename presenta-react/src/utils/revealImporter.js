@@ -215,7 +215,8 @@ function parseSlide(slideEl) {
   const slide = {
     id: crypto.randomUUID(),
     elements: [],
-    background: { type: 'color', value: '#ffffff' }
+    background: { type: 'color', value: '#ffffff' },
+    transition: null // null = use global transition
   };
 
   // Extract background settings
@@ -229,6 +230,12 @@ function parseSlide(slideEl) {
     slide.background = { type: 'color', value: bgColor };
   } else if (bgVideo) {
     slide.background = { type: 'video', value: bgVideo };
+  }
+
+  // Extract per-slide transition
+  const transition = slideEl.getAttribute('data-transition');
+  if (transition) {
+    slide.transition = transition;
   }
 
   // Check for React component background
@@ -520,7 +527,8 @@ function createEmptySlide() {
   return {
     id: crypto.randomUUID(),
     elements: [],
-    background: { type: 'color', value: '#ffffff' }
+    background: { type: 'color', value: '#ffffff' },
+    transition: null
   };
 }
 

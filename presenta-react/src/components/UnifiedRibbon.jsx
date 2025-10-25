@@ -247,12 +247,12 @@ const HomeTab = ({
             {/* Alignment */}
             <div className="flex items-center gap-2">
                 <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Align:</span>
-                <button onClick={() => onAlign('left')} disabled={!hasMultiple} className="p-1 rounded text-xs hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30" title="Align Left"><AlignLeftIcon /></button>
-                <button onClick={() => onAlign('center')} disabled={!hasMultiple} className="p-1 rounded text-xs hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30" title="Align Center"><AlignCenterHorizontalIcon /></button>
-                <button onClick={() => onAlign('right')} disabled={!hasMultiple} className="p-1 rounded text-xs hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30" title="Align Right"><AlignRightIcon /></button>
-                <button onClick={() => onAlign('top')} disabled={!hasMultiple} className="p-1 rounded text-xs hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30" title="Align Top"><AlignTopIcon /></button>
-                <button onClick={() => onAlign('middle')} disabled={!hasMultiple} className="p-1 rounded text-xs hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30" title="Align Middle"><AlignMiddleIcon /></button>
-                <button onClick={() => onAlign('bottom')} disabled={!hasMultiple} className="p-1 rounded text-xs hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30" title="Align Bottom"><AlignBottomIcon /></button>
+                <button onClick={() => onAlign('left')} disabled={!hasSelection} className="p-1 rounded text-xs hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30" title={hasMultiple ? "Align Left (to leftmost)" : "Align Left (to canvas)"}><AlignLeftIcon /></button>
+                <button onClick={() => onAlign('center')} disabled={!hasSelection} className="p-1 rounded text-xs hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30" title={hasMultiple ? "Align Center (average)" : "Align Center (to canvas)"}><AlignCenterHorizontalIcon /></button>
+                <button onClick={() => onAlign('right')} disabled={!hasSelection} className="p-1 rounded text-xs hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30" title={hasMultiple ? "Align Right (to rightmost)" : "Align Right (to canvas)"}><AlignRightIcon /></button>
+                <button onClick={() => onAlign('top')} disabled={!hasSelection} className="p-1 rounded text-xs hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30" title={hasMultiple ? "Align Top (to topmost)" : "Align Top (to canvas)"}><AlignTopIcon /></button>
+                <button onClick={() => onAlign('middle')} disabled={!hasSelection} className="p-1 rounded text-xs hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30" title={hasMultiple ? "Align Middle (average)" : "Align Middle (to canvas)"}><AlignMiddleIcon /></button>
+                <button onClick={() => onAlign('bottom')} disabled={!hasSelection} className="p-1 rounded text-xs hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30" title={hasMultiple ? "Align Bottom (to bottommost)" : "Align Bottom (to canvas)"}><AlignBottomIcon /></button>
             </div>
 
             <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" />

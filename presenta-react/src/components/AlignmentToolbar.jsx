@@ -59,22 +59,22 @@ const AlignmentToolbar = ({
                 <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Align H:</span>
                 <ToolbarButton
                     onClick={() => onAlign('left')}
-                    title="Align Left"
-                    disabled={!hasMultiple}
+                    title={hasMultiple ? "Align Left (to leftmost)" : "Align Left (to canvas)"}
+                    disabled={!hasSelection}
                 >
                     <AlignLeftIcon />
                 </ToolbarButton>
                 <ToolbarButton
                     onClick={() => onAlign('center')}
-                    title="Align Center"
-                    disabled={!hasMultiple}
+                    title={hasMultiple ? "Align Center (average)" : "Align Center (to canvas)"}
+                    disabled={!hasSelection}
                 >
                     <AlignCenterHorizontalIcon />
                 </ToolbarButton>
                 <ToolbarButton
                     onClick={() => onAlign('right')}
-                    title="Align Right"
-                    disabled={!hasMultiple}
+                    title={hasMultiple ? "Align Right (to rightmost)" : "Align Right (to canvas)"}
+                    disabled={!hasSelection}
                 >
                     <AlignRightIcon />
                 </ToolbarButton>
@@ -87,22 +87,22 @@ const AlignmentToolbar = ({
                 <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Align V:</span>
                 <ToolbarButton
                     onClick={() => onAlign('top')}
-                    title="Align Top"
-                    disabled={!hasMultiple}
+                    title={hasMultiple ? "Align Top (to topmost)" : "Align Top (to canvas)"}
+                    disabled={!hasSelection}
                 >
                     <AlignTopIcon />
                 </ToolbarButton>
                 <ToolbarButton
                     onClick={() => onAlign('middle')}
-                    title="Align Middle"
-                    disabled={!hasMultiple}
+                    title={hasMultiple ? "Align Middle (average)" : "Align Middle (to canvas)"}
+                    disabled={!hasSelection}
                 >
                     <AlignMiddleIcon />
                 </ToolbarButton>
                 <ToolbarButton
                     onClick={() => onAlign('bottom')}
-                    title="Align Bottom"
-                    disabled={!hasMultiple}
+                    title={hasMultiple ? "Align Bottom (to bottommost)" : "Align Bottom (to canvas)"}
+                    disabled={!hasSelection}
                 >
                     <AlignBottomIcon />
                 </ToolbarButton>

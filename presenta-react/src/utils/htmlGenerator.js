@@ -25,6 +25,11 @@ export function generateRevealHTML(presentation) {
             bgAttrs = `data-background-image="${bg.value}"`;
         }
 
+        // Add per-slide transition if specified
+        if (slide.transition) {
+            bgAttrs += ` data-transition="${slide.transition}"`;
+        }
+
         // Generate React component container for background
         let bgReactContainer = '';
         if (slide.background?.reactComponent) {
@@ -84,8 +89,8 @@ export function generateRevealHTML(presentation) {
     // Configure reveal.js settings
     const settingsForReveal = {
         ...presentation.settings,
-        width: 1920,
-        height: 1080,
+        width: 960,
+        height: 540,
         hash: true,
         embedded: false,
         plugins: []
@@ -103,17 +108,17 @@ export function generateRevealHTML(presentation) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/theme/${presentation.theme}.min.css">
     <style>
-    /* Set explicit slide dimensions */
+    /* Set explicit slide dimensions (16:9 aspect ratio) */
     .reveal .slides section {
-        width: 1920px !important;
-        height: 1080px !important;
+        width: 960px !important;
+        height: 540px !important;
     }
     /* Ensure React component containers have proper dimensions */
     [data-react-code] {
         position: absolute;
         inset: 0;
-        width: 1920px;
-        height: 1080px;
+        width: 960px;
+        height: 540px;
     }
     .pixel-blast-container {
         width: 100%;

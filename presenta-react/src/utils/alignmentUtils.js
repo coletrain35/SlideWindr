@@ -6,11 +6,28 @@
  * Align elements horizontally
  * @param {Array} elements - Array of elements to align
  * @param {string} alignment - 'left' | 'center' | 'right'
+ * @param {number} canvasWidth - Canvas width for single-element alignment (default: 960)
  * @returns {Array} Updated elements with new x positions
  */
-export function alignHorizontal(elements, alignment) {
+export function alignHorizontal(elements, alignment, canvasWidth = 960) {
     if (elements.length === 0) return elements;
 
+    // Single element: align to canvas
+    if (elements.length === 1) {
+        const el = elements[0];
+        switch (alignment) {
+            case 'left':
+                return [{ ...el, x: 0 }];
+            case 'center':
+                return [{ ...el, x: (canvasWidth - el.width) / 2 }];
+            case 'right':
+                return [{ ...el, x: canvasWidth - el.width }];
+            default:
+                return elements;
+        }
+    }
+
+    // Multiple elements: align relative to each other
     let targetX;
 
     switch (alignment) {
@@ -38,11 +55,28 @@ export function alignHorizontal(elements, alignment) {
  * Align elements vertically
  * @param {Array} elements - Array of elements to align
  * @param {string} alignment - 'top' | 'middle' | 'bottom'
+ * @param {number} canvasHeight - Canvas height for single-element alignment (default: 540)
  * @returns {Array} Updated elements with new y positions
  */
-export function alignVertical(elements, alignment) {
+export function alignVertical(elements, alignment, canvasHeight = 540) {
     if (elements.length === 0) return elements;
 
+    // Single element: align to canvas
+    if (elements.length === 1) {
+        const el = elements[0];
+        switch (alignment) {
+            case 'top':
+                return [{ ...el, y: 0 }];
+            case 'middle':
+                return [{ ...el, y: (canvasHeight - el.height) / 2 }];
+            case 'bottom':
+                return [{ ...el, y: canvasHeight - el.height }];
+            default:
+                return elements;
+        }
+    }
+
+    // Multiple elements: align relative to each other
     let targetY;
 
     switch (alignment) {

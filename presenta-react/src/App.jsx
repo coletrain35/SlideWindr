@@ -44,7 +44,8 @@ export default function App() {
         slides: [{
             id: crypto.randomUUID(),
             elements: [],
-            background: { type: 'color', value: '#ffffff' }
+            background: { type: 'color', value: '#ffffff' },
+            transition: null // null = use global transition
         }],
         settings: {
             transition: 'slide',
@@ -78,6 +79,7 @@ export default function App() {
     const [snapToGrid, setSnapToGrid] = useState(false);
     const [alignmentGuides, setAlignmentGuides] = useState(null);
     const [textEditor, setTextEditor] = useState(null); // Store TipTap editor instance
+    const [marquee, setMarquee] = useState(null); // { startX, startY, endX, endY }
     const gridSize = 20;
     const canvasRef = useRef(null);
     const slideRefs = useRef([]);
@@ -153,6 +155,7 @@ export default function App() {
             width: 200,
             height: 100,
             rotation: 0,
+            fragmentOrder: 0, // 0 = always visible, 1+ = fragment reveal order
         };
         let newElement;
         switch (type) {
@@ -244,38 +247,44 @@ export default function App() {
     }, [currentSlideId, selectedElementIds]);
 
     // Clipboard state for copy/paste
-    const [copiedElement, setCopiedElement] = useState(null);
+    const [copiedElements, setCopiedElements] = useState([]);
 
     const copyElement = useCallback(() => {
-        if (!selectedElementId) return;
-        const element = currentSlide?.elements?.find(e => e.id === selectedElementId);
-        if (element) {
-            setCopiedElement(element);
+        if (selectedElementIds.length === 0) return;
+        const elements = currentSlide?.elements?.filter(e => selectedElementIds.includes(e.id));
+        if (elements && elements.length > 0) {
+            setCopiedElements(elements);
         }
-    }, [selectedElementId, currentSlide]);
+    }, [selectedElementIds, currentSlide]);
 
     const pasteElement = useCallback(() => {
-        if (!copiedElement) return;
-        const newElement = {
-            ...copiedElement,
+        if (copiedElements.length === 0) return;
+
+        // Create new elements with offset and new IDs
+        const newElements = copiedElements.map(el => ({
+            ...el,
             id: crypto.randomUUID(),
-            x: copiedElement.x + 20,
-            y: copiedElement.y + 20
-        };
+            x: el.x + 20,
+            y: el.y + 20
+        }));
+
         setPresentation(prev => ({
             ...prev,
             slides: prev.slides.map(slide =>
-                slide.id === currentSlideId ? { ...slide, elements: [...slide.elements, newElement] } : slide
+                slide.id === currentSlideId ? { ...slide, elements: [...slide.elements, ...newElements] } : slide
             )
         }));
-        setSelectedElementIds([newElement.id]);
-    }, [copiedElement, currentSlideId]);
+
+        // Select the newly pasted elements
+        setSelectedElementIds(newElements.map(el => el.id));
+    }, [copiedElements, currentSlideId]);
 
     const addSlide = useCallback(() => {
         const newSlide = {
             id: crypto.randomUUID(),
             elements: [],
-            background: { type: 'color', value: '#ffffff' }
+            background: { type: 'color', value: '#ffffff' },
+            transition: null // null = use global transition
         };
         setPresentation(prev => ({
             ...prev,
@@ -326,7 +335,7 @@ export default function App() {
 
     // Alignment and arrangement functions
     const handleAlign = useCallback((alignment) => {
-        if (selectedElementIds.length < 2) return;
+        if (selectedElementIds.length === 0) return;
 
         setPresentation(prev => ({
             ...prev,
@@ -337,9 +346,9 @@ export default function App() {
                 let alignedElements;
 
                 if (['left', 'center', 'right'].includes(alignment)) {
-                    alignedElements = alignHorizontal(selectedElements, alignment);
+                    alignedElements = alignHorizontal(selectedElements, alignment, 960);
                 } else if (['top', 'middle', 'bottom'].includes(alignment)) {
-                    alignedElements = alignVertical(selectedElements, alignment);
+                    alignedElements = alignVertical(selectedElements, alignment, 540);
                 } else {
                     return slide;
                 }
@@ -406,9 +415,78 @@ export default function App() {
         }));
     }, [selectedElementIds, currentSlideId]);
 
+    // Group/Ungroup functions
+    const groupElements = useCallback(() => {
+        if (selectedElementIds.length < 2) return;
+
+        const groupId = crypto.randomUUID();
+        setPresentation(prev => ({
+            ...prev,
+            slides: prev.slides.map(slide => {
+                if (slide.id !== currentSlideId) return slide;
+
+                return {
+                    ...slide,
+                    elements: slide.elements.map(el =>
+                        selectedElementIds.includes(el.id)
+                            ? { ...el, groupId }
+                            : el
+                    )
+                };
+            })
+        }));
+    }, [selectedElementIds, currentSlideId]);
+
+    const ungroupElements = useCallback(() => {
+        if (selectedElementIds.length === 0) return;
+
+        // Get the groupIds of selected elements
+        const slide = presentationRef.current.slides.find(s => s.id === currentSlideId);
+        if (!slide) return;
+
+        const groupIds = new Set(
+            slide.elements
+                .filter(el => selectedElementIds.includes(el.id) && el.groupId)
+                .map(el => el.groupId)
+        );
+
+        if (groupIds.size === 0) return;
+
+        setPresentation(prev => ({
+            ...prev,
+            slides: prev.slides.map(slide => {
+                if (slide.id !== currentSlideId) return slide;
+
+                return {
+                    ...slide,
+                    elements: slide.elements.map(el =>
+                        groupIds.has(el.groupId)
+                            ? { ...el, groupId: undefined }
+                            : el
+                    )
+                };
+            })
+        }));
+    }, [selectedElementIds, currentSlideId]);
+
     const handleMouseDown = useCallback((e, elementId) => {
         e.stopPropagation();
         setInteractingElementId(null);
+
+        // Get fresh element data from current presentation state
+        const slide = presentationRef.current.slides.find(s => s.id === currentSlideId);
+        if (!slide) return;
+
+        // Check if this element is part of a group and auto-select the group
+        const clickedElement = slide.elements.find(el => el.id === elementId);
+        if (clickedElement && clickedElement.groupId && !e.ctrlKey && !e.metaKey) {
+            // Select all elements in the same group
+            const groupElementIds = slide.elements
+                .filter(el => el.groupId === clickedElement.groupId)
+                .map(el => el.id);
+            setSelectedElementIds(groupElementIds);
+            return;
+        }
 
         // Handle multi-selection with Ctrl/Cmd key
         if (e.ctrlKey || e.metaKey) {
@@ -426,10 +504,6 @@ export default function App() {
             // Single selection (replace existing selection)
             setSelectedElementIds([elementId]);
         }
-
-        // Get fresh element data from current presentation state
-        const slide = presentationRef.current.slides.find(s => s.id === currentSlideId);
-        if (!slide) return;
 
         const element = slide.elements.find(el => el.id === elementId);
         if (!element) return;
@@ -482,6 +556,15 @@ export default function App() {
     const handleCanvasMouseMove = useCallback((e) => {
         if (interactingElementId) return;
         const canvasRect = canvasRef.current.getBoundingClientRect();
+
+        // Update marquee if active
+        if (marquee) {
+            const x = e.clientX - canvasRect.left;
+            const y = e.clientY - canvasRect.top;
+            setMarquee(prev => ({ ...prev, endX: x, endY: y }));
+            return;
+        }
+
         if (dragging) {
             // Get current slide for smart guides
             const slide = presentationRef.current.slides.find(s => s.id === currentSlideId);
@@ -547,19 +630,73 @@ export default function App() {
                 updateElement(resizing.elementId, { x: newX, y: newY, width: newWidth, height: newHeight });
             }
         }
-    }, [dragging, resizing, updateElement, interactingElementId, snapToGrid, gridSize, currentSlideId, selectedElementIds]);
+    }, [dragging, resizing, updateElement, interactingElementId, snapToGrid, gridSize, currentSlideId, selectedElementIds, marquee]);
+
+    const handleCanvasMouseDown = useCallback((e) => {
+        // Only start marquee if clicking on canvas (not on an element)
+        if (e.target !== e.currentTarget) return;
+
+        const canvasRect = canvasRef.current.getBoundingClientRect();
+        const x = e.clientX - canvasRect.left;
+        const y = e.clientY - canvasRect.top;
+
+        // If not holding Ctrl/Cmd, clear selection
+        if (!e.ctrlKey && !e.metaKey) {
+            setSelectedElementIds([]);
+        }
+
+        // Start marquee selection
+        setMarquee({ startX: x, startY: y, endX: x, endY: y });
+        setInteractingElementId(null);
+    }, []);
 
     const handleCanvasMouseUp = useCallback(() => {
         isDraggingOrResizingRef.current = false;
         setDragging(null);
         setResizing(null);
         setAlignmentGuides(null); // Clear guides when done dragging
-    }, []);
+
+        // Handle marquee selection
+        if (marquee) {
+            const { startX, startY, endX, endY } = marquee;
+            const marqueeRect = {
+                left: Math.min(startX, endX),
+                top: Math.min(startY, endY),
+                right: Math.max(startX, endX),
+                bottom: Math.max(startY, endY),
+            };
+
+            // Find all elements that intersect with marquee
+            const slide = presentationRef.current.slides.find(s => s.id === currentSlideId);
+            if (slide) {
+                const selectedIds = slide.elements
+                    .filter(el => {
+                        const elRect = {
+                            left: el.x,
+                            top: el.y,
+                            right: el.x + el.width,
+                            bottom: el.y + el.height,
+                        };
+                        // Check if rectangles intersect
+                        return !(elRect.right < marqueeRect.left ||
+                                elRect.left > marqueeRect.right ||
+                                elRect.bottom < marqueeRect.top ||
+                                elRect.top > marqueeRect.bottom);
+                    })
+                    .map(el => el.id);
+
+                setSelectedElementIds(selectedIds);
+            }
+
+            setMarquee(null);
+        }
+    }, [marquee, currentSlideId]);
 
     const handleCanvasMouseLeave = useCallback(() => {
         setDragging(null);
         setResizing(null);
         setAlignmentGuides(null); // Clear guides when leaving canvas
+        setMarquee(null); // Clear marquee when leaving canvas
     }, []);
 
     const getBackgroundStyle = useCallback((bg) => {
@@ -606,6 +743,16 @@ export default function App() {
                     setSelectedElementIds(slide.elements.map(el => el.id));
                 }
             }
+            // Group: Ctrl+G or Cmd+G
+            else if ((e.ctrlKey || e.metaKey) && e.key === 'g' && !e.shiftKey && !isInputFocused) {
+                e.preventDefault();
+                groupElements();
+            }
+            // Ungroup: Ctrl+Shift+G or Cmd+Shift+G
+            else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'g' && !isInputFocused) {
+                e.preventDefault();
+                ungroupElements();
+            }
         };
 
         const handleKeyUp = (e) => {
@@ -622,7 +769,7 @@ export default function App() {
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('keyup', handleKeyUp);
         };
-    }, [selectedElementIds, deleteElement, undo, redo, copyElement, pasteElement, currentSlideId]);
+    }, [selectedElementIds, deleteElement, undo, redo, copyElement, pasteElement, currentSlideId, groupElements, ungroupElements]);
 
     const generateHTML = () => {
         generateRevealHTML(presentation);
@@ -642,7 +789,7 @@ export default function App() {
                     // Create temporary slide elements for export
                     const tempDiv = document.createElement('div');
                     tempDiv.style.width = '960px';
-                    tempDiv.style.height = '700px';
+                    tempDiv.style.height = '540px';
                     tempDiv.style.position = 'absolute';
                     tempDiv.style.left = '-10000px';
 
@@ -662,7 +809,7 @@ export default function App() {
                 const slideElements = presentation.slides.map((_, index) => {
                     const tempDiv = document.createElement('div');
                     tempDiv.style.width = '960px';
-                    tempDiv.style.height = '700px';
+                    tempDiv.style.height = '540px';
                     tempDiv.style.position = 'absolute';
                     tempDiv.style.left = '-10000px';
 
@@ -997,11 +1144,11 @@ export default function App() {
                         <div
                             ref={canvasRef}
                             className="shadow-lg relative bg-cover bg-center"
-                            style={{ width: 960, height: 700, ...getBackgroundStyle(currentSlide?.background) }}
+                            style={{ width: 960, height: 540, ...getBackgroundStyle(currentSlide?.background) }}
+                            onMouseDown={handleCanvasMouseDown}
                             onMouseMove={handleCanvasMouseMove}
                             onMouseUp={handleCanvasMouseUp}
                             onMouseLeave={handleCanvasMouseLeave}
-                            onClick={() => { setSelectedElementIds([]); setInteractingElementId(null); }}
                         >
                             <div className="absolute inset-0 w-full h-full pointer-events-none">
                                 {Object.values(librariesLoaded).every(Boolean) && currentSlide?.background?.reactComponent && (
@@ -1019,7 +1166,7 @@ export default function App() {
                                 showGrid={showGrid}
                                 gridSize={gridSize}
                                 canvasWidth={960}
-                                canvasHeight={700}
+                                canvasHeight={540}
                             />
                             {currentSlide?.elements.map(el => (
                                 <ElementComponent
@@ -1036,6 +1183,18 @@ export default function App() {
                                     onEditorReady={setTextEditor}
                                 />
                             ))}
+                            {/* Marquee Selection Rectangle */}
+                            {marquee && (
+                                <div
+                                    className="absolute pointer-events-none border-2 border-blue-500 bg-blue-500/10"
+                                    style={{
+                                        left: Math.min(marquee.startX, marquee.endX),
+                                        top: Math.min(marquee.startY, marquee.endY),
+                                        width: Math.abs(marquee.endX - marquee.startX),
+                                        height: Math.abs(marquee.endY - marquee.startY),
+                                    }}
+                                />
+                            )}
                         </div>
                     </div>
                 </main>

@@ -237,6 +237,41 @@ const TextFormatTools = ({ editor }) => {
             >
                 X²
             </button>
+
+            <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" />
+
+            {/* Text Color */}
+            <label className="flex items-center gap-1 px-2 py-1 rounded text-xs bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" title="Text Color">
+                <span style={{ color: editor.getAttributes('textStyle').color || '#000000' }}>A</span>
+                <input
+                    type="color"
+                    value={editor.getAttributes('textStyle').color || '#000000'}
+                    onChange={(e) => editor.chain().focus().setColor(e.target.value).run()}
+                    className="w-4 h-4 cursor-pointer"
+                />
+            </label>
+
+            {/* Highlight Color */}
+            <label className="flex items-center gap-1 px-2 py-1 rounded text-xs bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700" title="Highlight Color">
+                <span>H</span>
+                <input
+                    type="color"
+                    value={editor.getAttributes('highlight').color || '#ffff00'}
+                    onChange={(e) => editor.chain().focus().toggleHighlight({ color: e.target.value }).run()}
+                    className="w-4 h-4 cursor-pointer"
+                />
+            </label>
+
+            <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" />
+
+            {/* Clear Formatting */}
+            <button
+                onClick={() => editor.chain().focus().clearNodes().unsetAllMarks().run()}
+                className="px-2 py-1 rounded text-xs bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+                title="Clear Formatting"
+            >
+                ✕
+            </button>
         </>
     );
 };

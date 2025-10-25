@@ -90,11 +90,11 @@ export const exportSlidesAsPDF = async (slideElements, filename = 'presentation'
 
     try {
         // Create PDF with appropriate dimensions
-        // Standard presentation size: 960x700px
+        // Standard presentation size: 960x540px (16:9 aspect ratio)
         const pdf = new jsPDF({
             orientation: orientation,
             unit: 'px',
-            format: orientation === 'landscape' ? [960, 700] : [700, 960]
+            format: orientation === 'landscape' ? [960, 540] : [540, 960]
         });
 
         for (let i = 0; i < slideElements.length; i++) {
