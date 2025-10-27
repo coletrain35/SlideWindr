@@ -1278,7 +1278,11 @@ export default function App() {
                                                         const style = { position: 'absolute', left: el.x, top: el.y, width: el.width, height: el.height, transform: `rotate(${el.rotation || 0}deg)` };
                                                         if (el.type === 'text') return <div key={el.id} style={{ ...style, fontSize: el.fontSize, color: el.color, overflow: 'hidden' }}>{el.content}</div>
                                                         if (el.type === 'shape') return <div key={el.id} style={{ ...style, backgroundColor: el.backgroundColor }}></div>
-                                                        if (el.type === 'image' || el.type === 'iframe') return <div key={el.id} style={{ ...style, border: '1px solid #ccc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>MEDIA</div>
+                                                        if (el.type === 'image' || el.type === 'iframe') return <div key={el.id} style={{ ...style, border: '1px solid #ccc', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', color: '#666' }}>IMG</div>
+                                                        if (el.type === 'chart') return <div key={el.id} style={{ ...style, border: '2px solid #6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', color: '#6366f1', backgroundColor: '#eef2ff' }}>CHART</div>
+                                                        if (el.type === 'table') return <div key={el.id} style={{ ...style, border: '2px solid #eab308', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', color: '#eab308', backgroundColor: '#fefce8' }}>TABLE</div>
+                                                        if (el.type === 'code') return <div key={el.id} style={{ ...style, border: '2px solid #ec4899', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', color: '#ec4899', backgroundColor: '#fdf2f8' }}>CODE</div>
+                                                        if (el.type === 'component') return <div key={el.id} style={{ ...style, border: '2px solid #a855f7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', color: '#a855f7', backgroundColor: '#faf5ff' }}>COMP</div>
                                                         return null;
                                                     })}
                                                 </div>
@@ -1356,7 +1360,11 @@ export default function App() {
                                                             const style = { position: 'absolute', left: el.x, top: el.y, width: el.width, height: el.height, transform: `rotate(${el.rotation || 0}deg)` };
                                                             if (el.type === 'text') return <div key={el.id} style={{ ...style, fontSize: el.fontSize, color: el.color, overflow: 'hidden' }}>{el.content}</div>
                                                             if (el.type === 'shape') return <div key={el.id} style={{ ...style, backgroundColor: el.backgroundColor }}></div>
-                                                            if (el.type === 'image' || el.type === 'iframe') return <div key={el.id} style={{ ...style, border: '1px solid #ccc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>MEDIA</div>
+                                                            if (el.type === 'image' || el.type === 'iframe') return <div key={el.id} style={{ ...style, border: '1px solid #ccc', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', color: '#666' }}>IMG</div>
+                                                            if (el.type === 'chart') return <div key={el.id} style={{ ...style, border: '2px solid #6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', color: '#6366f1', backgroundColor: '#eef2ff' }}>CHART</div>
+                                                            if (el.type === 'table') return <div key={el.id} style={{ ...style, border: '2px solid #eab308', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', color: '#eab308', backgroundColor: '#fefce8' }}>TABLE</div>
+                                                            if (el.type === 'code') return <div key={el.id} style={{ ...style, border: '2px solid #ec4899', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', color: '#ec4899', backgroundColor: '#fdf2f8' }}>CODE</div>
+                                                            if (el.type === 'component') return <div key={el.id} style={{ ...style, border: '2px solid #a855f7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', color: '#a855f7', backgroundColor: '#faf5ff' }}>COMP</div>
                                                             return null;
                                                         })}
                                                     </div>
