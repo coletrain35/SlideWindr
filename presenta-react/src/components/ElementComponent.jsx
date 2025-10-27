@@ -4,9 +4,12 @@ import ErrorBoundary from './ErrorBoundary';
 import LiveReactRenderer from './LiveReactRenderer';
 import ShapeRenderer from './shapes/ShapeRenderer';
 import RichTextEditor from './RichTextEditor';
+import TableComponent from './TableComponent';
+import CodeBlock from './CodeBlock';
+import ChartComponent from './ChartComponent';
 import { CodeIcon, MousePointerClickIcon, StopCircleIcon } from './Icons';
 
-const ElementComponent = ({ element, onMouseDown, onResizeMouseDown, isSelected, isMultiSelected, updateElement, isInteracting, setInteractingElementId, librariesLoaded, onEditorReady }) => {
+const ElementComponent = ({ element, onMouseDown, onResizeMouseDown, onRotateMouseDown, isSelected, isMultiSelected, updateElement, isInteracting, setInteractingElementId, librariesLoaded, onEditorReady }) => {
     const style = {
         left: `${element.x}px`,
         top: `${element.y}px`,
@@ -65,6 +68,20 @@ const ElementComponent = ({ element, onMouseDown, onResizeMouseDown, isSelected,
                     );
                 }
                 return null; // Component renders via LiveReactRenderer below
+            case 'table':
+                return <TableComponent element={element} isSelected={isSelected} updateElement={updateElement} setInteractingElementId={setInteractingElementId} />;
+            case 'code':
+                return <CodeBlock code={element.code} language={element.language} fontSize={element.fontSize} showLineNumbers={element.showLineNumbers} />;
+            case 'chart':
+                return (
+                    <ChartComponent
+                        chartType={element.chartType}
+                        chartData={element.chartData}
+                        chartOptions={element.chartOptions}
+                        width={element.width}
+                        height={element.height}
+                    />
+                );
             default:
                 return null;
         }
@@ -137,6 +154,28 @@ const ElementComponent = ({ element, onMouseDown, onResizeMouseDown, isSelected,
                             }}
                         ></div>
                     ))}
+                    {/* Rotation handle */}
+                    <div
+                        onMouseDown={e => onRotateMouseDown(e, element.id)}
+                        className="absolute bg-green-500 border-2 border-white rounded-full w-4 h-4 -m-2 shadow-lg hover:bg-green-600 hover:scale-110 transition-all cursor-grab active:cursor-grabbing"
+                        style={{
+                            top: '-24px',
+                            left: '50%',
+                            transform: 'translateX(-50%)',
+                        }}
+                        title="Drag to rotate (hold Shift for 15° snaps)"
+                    >
+                        <svg
+                            className="w-full h-full"
+                            viewBox="0 0 16 16"
+                            fill="none"
+                            stroke="white"
+                            strokeWidth="2"
+                        >
+                            <path d="M8 2 A6 6 0 0 1 14 8" strokeLinecap="round"/>
+                            <path d="M8 2 L8 4 M8 2 L6 2" strokeLinecap="round"/>
+                        </svg>
+                    </div>
                 </>
             )}
             {isInteracting && (
@@ -156,7 +195,7 @@ const ElementComponent = ({ element, onMouseDown, onResizeMouseDown, isSelected,
 ElementComponent.propTypes = {
     element: PropTypes.shape({
         id: PropTypes.string.isRequired,
-        type: PropTypes.oneOf(['text', 'shape', 'image', 'iframe', 'component']).isRequired,
+        type: PropTypes.oneOf(['text', 'shape', 'image', 'iframe', 'component', 'table', 'code']).isRequired,
         x: PropTypes.number.isRequired,
         y: PropTypes.number.isRequired,
         width: PropTypes.number.isRequired,
@@ -176,6 +215,7 @@ ElementComponent.propTypes = {
     }).isRequired,
     onMouseDown: PropTypes.func.isRequired,
     onResizeMouseDown: PropTypes.func.isRequired,
+    onRotateMouseDown: PropTypes.func.isRequired,
     isSelected: PropTypes.bool.isRequired,
     isMultiSelected: PropTypes.bool,
     updateElement: PropTypes.func.isRequired,

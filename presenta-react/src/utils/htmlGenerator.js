@@ -13,8 +13,8 @@ export function generateRevealHTML(presentation) {
         .filter(Boolean)
         .join('\n\n');
 
-    // Generate HTML for each slide
-    const slidesHtml = presentation.slides.map(slide => {
+    // Helper function to generate HTML for a single slide
+    const generateSlideHtml = (slide) => {
         const bg = slide.background || { type: 'color', value: '#ffffff' };
         let bgAttrs = '';
 
@@ -78,12 +78,40 @@ export function generateRevealHTML(presentation) {
                     baseElementHtml = `<iframe srcdoc="${escapedHtml}" style="border: none; width: 100%; height: 100%;"></iframe>`;
                     break;
                 }
+                case 'table': {
+                    const tableRows = el.cellData.map((row, rowIdx) => {
+                        const cells = row.map((cellContent, colIdx) => {
+                            const cellStyle = el.cellStyles[rowIdx][colIdx];
+                            const style = `background-color: ${cellStyle.backgroundColor}; color: ${cellStyle.color}; text-align: ${cellStyle.textAlign}; vertical-align: ${cellStyle.verticalAlign}; font-weight: ${cellStyle.fontWeight}; font-size: ${cellStyle.fontSize}px; padding: ${cellStyle.padding}px; border: ${cellStyle.borderWidth}px solid ${cellStyle.borderColor};`;
+                            return `<td style="${style}">${cellContent}</td>`;
+                        }).join('');
+                        return `<tr>${cells}</tr>`;
+                    }).join('');
+                    baseElementHtml = `<table style="width: 100%; height: 100%; border-collapse: collapse;"><tbody>${tableRows}</tbody></table>`;
+                    break;
+                }
             }
 
             return `<div style="${style}">${baseElementHtml}${reactContainer}</div>`;
         }).join('\n');
 
         return `<section ${bgAttrs}>${bgReactContainer}${elementsHtml}</section>`;
+    };
+
+    // Generate HTML for slides, handling nested structure
+    const parentSlides = presentation.slides.filter(s => !s.parentId);
+    const slidesHtml = parentSlides.map(parentSlide => {
+        const childSlides = presentation.slides.filter(s => s.parentId === parentSlide.id);
+
+        if (childSlides.length === 0) {
+            // No children, just return the parent slide
+            return generateSlideHtml(parentSlide);
+        } else {
+            // Has children, wrap parent and children in outer section
+            const parentHtml = generateSlideHtml(parentSlide);
+            const childrenHtml = childSlides.map(child => generateSlideHtml(child)).join('\n');
+            return `<section>\n${parentHtml}\n${childrenHtml}\n</section>`;
+        }
     }).join('\n');
 
     // Configure reveal.js settings

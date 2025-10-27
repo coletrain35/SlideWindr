@@ -5,6 +5,8 @@ import {
     SquareIcon,
     ImageIcon,
     CodeIcon,
+    TableIcon,
+    BarChartIcon,
     AlignLeftIcon,
     AlignCenterHorizontalIcon,
     AlignRightIcon,
@@ -69,6 +71,7 @@ const UnifiedRibbon = ({
     const isShape = selectedElement?.type === 'shape';
     const isImage = selectedElement?.type === 'image';
     const isComponent = selectedElement?.type === 'component';
+    const isChart = selectedElement?.type === 'chart';
 
     return (
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 mb-2">
@@ -98,7 +101,8 @@ const UnifiedRibbon = ({
                         {isShape && '🔷 Shape Format'}
                         {isImage && '🖼️ Image Format'}
                         {isComponent && '⚛️ Component Format'}
-                        {!isText && !isShape && !isImage && !isComponent && '⚙️ Format'}
+                        {isChart && '📊 Chart Format'}
+                        {!isText && !isShape && !isImage && !isComponent && !isChart && '⚙️ Format'}
                     </button>
                 )}
             </div>
@@ -140,6 +144,7 @@ const UnifiedRibbon = ({
                         isShape={isShape}
                         isImage={isImage}
                         isComponent={isComponent}
+                        isChart={isChart}
                     />
                 )}
             </div>
@@ -240,6 +245,30 @@ const HomeTab = ({
                 >
                     <CodeIcon /> Component
                 </button>
+
+                <button
+                    onClick={() => addElement('table')}
+                    className="flex items-center gap-1 px-2 py-1 rounded text-xs hover:bg-yellow-50 dark:hover:bg-yellow-900/30 text-gray-700 dark:text-gray-300"
+                    title="Add Table"
+                >
+                    <TableIcon /> Table
+                </button>
+
+                <button
+                    onClick={() => addElement('code')}
+                    className="flex items-center gap-1 px-2 py-1 rounded text-xs hover:bg-pink-50 dark:hover:bg-pink-900/30 text-gray-700 dark:text-gray-300"
+                    title="Add Code Block"
+                >
+                    <CodeIcon /> Code
+                </button>
+
+                <button
+                    onClick={() => addElement('chart')}
+                    className="flex items-center gap-1 px-2 py-1 rounded text-xs hover:bg-indigo-50 dark:hover:bg-indigo-900/30 text-gray-700 dark:text-gray-300"
+                    title="Add Chart"
+                >
+                    <BarChartIcon /> Chart
+                </button>
             </div>
 
             <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" />
@@ -257,11 +286,22 @@ const HomeTab = ({
 
             <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" />
 
+            {/* Distribute */}
+            <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Distribute:</span>
+                <button onClick={() => onDistribute('horizontal')} disabled={!hasMultipleForDistribute} className="p-1 rounded text-xs hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30" title="Distribute Horizontally (needs 3+ elements)"><DistributeHorizontalIcon /></button>
+                <button onClick={() => onDistribute('vertical')} disabled={!hasMultipleForDistribute} className="p-1 rounded text-xs hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30" title="Distribute Vertically (needs 3+ elements)"><DistributeVerticalIcon /></button>
+            </div>
+
+            <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" />
+
             {/* Arrange */}
             <div className="flex items-center gap-2">
                 <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Arrange:</span>
-                <button onClick={() => onReorder('front')} disabled={!hasSelection} className="p-1 rounded text-xs hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30" title="Bring to Front"><BringToFrontIcon /></button>
-                <button onClick={() => onReorder('back')} disabled={!hasSelection} className="p-1 rounded text-xs hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30" title="Send to Back"><SendToBackIcon /></button>
+                <button onClick={() => onReorder('front')} disabled={!hasSelection} className="p-1 rounded text-xs hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30" title="Bring to Front (top layer)"><BringToFrontIcon /></button>
+                <button onClick={() => onReorder('forward')} disabled={!hasSelection} className="p-1 rounded text-xs hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30" title="Bring Forward (up one layer)"><BringForwardIcon /></button>
+                <button onClick={() => onReorder('backward')} disabled={!hasSelection} className="p-1 rounded text-xs hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30" title="Send Backward (down one layer)"><SendBackwardIcon /></button>
+                <button onClick={() => onReorder('back')} disabled={!hasSelection} className="p-1 rounded text-xs hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30" title="Send to Back (bottom layer)"><SendToBackIcon /></button>
             </div>
 
             <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" />
@@ -292,13 +332,14 @@ const HomeTab = ({
 };
 
 // FORMAT TAB - Element-specific formatting
-const FormatTab = ({ selectedElement, updateElement, deleteElement, copyElement, pasteElement, editor, isText, isShape, isImage, isComponent }) => {
+const FormatTab = ({ selectedElement, updateElement, deleteElement, copyElement, pasteElement, editor, isText, isShape, isImage, isComponent, isChart }) => {
     return (
         <div className="flex flex-wrap items-center gap-3">
             {isText && editor && <TextFormatTools editor={editor} selectedElement={selectedElement} updateElement={updateElement} />}
             {isShape && <ShapeFormatTools selectedElement={selectedElement} updateElement={updateElement} />}
             {isImage && <ImageFormatTools selectedElement={selectedElement} updateElement={updateElement} />}
             {isComponent && <ComponentFormatTools selectedElement={selectedElement} updateElement={updateElement} />}
+            {isChart && <ChartFormatTools selectedElement={selectedElement} updateElement={updateElement} />}
 
             <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" />
 
@@ -454,6 +495,107 @@ const ComponentFormatTools = ({ selectedElement, updateElement }) => {
     );
 };
 
+// Chart formatting tools
+const ChartFormatTools = ({ selectedElement, updateElement }) => {
+    return (
+        <div className="flex items-center gap-3">
+            {/* Chart Type */}
+            <div className="flex items-center gap-2">
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                    Type:
+                </label>
+                <select
+                    value={selectedElement.chartType || 'bar'}
+                    onChange={(e) => updateElement(selectedElement.id, { chartType: e.target.value })}
+                    className="text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                >
+                    <option value="bar">Bar</option>
+                    <option value="line">Line</option>
+                    <option value="pie">Pie</option>
+                    <option value="doughnut">Doughnut</option>
+                    <option value="radar">Radar</option>
+                    <option value="polarArea">Polar</option>
+                </select>
+            </div>
+
+            <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" />
+
+            {/* Legend Toggle */}
+            <div className="flex items-center gap-2">
+                <label className="flex items-center gap-1 cursor-pointer">
+                    <input
+                        type="checkbox"
+                        checked={selectedElement.chartOptions?.plugins?.legend?.display !== false}
+                        onChange={(e) => updateElement(selectedElement.id, {
+                            chartOptions: {
+                                ...selectedElement.chartOptions,
+                                plugins: {
+                                    ...selectedElement.chartOptions?.plugins,
+                                    legend: {
+                                        ...selectedElement.chartOptions?.plugins?.legend,
+                                        display: e.target.checked
+                                    }
+                                }
+                            }
+                        })}
+                        className="w-3 h-3"
+                    />
+                    <span className="text-xs text-gray-700 dark:text-gray-300">Legend</span>
+                </label>
+            </div>
+
+            <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" />
+
+            {/* Quick Presets */}
+            <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Presets:</span>
+                <button
+                    onClick={() => updateElement(selectedElement.id, {
+                        chartData: {
+                            labels: ['Q1', 'Q2', 'Q3', 'Q4'],
+                            datasets: [{
+                                label: 'Sales',
+                                data: [65, 59, 80, 81],
+                                backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                                borderColor: 'rgba(54, 162, 235, 1)',
+                                borderWidth: 2
+                            }]
+                        }
+                    })}
+                    className="px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs"
+                    title="4 quarters of sales data"
+                >
+                    Quarterly
+                </button>
+                <button
+                    onClick={() => updateElement(selectedElement.id, {
+                        chartData: {
+                            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                            datasets: [{
+                                label: 'Revenue',
+                                data: [12, 19, 3, 5, 2, 15],
+                                backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                                borderColor: 'rgba(75, 192, 192, 1)',
+                                borderWidth: 2
+                            }]
+                        }
+                    })}
+                    className="px-2 py-1 bg-teal-500 hover:bg-teal-600 text-white rounded text-xs"
+                    title="6 months of revenue data"
+                >
+                    Monthly
+                </button>
+            </div>
+
+            <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" />
+
+            <span className="text-xs font-medium text-indigo-600 dark:text-indigo-400">
+                Edit JSON data in the properties panel →
+            </span>
+        </div>
+    );
+};
+
 // PropTypes
 UnifiedRibbon.propTypes = {
     settings: PropTypes.object,
@@ -511,7 +653,9 @@ FormatTab.propTypes = {
     editor: PropTypes.object,
     isText: PropTypes.bool.isRequired,
     isShape: PropTypes.bool.isRequired,
-    isImage: PropTypes.bool.isRequired
+    isImage: PropTypes.bool.isRequired,
+    isComponent: PropTypes.bool.isRequired,
+    isChart: PropTypes.bool.isRequired
 };
 
 TextFormatTools.propTypes = {
@@ -526,6 +670,16 @@ ShapeFormatTools.propTypes = {
 };
 
 ImageFormatTools.propTypes = {
+    selectedElement: PropTypes.object.isRequired,
+    updateElement: PropTypes.func.isRequired
+};
+
+ComponentFormatTools.propTypes = {
+    selectedElement: PropTypes.object.isRequired,
+    updateElement: PropTypes.func.isRequired
+};
+
+ChartFormatTools.propTypes = {
     selectedElement: PropTypes.object.isRequired,
     updateElement: PropTypes.func.isRequired
 };

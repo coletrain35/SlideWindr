@@ -128,16 +128,67 @@ const ElementProperties = ({ selectedElement, updateElement, deleteElement, copy
                 {/* Rotation Card */}
                 <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 border border-gray-200 dark:border-gray-600">
                     <h3 className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-2 uppercase tracking-wide">Transform</h3>
-                    <div>
-                        <label className="text-xs text-gray-600 dark:text-gray-400">Rotation: {selectedElement.rotation || 0}°</label>
-                        <input
-                            type="range"
-                            min="0"
-                            max="360"
-                            value={selectedElement.rotation || 0}
-                            onChange={e => updateElement(selectedElement.id, { rotation: +e.target.value })}
-                            className="w-full accent-blue-500"
-                        />
+                    <div className="space-y-2">
+                        <div>
+                            <label className="text-xs text-gray-600 dark:text-gray-400">Rotation: {selectedElement.rotation || 0}°</label>
+                            <input
+                                type="range"
+                                min="0"
+                                max="360"
+                                value={selectedElement.rotation || 0}
+                                onChange={e => updateElement(selectedElement.id, { rotation: +e.target.value })}
+                                className="w-full accent-blue-500"
+                            />
+                        </div>
+                        <div className="flex gap-1">
+                            <button
+                                onClick={() => {
+                                    const newRotation = ((selectedElement.rotation || 0) - 90 + 360) % 360;
+                                    updateElement(selectedElement.id, { rotation: newRotation });
+                                }}
+                                className="flex-1 px-2 py-1 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 dark:hover:bg-blue-800/50 text-blue-700 dark:text-blue-300 rounded text-xs font-medium"
+                                title="Rotate -90°"
+                            >
+                                ↶ 90°
+                            </button>
+                            <button
+                                onClick={() => {
+                                    const newRotation = ((selectedElement.rotation || 0) - 45 + 360) % 360;
+                                    updateElement(selectedElement.id, { rotation: newRotation });
+                                }}
+                                className="flex-1 px-2 py-1 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 dark:hover:bg-blue-800/50 text-blue-700 dark:text-blue-300 rounded text-xs font-medium"
+                                title="Rotate -45°"
+                            >
+                                ↶ 45°
+                            </button>
+                            <button
+                                onClick={() => updateElement(selectedElement.id, { rotation: 0 })}
+                                className="flex-1 px-2 py-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded text-xs font-medium"
+                                title="Reset to 0°"
+                            >
+                                Reset
+                            </button>
+                            <button
+                                onClick={() => {
+                                    const newRotation = ((selectedElement.rotation || 0) + 45) % 360;
+                                    updateElement(selectedElement.id, { rotation: newRotation });
+                                }}
+                                className="flex-1 px-2 py-1 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 dark:hover:bg-blue-800/50 text-blue-700 dark:text-blue-300 rounded text-xs font-medium"
+                                title="Rotate +45°"
+                            >
+                                45° ↷
+                            </button>
+                            <button
+                                onClick={() => {
+                                    const newRotation = ((selectedElement.rotation || 0) + 90) % 360;
+                                    updateElement(selectedElement.id, { rotation: newRotation });
+                                }}
+                                className="flex-1 px-2 py-1 bg-blue-100 hover:bg-blue-200 dark:bg-blue-900/30 dark:hover:bg-blue-800/50 text-blue-700 dark:text-blue-300 rounded text-xs font-medium"
+                                title="Rotate +90°"
+                            >
+                                90° ↷
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -330,6 +381,243 @@ const ElementProperties = ({ selectedElement, updateElement, deleteElement, copy
                         </div>
                     </div>
                 )}
+                {selectedElement.type === 'table' && (
+                    <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-3 border border-yellow-200 dark:border-yellow-800">
+                        <h3 className="text-xs font-semibold text-yellow-600 dark:text-yellow-400 mb-2 uppercase tracking-wide">Table Properties</h3>
+                        <div className="space-y-3">
+                            {/* Table Structure */}
+                            <div>
+                                <label className="text-xs text-gray-600 dark:text-gray-400 block mb-1">Table Structure:</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label className="text-xs text-gray-500 dark:text-gray-500">Rows: {selectedElement.rows}</label>
+                                        <div className="flex gap-1 mt-1">
+                                            <button
+                                                onClick={() => {
+                                                    const newRows = selectedElement.rows + 1;
+                                                    const newCellData = [...selectedElement.cellData, Array(selectedElement.columns).fill('New Cell')];
+                                                    const newCellStyles = [...selectedElement.cellStyles, Array(selectedElement.columns).fill(null).map(() => ({
+                                                        backgroundColor: '#ffffff',
+                                                        color: '#000000',
+                                                        textAlign: 'left',
+                                                        verticalAlign: 'middle',
+                                                        fontWeight: 'normal',
+                                                        fontSize: 14,
+                                                        padding: 8,
+                                                        borderColor: '#d1d5db',
+                                                        borderWidth: 1
+                                                    }))];
+                                                    updateElement(selectedElement.id, { rows: newRows, cellData: newCellData, cellStyles: newCellStyles });
+                                                }}
+                                                className="flex-1 px-2 py-1 bg-green-500 hover:bg-green-600 text-white rounded text-xs"
+                                            >
+                                                + Row
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    if (selectedElement.rows > 1) {
+                                                        const newRows = selectedElement.rows - 1;
+                                                        const newCellData = selectedElement.cellData.slice(0, -1);
+                                                        const newCellStyles = selectedElement.cellStyles.slice(0, -1);
+                                                        updateElement(selectedElement.id, { rows: newRows, cellData: newCellData, cellStyles: newCellStyles });
+                                                    }
+                                                }}
+                                                className="flex-1 px-2 py-1 bg-red-500 hover:bg-red-600 text-white rounded text-xs disabled:opacity-50"
+                                                disabled={selectedElement.rows <= 1}
+                                            >
+                                                - Row
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-gray-500 dark:text-gray-500">Columns: {selectedElement.columns}</label>
+                                        <div className="flex gap-1 mt-1">
+                                            <button
+                                                onClick={() => {
+                                                    const newCols = selectedElement.columns + 1;
+                                                    const newCellData = selectedElement.cellData.map(row => [...row, 'New Cell']);
+                                                    const newCellStyles = selectedElement.cellStyles.map(row => [...row, {
+                                                        backgroundColor: '#ffffff',
+                                                        color: '#000000',
+                                                        textAlign: 'left',
+                                                        verticalAlign: 'middle',
+                                                        fontWeight: 'normal',
+                                                        fontSize: 14,
+                                                        padding: 8,
+                                                        borderColor: '#d1d5db',
+                                                        borderWidth: 1
+                                                    }]);
+                                                    updateElement(selectedElement.id, { columns: newCols, cellData: newCellData, cellStyles: newCellStyles });
+                                                }}
+                                                className="flex-1 px-2 py-1 bg-green-500 hover:bg-green-600 text-white rounded text-xs"
+                                            >
+                                                + Col
+                                            </button>
+                                            <button
+                                                onClick={() => {
+                                                    if (selectedElement.columns > 1) {
+                                                        const newCols = selectedElement.columns - 1;
+                                                        const newCellData = selectedElement.cellData.map(row => row.slice(0, -1));
+                                                        const newCellStyles = selectedElement.cellStyles.map(row => row.slice(0, -1));
+                                                        updateElement(selectedElement.id, { columns: newCols, cellData: newCellData, cellStyles: newCellStyles });
+                                                    }
+                                                }}
+                                                className="flex-1 px-2 py-1 bg-red-500 hover:bg-red-600 text-white rounded text-xs disabled:opacity-50"
+                                                disabled={selectedElement.columns <= 1}
+                                            >
+                                                - Col
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Header Row Style Quick Apply */}
+                            <div>
+                                <label className="text-xs text-gray-600 dark:text-gray-400 block mb-1">Quick Styles:</label>
+                                <button
+                                    onClick={() => {
+                                        // Apply header row style to first row
+                                        const newCellStyles = selectedElement.cellStyles.map((row, rowIdx) =>
+                                            row.map(cell => ({
+                                                ...cell,
+                                                backgroundColor: rowIdx === 0 ? '#3b82f6' : '#ffffff',
+                                                color: rowIdx === 0 ? '#ffffff' : '#000000',
+                                                fontWeight: rowIdx === 0 ? 'bold' : 'normal'
+                                            }))
+                                        );
+                                        updateElement(selectedElement.id, { cellStyles: newCellStyles });
+                                    }}
+                                    className="w-full px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs"
+                                >
+                                    Apply Header Row Style
+                                </button>
+                            </div>
+
+                            <div className="bg-yellow-100 dark:bg-yellow-900/40 rounded p-2 border border-yellow-300 dark:border-yellow-700">
+                                <p className="text-xs text-yellow-800 dark:text-yellow-200">
+                                    💡 Tip: Click on a table cell to edit its content. Press Enter or click outside to finish editing. Use Tab to navigate between cells.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Chart Properties */}
+                {selectedElement.type === 'chart' && (
+                    <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-3 border border-indigo-200 dark:border-indigo-800">
+                        <h3 className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 mb-2 uppercase tracking-wide">Chart Properties</h3>
+                        <div className="space-y-3">
+                            {/* Chart Type */}
+                            <div>
+                                <label className="text-xs text-gray-600 dark:text-gray-400 block mb-1">Chart Type:</label>
+                                <select
+                                    value={selectedElement.chartType || 'bar'}
+                                    onChange={(e) => updateElement(selectedElement.id, { chartType: e.target.value })}
+                                    className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                                >
+                                    <option value="bar">Bar Chart</option>
+                                    <option value="line">Line Chart</option>
+                                    <option value="pie">Pie Chart</option>
+                                    <option value="doughnut">Doughnut Chart</option>
+                                    <option value="radar">Radar Chart</option>
+                                    <option value="polarArea">Polar Area Chart</option>
+                                </select>
+                            </div>
+
+                            {/* Chart Data Editor */}
+                            <div>
+                                <label className="text-xs text-gray-600 dark:text-gray-400 block mb-1">Data (JSON):</label>
+                                <textarea
+                                    value={JSON.stringify(selectedElement.chartData, null, 2)}
+                                    onChange={(e) => {
+                                        try {
+                                            const data = JSON.parse(e.target.value);
+                                            updateElement(selectedElement.id, { chartData: data });
+                                        } catch (err) {
+                                            // Invalid JSON, don't update
+                                        }
+                                    }}
+                                    className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-mono"
+                                    rows={8}
+                                    placeholder='{"labels": ["A", "B"], "datasets": [...]}'
+                                />
+                            </div>
+
+                            {/* Legend Toggle */}
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    id="chart-legend"
+                                    checked={selectedElement.chartOptions?.plugins?.legend?.display !== false}
+                                    onChange={(e) => updateElement(selectedElement.id, {
+                                        chartOptions: {
+                                            ...selectedElement.chartOptions,
+                                            plugins: {
+                                                ...selectedElement.chartOptions?.plugins,
+                                                legend: {
+                                                    ...selectedElement.chartOptions?.plugins?.legend,
+                                                    display: e.target.checked
+                                                }
+                                            }
+                                        }
+                                    })}
+                                    className="rounded"
+                                />
+                                <label htmlFor="chart-legend" className="text-xs text-gray-700 dark:text-gray-300">
+                                    Show Legend
+                                </label>
+                            </div>
+
+                            {/* Quick Data Presets */}
+                            <div>
+                                <label className="text-xs text-gray-600 dark:text-gray-400 block mb-1">Quick Presets:</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                        onClick={() => updateElement(selectedElement.id, {
+                                            chartData: {
+                                                labels: ['Q1', 'Q2', 'Q3', 'Q4'],
+                                                datasets: [{
+                                                    label: 'Sales',
+                                                    data: [65, 59, 80, 81],
+                                                    backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                                                    borderColor: 'rgba(54, 162, 235, 1)',
+                                                    borderWidth: 2
+                                                }]
+                                            }
+                                        })}
+                                        className="px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded text-xs"
+                                    >
+                                        Quarterly
+                                    </button>
+                                    <button
+                                        onClick={() => updateElement(selectedElement.id, {
+                                            chartData: {
+                                                labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                                                datasets: [{
+                                                    label: 'Revenue',
+                                                    data: [12, 19, 3, 5, 2, 15],
+                                                    backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                                                    borderColor: 'rgba(75, 192, 192, 1)',
+                                                    borderWidth: 2
+                                                }]
+                                            }
+                                        })}
+                                        className="px-2 py-1 bg-teal-500 hover:bg-teal-600 text-white rounded text-xs"
+                                    >
+                                        Monthly
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="bg-indigo-100 dark:bg-indigo-900/40 rounded p-2 border border-indigo-300 dark:border-indigo-700">
+                                <p className="text-xs text-indigo-800 dark:text-indigo-200">
+                                    💡 Tip: Edit the JSON data above to customize your chart. Use quick presets for common data patterns.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
                     <ReactComponentEditor
@@ -371,7 +659,7 @@ const ElementProperties = ({ selectedElement, updateElement, deleteElement, copy
 ElementProperties.propTypes = {
     selectedElement: PropTypes.shape({
         id: PropTypes.string.isRequired,
-        type: PropTypes.oneOf(['text', 'shape', 'image', 'iframe']).isRequired,
+        type: PropTypes.oneOf(['text', 'shape', 'image', 'iframe', 'table', 'component']).isRequired,
         x: PropTypes.number.isRequired,
         y: PropTypes.number.isRequired,
         width: PropTypes.number.isRequired,

@@ -7,6 +7,8 @@ import ElementProperties from './components/ElementProperties';
 import AlignmentGuides from './components/AlignmentGuides';
 import UnifiedRibbon from './components/UnifiedRibbon';
 import ReactComponentEditor from './components/ReactComponentEditor';
+import PerformanceWarning from './components/PerformanceWarning';
+import SpeakerNotes from './components/SpeakerNotes';
 import {
     TypeIcon,
     SquareIcon,
@@ -22,11 +24,13 @@ import {
     SettingsIcon,
     PlusIcon,
     UndoIcon,
-    RedoIcon
+    RedoIcon,
+    FileTextIcon
 } from './components/Icons';
 import { generateRevealHTML } from './utils/htmlGenerator';
 import { useHistory } from './hooks/useHistory';
 import { useAutoSave } from './hooks/useAutoSave';
+import { useComponentPerformance, getPerformanceWarning } from './hooks/useComponentPerformance';
 import { exportSlidesAsPDF, exportAllSlidesAsImages, exportAsJSON, importFromJSON } from './utils/exportUtils';
 import { importRevealHTML } from './utils/revealImporter';
 import { alignHorizontal, alignVertical, distributeElements, snapToGrid as snapPositionToGrid, findAlignmentGuides, reorderElement } from './utils/alignmentUtils';
@@ -45,7 +49,9 @@ export default function App() {
             id: crypto.randomUUID(),
             elements: [],
             background: { type: 'color', value: '#ffffff' },
-            transition: null // null = use global transition
+            transition: null, // null = use global transition
+            parentId: null, // null = top-level slide, otherwise ID of parent slide
+            notes: '' // Speaker notes for this slide
         }],
         settings: {
             transition: 'slide',
@@ -64,10 +70,13 @@ export default function App() {
     const { state: presentation, setState: setPresentation, undo, redo, canUndo, canRedo } = useHistory(initialPresentation);
     const { saveStatus, loadSave, clearSave } = useAutoSave(presentation);
     const [currentSlideId, setCurrentSlideId] = useState(presentation?.slides?.[0]?.id || initialPresentation.slides[0].id);
+    const performanceMetrics = useComponentPerformance(presentation?.slides || [], currentSlideId);
+    const performanceWarning = getPerformanceWarning(performanceMetrics);
     const [selectedElementIds, setSelectedElementIds] = useState([]);
     const selectedElementId = selectedElementIds[0] || null; // For backward compatibility
     const [dragging, setDragging] = useState(null);
     const [resizing, setResizing] = useState(null);
+    const [rotating, setRotating] = useState(null);
     const [interactingElementId, setInteractingElementId] = useState(null);
     const [librariesLoaded] = useState({ babel: true, three: true, postprocessing: true });
     const [isDarkMode, setIsDarkMode] = useState(false);
@@ -80,6 +89,8 @@ export default function App() {
     const [alignmentGuides, setAlignmentGuides] = useState(null);
     const [textEditor, setTextEditor] = useState(null); // Store TipTap editor instance
     const [marquee, setMarquee] = useState(null); // { startX, startY, endX, endY }
+    const [showNotes, setShowNotes] = useState(false); // Toggle speaker notes panel
+    const [notesHeight, setNotesHeight] = useState(200); // Height of notes panel in pixels
     const gridSize = 20;
     const canvasRef = useRef(null);
     const slideRefs = useRef([]);
@@ -135,6 +146,17 @@ export default function App() {
             slides: prev.slides.map(slide =>
                 slide.id === slideId
                     ? { ...slide, ...newSettings }
+                    : slide
+            )
+        }));
+    }, []);
+
+    const updateSlideNotes = useCallback((slideId, notes) => {
+        setPresentation(prev => ({
+            ...prev,
+            slides: prev.slides.map(slide =>
+                slide.id === slideId
+                    ? { ...slide, notes }
                     : slide
             )
         }));
@@ -220,6 +242,93 @@ export default function App() {
                     }
                 };
                 break;
+            case 'table':
+                // Initialize a 3x3 table with default styling
+                const defaultRows = 3;
+                const defaultCols = 3;
+                const cellData = Array(defaultRows).fill(null).map((_, rowIdx) =>
+                    Array(defaultCols).fill(null).map((_, colIdx) => {
+                        // Header row
+                        if (rowIdx === 0) return `Header ${colIdx + 1}`;
+                        // Data rows
+                        return `Cell ${rowIdx},${colIdx + 1}`;
+                    })
+                );
+                const cellStyles = Array(defaultRows).fill(null).map((_, rowIdx) =>
+                    Array(defaultCols).fill(null).map(() => ({
+                        backgroundColor: rowIdx === 0 ? '#3b82f6' : '#ffffff',
+                        color: rowIdx === 0 ? '#ffffff' : '#000000',
+                        textAlign: 'left',
+                        verticalAlign: 'middle',
+                        fontWeight: rowIdx === 0 ? 'bold' : 'normal',
+                        fontSize: 14,
+                        padding: 8,
+                        borderColor: '#d1d5db',
+                        borderWidth: 1
+                    }))
+                );
+                newElement = {
+                    ...baseElement,
+                    type,
+                    rows: defaultRows,
+                    columns: defaultCols,
+                    cellData,
+                    cellStyles,
+                    width: 400,
+                    height: 200
+                };
+                break;
+            case 'code':
+                newElement = {
+                    ...baseElement,
+                    type,
+                    code: '// Your code here\nfunction hello() {\n  console.log("Hello, World!");\n}',
+                    language: 'javascript',
+                    fontSize: 14,
+                    showLineNumbers: true,
+                    width: 500,
+                    height: 300
+                };
+                break;
+            case 'chart':
+                newElement = {
+                    ...baseElement,
+                    type,
+                    chartType: 'bar', // bar, line, pie, doughnut, radar, polarArea
+                    chartData: {
+                        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
+                        datasets: [{
+                            label: 'Sales',
+                            data: [12, 19, 3, 5, 20],
+                            backgroundColor: [
+                                'rgba(255, 99, 132, 0.6)',
+                                'rgba(54, 162, 235, 0.6)',
+                                'rgba(255, 206, 86, 0.6)',
+                                'rgba(75, 192, 192, 0.6)',
+                                'rgba(153, 102, 255, 0.6)',
+                            ],
+                            borderColor: [
+                                'rgba(255, 99, 132, 1)',
+                                'rgba(54, 162, 235, 1)',
+                                'rgba(255, 206, 86, 1)',
+                                'rgba(75, 192, 192, 1)',
+                                'rgba(153, 102, 255, 1)',
+                            ],
+                            borderWidth: 2,
+                        }]
+                    },
+                    chartOptions: {
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top'
+                            }
+                        }
+                    },
+                    width: 500,
+                    height: 350
+                };
+                break;
             default:
                 return;
         }
@@ -284,7 +393,23 @@ export default function App() {
             id: crypto.randomUUID(),
             elements: [],
             background: { type: 'color', value: '#ffffff' },
-            transition: null // null = use global transition
+            transition: null, // null = use global transition
+            parentId: null // top-level slide
+        };
+        setPresentation(prev => ({
+            ...prev,
+            slides: [...prev.slides, newSlide]
+        }));
+        setCurrentSlideId(newSlide.id);
+    }, []);
+
+    const addNestedSlide = useCallback((parentId) => {
+        const newSlide = {
+            id: crypto.randomUUID(),
+            elements: [],
+            background: { type: 'color', value: '#ffffff' },
+            transition: null,
+            parentId: parentId // nested under parent
         };
         setPresentation(prev => ({
             ...prev,
@@ -553,6 +678,33 @@ export default function App() {
         });
     }, [currentSlideId]);
 
+    const handleRotateMouseDown = useCallback((e, elementId) => {
+        e.stopPropagation();
+        setInteractingElementId(null);
+        setSelectedElementIds([elementId]);
+
+        // Get fresh element data from current presentation state
+        const slide = presentationRef.current.slides.find(s => s.id === currentSlideId);
+        if (!slide) return;
+
+        const element = slide.elements.find(el => el.id === elementId);
+        if (!element) return;
+
+        isDraggingOrResizingRef.current = true;
+
+        // Calculate center of element for rotation
+        const canvasRect = canvasRef.current.getBoundingClientRect();
+        const centerX = canvasRect.left + element.x + element.width / 2;
+        const centerY = canvasRect.top + element.y + element.height / 2;
+
+        setRotating({
+            elementId: element.id,
+            centerX,
+            centerY,
+            initialRotation: element.rotation || 0,
+        });
+    }, [currentSlideId]);
+
     const handleCanvasMouseMove = useCallback((e) => {
         if (interactingElementId) return;
         const canvasRect = canvasRef.current.getBoundingClientRect();
@@ -630,7 +782,28 @@ export default function App() {
                 updateElement(resizing.elementId, { x: newX, y: newY, width: newWidth, height: newHeight });
             }
         }
-    }, [dragging, resizing, updateElement, interactingElementId, snapToGrid, gridSize, currentSlideId, selectedElementIds, marquee]);
+        if (rotating) {
+            // Calculate angle between mouse position and element center
+            const dx = e.clientX - rotating.centerX;
+            const dy = e.clientY - rotating.centerY;
+
+            // Calculate angle in degrees (0 = right, 90 = down, 180 = left, 270 = up)
+            let angle = Math.atan2(dy, dx) * (180 / Math.PI);
+
+            // Adjust to match CSS rotation (0 = up, 90 = right, 180 = down, 270 = left)
+            angle = angle + 90;
+
+            // Normalize to 0-360
+            if (angle < 0) angle += 360;
+
+            // Snap to 15-degree increments if shift key is held
+            if (e.shiftKey) {
+                angle = Math.round(angle / 15) * 15;
+            }
+
+            updateElement(rotating.elementId, { rotation: Math.round(angle) });
+        }
+    }, [dragging, resizing, rotating, updateElement, interactingElementId, snapToGrid, gridSize, currentSlideId, selectedElementIds, marquee]);
 
     const handleCanvasMouseDown = useCallback((e) => {
         // Only start marquee if clicking on canvas (not on an element)
@@ -654,6 +827,7 @@ export default function App() {
         isDraggingOrResizingRef.current = false;
         setDragging(null);
         setResizing(null);
+        setRotating(null);
         setAlignmentGuides(null); // Clear guides when done dragging
 
         // Handle marquee selection
@@ -695,6 +869,7 @@ export default function App() {
     const handleCanvasMouseLeave = useCallback(() => {
         setDragging(null);
         setResizing(null);
+        setRotating(null);
         setAlignmentGuides(null); // Clear guides when leaving canvas
         setMarquee(null); // Clear marquee when leaving canvas
     }, []);
@@ -1005,6 +1180,19 @@ export default function App() {
                         </button>
 
                         <button
+                            onClick={() => setShowNotes(!showNotes)}
+                            className={`flex items-center gap-2 px-4 py-2 font-semibold rounded-lg shadow-sm hover:shadow-md transition-all duration-200 ${
+                                showNotes
+                                    ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white'
+                                    : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
+                            }`}
+                            title="Toggle Speaker Notes"
+                        >
+                            <FileTextIcon className="w-4 h-4" />
+                            <span>Notes</span>
+                        </button>
+
+                        <button
                             onClick={() => setShowImportDialog(true)}
                             className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 font-semibold rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 shadow-sm hover:shadow-md transition-all duration-200"
                             title="Import Presentation"
@@ -1026,6 +1214,9 @@ export default function App() {
                 </div>
             </header>
 
+            {/* Performance Warning Banner */}
+            <PerformanceWarning warning={performanceWarning} />
+
             <div className="flex flex-1 overflow-hidden">
                 {/* Modern Sidebar */}
                 <aside className="w-72 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
@@ -1041,73 +1232,173 @@ export default function App() {
                     </div>
 
                     {/* Slides List */}
-                    <div className="flex-1 overflow-y-auto p-3 space-y-3">
-                        {presentation?.slides?.map((slide, index) => (
-                            <div
-                                key={slide.id}
-                                onClick={() => setCurrentSlideId(slide.id)}
-                                className={`
-                                    relative group cursor-pointer rounded-xl transition-all duration-200
-                                    ${currentSlideId === slide.id
-                                        ? 'ring-2 ring-blue-500 shadow-lg scale-105'
-                                        : 'hover:shadow-md hover:scale-102'
-                                    }
-                                `}
-                            >
-                                {/* Slide Number Badge */}
-                                <div className="absolute -top-2 -right-2 z-10 w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-lg">
-                                    {index + 1}
-                                </div>
+                    <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                        {presentation?.slides?.filter(s => !s.parentId).map((slide, index) => {
+                            // Find nested slides under this parent
+                            const nestedSlides = presentation.slides.filter(s => s.parentId === slide.id);
+                            const allSlidesInGroup = [slide, ...nestedSlides];
 
-                                {/* Slide Thumbnail */}
-                                <div
-                                    className="aspect-video rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600"
-                                    style={getBackgroundStyle(slide.background)}
-                                >
-                                    <div className="w-full h-full transform scale-[0.2] origin-top-left">
-                                        {slide.elements.map(el => {
-                                            const style = { position: 'absolute', left: el.x, top: el.y, width: el.width, height: el.height, transform: `rotate(${el.rotation || 0}deg)` };
-                                            if (el.type === 'text') return <div key={el.id} style={{ ...style, fontSize: el.fontSize, color: el.color, overflow: 'hidden' }}>{el.content}</div>
-                                            if (el.type === 'shape') return <div key={el.id} style={{ ...style, backgroundColor: el.backgroundColor }}></div>
-                                            if (el.type === 'image' || el.type === 'iframe') return <div key={el.id} style={{ ...style, border: '1px solid #ccc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>MEDIA</div>
-                                            return null;
-                                        })}
+                            return (
+                                <div key={slide.id} className="space-y-2">
+                                    {/* Parent slide */}
+                                    <div className="space-y-1">
+                                        <div
+                                            onClick={() => setCurrentSlideId(slide.id)}
+                                            className={`
+                                                relative group cursor-pointer rounded-xl transition-all duration-200
+                                                ${currentSlideId === slide.id
+                                                    ? 'ring-2 ring-blue-500 shadow-lg scale-105'
+                                                    : 'hover:shadow-md hover:scale-102'
+                                                }
+                                            `}
+                                            style={{ width: '192px', height: '108px' }}
+                                        >
+                                            {/* Slide Number Badge */}
+                                            <div className="absolute -top-2 -right-2 z-10 w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-lg">
+                                                {presentation.slides.filter(s => !s.parentId).indexOf(slide) + 1}
+                                            </div>
+
+                                            {/* Add Nested Slide Badge */}
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); addNestedSlide(slide.id) }}
+                                                className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-10 px-2 py-0.5 bg-purple-500 hover:bg-purple-600 text-white text-xs font-semibold rounded-full shadow-lg flex items-center gap-1 transition-all hover:scale-105"
+                                                title="Add nested slide under this slide (vertical navigation)"
+                                            >
+                                                <PlusIcon className="w-3 h-3" />
+                                                <span>Nested</span>
+                                            </button>
+
+                                            {/* Slide Thumbnail */}
+                                            <div
+                                                className="rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600"
+                                                style={{ ...getBackgroundStyle(slide.background), width: '192px', height: '108px' }}
+                                            >
+                                                <div style={{ width: '960px', height: '540px', transform: 'scale(0.2)', transformOrigin: 'top left' }}>
+                                                    {slide.elements.map(el => {
+                                                        const style = { position: 'absolute', left: el.x, top: el.y, width: el.width, height: el.height, transform: `rotate(${el.rotation || 0}deg)` };
+                                                        if (el.type === 'text') return <div key={el.id} style={{ ...style, fontSize: el.fontSize, color: el.color, overflow: 'hidden' }}>{el.content}</div>
+                                                        if (el.type === 'shape') return <div key={el.id} style={{ ...style, backgroundColor: el.backgroundColor }}></div>
+                                                        if (el.type === 'image' || el.type === 'iframe') return <div key={el.id} style={{ ...style, border: '1px solid #ccc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>MEDIA</div>
+                                                        return null;
+                                                    })}
+                                                </div>
+                                            </div>
+
+                                            {/* Slide Controls Overlay */}
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent group-hover:opacity-100 opacity-0 transition-opacity rounded-lg flex items-center justify-center gap-1">
+                                                <button
+                                                    title="Move Up"
+                                                    onClick={(e) => { e.stopPropagation(); moveSlide(slide.id, -1) }}
+                                                    className="p-1.5 rounded-full bg-white/90 hover:bg-white text-gray-700 shadow-md transform hover:scale-110 transition-all text-xs"
+                                                >
+                                                    <ChevronUpIcon />
+                                                </button>
+                                                <button
+                                                    title="Move Down"
+                                                    onClick={(e) => { e.stopPropagation(); moveSlide(slide.id, 1) }}
+                                                    className="p-1.5 rounded-full bg-white/90 hover:bg-white text-gray-700 shadow-md transform hover:scale-110 transition-all text-xs"
+                                                >
+                                                    <ChevronDownIcon />
+                                                </button>
+                                                <button
+                                                    title="Add Nested Slide"
+                                                    onClick={(e) => { e.stopPropagation(); addNestedSlide(slide.id) }}
+                                                    className="p-1.5 rounded-full bg-purple-500/90 hover:bg-purple-600 text-white shadow-md transform hover:scale-110 transition-all text-xs"
+                                                >
+                                                    <PlusIcon />
+                                                </button>
+                                                <button
+                                                    title="Duplicate"
+                                                    onClick={(e) => { e.stopPropagation(); duplicateSlide(slide.id) }}
+                                                    className="p-1.5 rounded-full bg-white/90 hover:bg-white text-gray-700 shadow-md transform hover:scale-110 transition-all text-xs"
+                                                >
+                                                    <CopyIcon />
+                                                </button>
+                                                <button
+                                                    title="Delete"
+                                                    onClick={(e) => { e.stopPropagation(); deleteSlide(slide.id) }}
+                                                    className="p-1.5 rounded-full bg-red-500/90 hover:bg-red-600 text-white shadow-md transform hover:scale-110 transition-all text-xs"
+                                                >
+                                                    <TrashIcon />
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Nested slides */}
+                                        {nestedSlides.map((nestedSlide, nestedIndex) => (
+                                            <div
+                                                key={nestedSlide.id}
+                                                onClick={() => setCurrentSlideId(nestedSlide.id)}
+                                                className={`
+                                                    ml-6 relative group cursor-pointer rounded-xl transition-all duration-200
+                                                    ${currentSlideId === nestedSlide.id
+                                                        ? 'ring-2 ring-purple-500 shadow-lg scale-105'
+                                                        : 'hover:shadow-md hover:scale-102'
+                                                    }
+                                                `}
+                                                style={{ width: '192px', height: '108px' }}
+                                            >
+                                                {/* Nested indicator */}
+                                                <div className="absolute -left-5 top-1/2 -translate-y-1/2 w-4 h-px bg-gray-400 dark:bg-gray-600"></div>
+
+                                                {/* Slide Number Badge */}
+                                                <div className="absolute -top-2 -right-2 z-10 w-6 h-6 bg-gradient-to-br from-purple-500 to-pink-600 text-white text-xs font-bold rounded-full flex items-center justify-center shadow-lg">
+                                                    {nestedIndex + 1}
+                                                </div>
+
+                                                {/* Slide Thumbnail */}
+                                                <div
+                                                    className="rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600"
+                                                    style={{ ...getBackgroundStyle(nestedSlide.background), width: '192px', height: '108px' }}
+                                                >
+                                                    <div style={{ width: '960px', height: '540px', transform: 'scale(0.2)', transformOrigin: 'top left' }}>
+                                                        {nestedSlide.elements.map(el => {
+                                                            const style = { position: 'absolute', left: el.x, top: el.y, width: el.width, height: el.height, transform: `rotate(${el.rotation || 0}deg)` };
+                                                            if (el.type === 'text') return <div key={el.id} style={{ ...style, fontSize: el.fontSize, color: el.color, overflow: 'hidden' }}>{el.content}</div>
+                                                            if (el.type === 'shape') return <div key={el.id} style={{ ...style, backgroundColor: el.backgroundColor }}></div>
+                                                            if (el.type === 'image' || el.type === 'iframe') return <div key={el.id} style={{ ...style, border: '1px solid #ccc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>MEDIA</div>
+                                                            return null;
+                                                        })}
+                                                    </div>
+                                                </div>
+
+                                                {/* Slide Controls Overlay */}
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent group-hover:opacity-100 opacity-0 transition-opacity rounded-lg flex items-center justify-center gap-1">
+                                                    <button
+                                                        title="Move Up"
+                                                        onClick={(e) => { e.stopPropagation(); moveSlide(nestedSlide.id, -1) }}
+                                                        className="p-1.5 rounded-full bg-white/90 hover:bg-white text-gray-700 shadow-md transform hover:scale-110 transition-all text-xs"
+                                                    >
+                                                        <ChevronUpIcon />
+                                                    </button>
+                                                    <button
+                                                        title="Move Down"
+                                                        onClick={(e) => { e.stopPropagation(); moveSlide(nestedSlide.id, 1) }}
+                                                        className="p-1.5 rounded-full bg-white/90 hover:bg-white text-gray-700 shadow-md transform hover:scale-110 transition-all text-xs"
+                                                    >
+                                                        <ChevronDownIcon />
+                                                    </button>
+                                                    <button
+                                                        title="Duplicate"
+                                                        onClick={(e) => { e.stopPropagation(); duplicateSlide(nestedSlide.id) }}
+                                                        className="p-1.5 rounded-full bg-white/90 hover:bg-white text-gray-700 shadow-md transform hover:scale-110 transition-all text-xs"
+                                                    >
+                                                        <CopyIcon />
+                                                    </button>
+                                                    <button
+                                                        title="Delete"
+                                                        onClick={(e) => { e.stopPropagation(); deleteSlide(nestedSlide.id) }}
+                                                        className="p-1.5 rounded-full bg-red-500/90 hover:bg-red-600 text-white shadow-md transform hover:scale-110 transition-all text-xs"
+                                                    >
+                                                        <TrashIcon />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
-
-                                {/* Slide Controls Overlay */}
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent group-hover:opacity-100 opacity-0 transition-opacity rounded-lg flex items-center justify-center gap-2">
-                                    <button
-                                        title="Move Up"
-                                        onClick={(e) => { e.stopPropagation(); moveSlide(slide.id, -1) }}
-                                        className="p-2 rounded-full bg-white/90 hover:bg-white text-gray-700 shadow-md transform hover:scale-110 transition-all"
-                                    >
-                                        <ChevronUpIcon />
-                                    </button>
-                                    <button
-                                        title="Move Down"
-                                        onClick={(e) => { e.stopPropagation(); moveSlide(slide.id, 1) }}
-                                        className="p-2 rounded-full bg-white/90 hover:bg-white text-gray-700 shadow-md transform hover:scale-110 transition-all"
-                                    >
-                                        <ChevronDownIcon />
-                                    </button>
-                                    <button
-                                        title="Duplicate"
-                                        onClick={(e) => { e.stopPropagation(); duplicateSlide(slide.id) }}
-                                        className="p-2 rounded-full bg-white/90 hover:bg-white text-gray-700 shadow-md transform hover:scale-110 transition-all"
-                                    >
-                                        <CopyIcon />
-                                    </button>
-                                    <button
-                                        title="Delete"
-                                        onClick={(e) => { e.stopPropagation(); deleteSlide(slide.id) }}
-                                        className="p-2 rounded-full bg-red-500/90 hover:bg-red-600 text-white shadow-md transform hover:scale-110 transition-all"
-                                    >
-                                        <TrashIcon />
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </aside>
 
@@ -1140,16 +1431,17 @@ export default function App() {
                         editor={textEditor}
                     />
 
-                    <div className="flex-1 flex items-center justify-center">
-                        <div
-                            ref={canvasRef}
-                            className="shadow-lg relative bg-cover bg-center"
-                            style={{ width: 960, height: 540, ...getBackgroundStyle(currentSlide?.background) }}
-                            onMouseDown={handleCanvasMouseDown}
-                            onMouseMove={handleCanvasMouseMove}
-                            onMouseUp={handleCanvasMouseUp}
-                            onMouseLeave={handleCanvasMouseLeave}
-                        >
+                    <div className={`flex-1 flex flex-col ${showNotes ? '' : 'items-center justify-center'}`}>
+                        <div className={`flex ${showNotes ? 'flex-1' : ''} items-center justify-center`}>
+                            <div
+                                ref={canvasRef}
+                                className="shadow-lg relative bg-cover bg-center"
+                                style={{ width: 960, height: 540, ...getBackgroundStyle(currentSlide?.background) }}
+                                onMouseDown={handleCanvasMouseDown}
+                                onMouseMove={handleCanvasMouseMove}
+                                onMouseUp={handleCanvasMouseUp}
+                                onMouseLeave={handleCanvasMouseLeave}
+                            >
                             <div className="absolute inset-0 w-full h-full pointer-events-none">
                                 {Object.values(librariesLoaded).every(Boolean) && currentSlide?.background?.reactComponent && (
                                     <ErrorBoundary fallbackMessage="Failed to render background component">
@@ -1174,6 +1466,7 @@ export default function App() {
                                     element={el}
                                     onMouseDown={handleMouseDown}
                                     onResizeMouseDown={handleResizeMouseDown}
+                                    onRotateMouseDown={handleRotateMouseDown}
                                     isSelected={selectedElementIds.includes(el.id)}
                                     isMultiSelected={selectedElementIds.length > 1 && selectedElementIds.includes(el.id)}
                                     updateElement={updateElement}
@@ -1195,46 +1488,40 @@ export default function App() {
                                     }}
                                 />
                             )}
+                            </div>
                         </div>
+
+                        {/* Speaker Notes Panel */}
+                        {showNotes && (
+                            <div style={{ height: `${notesHeight}px` }} className="w-full">
+                                <SpeakerNotes
+                                    notes={currentSlide?.notes || ''}
+                                    onNotesChange={(notes) => updateSlideNotes(currentSlideId, notes)}
+                                    slideNumber={presentation.slides.filter(s => !s.parentId).indexOf(currentSlide) + 1}
+                                />
+                            </div>
+                        )}
                     </div>
                 </main>
 
-                {/* Right Panel - React Component Editor & Slide Background */}
+                {/* Right Panel - Element Properties & React Component Editor */}
                 <aside className="w-96 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 p-4 overflow-y-auto">
                     {selectedElement ? (
                         <div className="space-y-6">
-                            <div>
+                            {/* Element Properties */}
+                            <ElementProperties
+                                selectedElement={selectedElement}
+                                updateElement={updateElement}
+                            />
+
+                            {/* Advanced Features - React Component */}
+                            <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
                                 <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
                                     Advanced Features
                                 </h3>
                                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                                     Add custom React components with Three.js, animations, and more.
                                 </p>
-                                {/* Font Size Control for React Components */}
-                                <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                                    <label className="text-xs font-bold text-blue-600 dark:text-blue-400 mb-2 block uppercase tracking-wide">
-                                        Text Size
-                                    </label>
-                                    <div className="flex items-center gap-3">
-                                        <input
-                                            type="range"
-                                            min="12"
-                                            max="200"
-                                            value={selectedElement.fontSize || 48}
-                                            onChange={(e) => updateElement(selectedElement.id, { fontSize: parseInt(e.target.value) })}
-                                            className="flex-1"
-                                        />
-                                        <input
-                                            type="number"
-                                            min="12"
-                                            max="200"
-                                            value={selectedElement.fontSize || 48}
-                                            onChange={(e) => updateElement(selectedElement.id, { fontSize: parseInt(e.target.value) || 48 })}
-                                            className="w-16 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                                        />
-                                        <span className="text-xs text-gray-600 dark:text-gray-400">px</span>
-                                    </div>
-                                </div>
 
                                 <ReactComponentEditor
                                     componentData={selectedElement.reactComponent}

@@ -1,0 +1,411 @@
+{
+  "title": "Performance Test Presentation",
+  "theme": "black",
+  "slides": [
+    {
+      "id": "slide-1",
+      "elements": [
+        {
+          "id": "comp-1",
+          "type": "component",
+          "x": 100,
+          "y": 100,
+          "width": 200,
+          "height": 150,
+          "rotation": 0,
+          "reactComponent": {
+            "code": "export default function Component() {\n  return (\n    <div style={{ padding: '20px', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white', borderRadius: '10px', textAlign: 'center' }}>\n      <h2>Component 1</h2>\n      <p>Normal Load</p>\n    </div>\n  );\n}",
+            "props": "{}",
+            "css": ""
+          }
+        },
+        {
+          "id": "comp-2",
+          "type": "component",
+          "x": 320,
+          "y": 100,
+          "width": 200,
+          "height": 150,
+          "rotation": 0,
+          "reactComponent": {
+            "code": "export default function Component() {\n  return (\n    <div style={{ padding: '20px', background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)', color: 'white', borderRadius: '10px', textAlign: 'center' }}>\n      <h2>Component 2</h2>\n      <p>Normal Load</p>\n    </div>\n  );\n}",
+            "props": "{}",
+            "css": ""
+          }
+        }
+      ],
+      "background": {
+        "type": "color",
+        "value": "#f0f0f0"
+      },
+      "transition": null,
+      "parentId": null
+    },
+    {
+      "id": "slide-2",
+      "elements": [
+        {
+          "id": "comp-3",
+          "type": "component",
+          "x": 50,
+          "y": 50,
+          "width": 180,
+          "height": 120,
+          "rotation": 0,
+          "reactComponent": {
+            "code": "export default function Component() {\n  return <div style={{ padding: '15px', background: '#4facfe', color: 'white', borderRadius: '8px' }}>Component 1</div>;\n}",
+            "props": "{}",
+            "css": ""
+          }
+        },
+        {
+          "id": "comp-4",
+          "type": "component",
+          "x": 250,
+          "y": 50,
+          "width": 180,
+          "height": 120,
+          "rotation": 0,
+          "reactComponent": {
+            "code": "export default function Component() {\n  return <div style={{ padding: '15px', background: '#00f2fe', color: 'white', borderRadius: '8px' }}>Component 2</div>;\n}",
+            "props": "{}",
+            "css": ""
+          }
+        },
+        {
+          "id": "comp-5",
+          "type": "component",
+          "x": 450,
+          "y": 50,
+          "width": 180,
+          "height": 120,
+          "rotation": 0,
+          "reactComponent": {
+            "code": "export default function Component() {\n  return <div style={{ padding: '15px', background: '#43e97b', color: 'white', borderRadius: '8px' }}>Component 3</div>;\n}",
+            "props": "{}",
+            "css": ""
+          }
+        },
+        {
+          "id": "comp-6",
+          "type": "component",
+          "x": 650,
+          "y": 50,
+          "width": 180,
+          "height": 120,
+          "rotation": 0,
+          "reactComponent": {
+            "code": "export default function Component() {\n  return <div style={{ padding: '15px', background: '#38f9d7', color: 'white', borderRadius: '8px' }}>Component 4</div>;\n}",
+            "props": "{}",
+            "css": ""
+          }
+        }
+      ],
+      "background": {
+        "type": "color",
+        "value": "#f0f0f0"
+      },
+      "transition": null,
+      "parentId": null
+    },
+    {
+      "id": "slide-3",
+      "elements": [
+        {
+          "id": "comp-7",
+          "type": "component",
+          "x": 50,
+          "y": 50,
+          "width": 150,
+          "height": 100,
+          "rotation": 0,
+          "reactComponent": {
+            "code": "export default function Component() {\n  return <div style={{ padding: '10px', background: '#fa709a', color: 'white', borderRadius: '5px', fontSize: '14px' }}>C1</div>;\n}",
+            "props": "{}",
+            "css": ""
+          }
+        },
+        {
+          "id": "comp-8",
+          "type": "component",
+          "x": 220,
+          "y": 50,
+          "width": 150,
+          "height": 100,
+          "rotation": 0,
+          "reactComponent": {
+            "code": "export default function Component() {\n  return <div style={{ padding: '10px', background: '#fee140', color: 'white', borderRadius: '5px', fontSize: '14px' }}>C2</div>;\n}",
+            "props": "{}",
+            "css": ""
+          }
+        },
+        {
+          "id": "comp-9",
+          "type": "component",
+          "x": 390,
+          "y": 50,
+          "width": 150,
+          "height": 100,
+          "rotation": 0,
+          "reactComponent": {
+            "code": "export default function Component() {\n  return <div style={{ padding: '10px', background: '#30cfd0', color: 'white', borderRadius: '5px', fontSize: '14px' }}>C3</div>;\n}",
+            "props": "{}",
+            "css": ""
+          }
+        },
+        {
+          "id": "comp-10",
+          "type": "component",
+          "x": 560,
+          "y": 50,
+          "width": 150,
+          "height": 100,
+          "rotation": 0,
+          "reactComponent": {
+            "code": "export default function Component() {\n  return <div style={{ padding: '10px', background: '#a8edea', color: 'white', borderRadius: '5px', fontSize: '14px' }}>C4</div>;\n}",
+            "props": "{}",
+            "css": ""
+          }
+        },
+        {
+          "id": "comp-11",
+          "type": "component",
+          "x": 730,
+          "y": 50,
+          "width": 150,
+          "height": 100,
+          "rotation": 0,
+          "reactComponent": {
+            "code": "export default function Component() {\n  return <div style={{ padding: '10px', background: '#fed6e3', color: 'white', borderRadius: '5px', fontSize: '14px' }}>C5</div>;\n}",
+            "props": "{}",
+            "css": ""
+          }
+        },
+        {
+          "id": "comp-12",
+          "type": "component",
+          "x": 50,
+          "y": 170,
+          "width": 150,
+          "height": 100,
+          "rotation": 0,
+          "reactComponent": {
+            "code": "export default function Component() {\n  return <div style={{ padding: '10px', background: '#ffecd2', color: '#333', borderRadius: '5px', fontSize: '14px' }}>C6</div>;\n}",
+            "props": "{}",
+            "css": ""
+          }
+        },
+        {
+          "id": "comp-13",
+          "type": "component",
+          "x": 220,
+          "y": 170,
+          "width": 150,
+          "height": 100,
+          "rotation": 0,
+          "reactComponent": {
+            "code": "export default function Component() {\n  return <div style={{ padding: '10px', background: '#fcb69f', color: 'white', borderRadius: '5px', fontSize: '14px' }}>C7</div>;\n}",
+            "props": "{}",
+            "css": ""
+          }
+        }
+      ],
+      "background": {
+        "type": "color",
+        "value": "#f0f0f0"
+      },
+      "transition": null,
+      "parentId": null
+    },
+    {
+      "id": "slide-4",
+      "elements": [
+        {
+          "id": "comp-14",
+          "type": "component",
+          "x": 50,
+          "y": 40,
+          "width": 130,
+          "height": 90,
+          "rotation": 0,
+          "reactComponent": {
+            "code": "export default function Component() {\n  return <div style={{ padding: '8px', background: '#ff0844', color: 'white', borderRadius: '5px', fontSize: '12px', textAlign: 'center' }}>1</div>;\n}",
+            "props": "{}",
+            "css": ""
+          }
+        },
+        {
+          "id": "comp-15",
+          "type": "component",
+          "x": 200,
+          "y": 40,
+          "width": 130,
+          "height": 90,
+          "rotation": 0,
+          "reactComponent": {
+            "code": "export default function Component() {\n  return <div style={{ padding: '8px', background: '#ffb199', color: 'white', borderRadius: '5px', fontSize: '12px', textAlign: 'center' }}>2</div>;\n}",
+            "props": "{}",
+            "css": ""
+          }
+        },
+        {
+          "id": "comp-16",
+          "type": "component",
+          "x": 350,
+          "y": 40,
+          "width": 130,
+          "height": 90,
+          "rotation": 0,
+          "reactComponent": {
+            "code": "export default function Component() {\n  return <div style={{ padding: '8px', background: '#667eea', color: 'white', borderRadius: '5px', fontSize: '12px', textAlign: 'center' }}>3</div>;\n}",
+            "props": "{}",
+            "css": ""
+          }
+        },
+        {
+          "id": "comp-17",
+          "type": "component",
+          "x": 500,
+          "y": 40,
+          "width": 130,
+          "height": 90,
+          "rotation": 0,
+          "reactComponent": {
+            "code": "export default function Component() {\n  return <div style={{ padding: '8px', background: '#764ba2', color: 'white', borderRadius: '5px', fontSize: '12px', textAlign: 'center' }}>4</div>;\n}",
+            "props": "{}",
+            "css": ""
+          }
+        },
+        {
+          "id": "comp-18",
+          "type": "component",
+          "x": 650,
+          "y": 40,
+          "width": 130,
+          "height": 90,
+          "rotation": 0,
+          "reactComponent": {
+            "code": "export default function Component() {\n  return <div style={{ padding: '8px', background: '#f093fb', color: 'white', borderRadius: '5px', fontSize: '12px', textAlign: 'center' }}>5</div>;\n}",
+            "props": "{}",
+            "css": ""
+          }
+        },
+        {
+          "id": "comp-19",
+          "type": "component",
+          "x": 50,
+          "y": 150,
+          "width": 130,
+          "height": 90,
+          "rotation": 0,
+          "reactComponent": {
+            "code": "export default function Component() {\n  return <div style={{ padding: '8px', background: '#f5576c', color: 'white', borderRadius: '5px', fontSize: '12px', textAlign: 'center' }}>6</div>;\n}",
+            "props": "{}",
+            "css": ""
+          }
+        },
+        {
+          "id": "comp-20",
+          "type": "component",
+          "x": 200,
+          "y": 150,
+          "width": 130,
+          "height": 90,
+          "rotation": 0,
+          "reactComponent": {
+            "code": "export default function Component() {\n  return <div style={{ padding: '8px', background: '#4facfe', color: 'white', borderRadius: '5px', fontSize: '12px', textAlign: 'center' }}>7</div>;\n}",
+            "props": "{}",
+            "css": ""
+          }
+        },
+        {
+          "id": "comp-21",
+          "type": "component",
+          "x": 350,
+          "y": 150,
+          "width": 130,
+          "height": 90,
+          "rotation": 0,
+          "reactComponent": {
+            "code": "export default function Component() {\n  return <div style={{ padding: '8px', background: '#00f2fe', color: 'white', borderRadius: '5px', fontSize: '12px', textAlign: 'center' }}>8</div>;\n}",
+            "props": "{}",
+            "css": ""
+          }
+        },
+        {
+          "id": "comp-22",
+          "type": "component",
+          "x": 500,
+          "y": 150,
+          "width": 130,
+          "height": 90,
+          "rotation": 0,
+          "reactComponent": {
+            "code": "export default function Component() {\n  return <div style={{ padding: '8px', background: '#43e97b', color: 'white', borderRadius: '5px', fontSize: '12px', textAlign: 'center' }}>9</div>;\n}",
+            "props": "{}",
+            "css": ""
+          }
+        },
+        {
+          "id": "comp-23",
+          "type": "component",
+          "x": 650,
+          "y": 150,
+          "width": 130,
+          "height": 90,
+          "rotation": 0,
+          "reactComponent": {
+            "code": "export default function Component() {\n  return <div style={{ padding: '8px', background: '#38f9d7', color: 'white', borderRadius: '5px', fontSize: '12px', textAlign: 'center' }}>10</div>;\n}",
+            "props": "{}",
+            "css": ""
+          }
+        },
+        {
+          "id": "comp-24",
+          "type": "component",
+          "x": 50,
+          "y": 260,
+          "width": 130,
+          "height": 90,
+          "rotation": 0,
+          "reactComponent": {
+            "code": "export default function Component() {\n  return <div style={{ padding: '8px', background: '#fa709a', color: 'white', borderRadius: '5px', fontSize: '12px', textAlign: 'center' }}>11</div>;\n}",
+            "props": "{}",
+            "css": ""
+          }
+        },
+        {
+          "id": "comp-25",
+          "type": "component",
+          "x": 200,
+          "y": 260,
+          "width": 130,
+          "height": 90,
+          "rotation": 0,
+          "reactComponent": {
+            "code": "export default function Component() {\n  return <div style={{ padding: '8px', background: '#fee140', color: 'white', borderRadius: '5px', fontSize: '12px', textAlign: 'center' }}>12</div>;\n}",
+            "props": "{}",
+            "css": ""
+          }
+        }
+      ],
+      "background": {
+        "type": "color",
+        "value": "#f0f0f0"
+      },
+      "transition": null,
+      "parentId": null
+    }
+  ],
+  "settings": {
+    "transition": "slide",
+    "backgroundTransition": "fade",
+    "controls": true,
+    "progress": true,
+    "slideNumber": false,
+    "center": true,
+    "loop": false,
+    "autoSlide": 0,
+    "mouseWheel": false
+  }
+}
