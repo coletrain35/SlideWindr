@@ -36,6 +36,8 @@ import { importRevealHTML } from './utils/revealImporter';
 import { alignHorizontal, alignVertical, distributeElements, snapToGrid as snapPositionToGrid, findAlignmentGuides, reorderElement } from './utils/alignmentUtils';
 import ExportDialog from './components/ExportDialog';
 import ImportDialog from './components/ImportDialog';
+import LayoutSelector from './components/LayoutSelector';
+import { applyLayout } from './data/slideLayouts';
 
 // --- Helper Functions & Constants ---
 const REVEAL_THEMES = ["black", "white", "league", "beige", "sky", "night", "serif", "simple", "solarized", "blood", "moon"];
@@ -91,6 +93,8 @@ export default function App() {
     const [marquee, setMarquee] = useState(null); // { startX, startY, endX, endY }
     const [showNotes, setShowNotes] = useState(false); // Toggle speaker notes panel
     const [notesHeight, setNotesHeight] = useState(200); // Height of notes panel in pixels
+    const [showLayoutSelector, setShowLayoutSelector] = useState(false); // Layout selector modal
+    const [layoutTargetSlideId, setLayoutTargetSlideId] = useState(null); // Slide to apply layout to
     const gridSize = 20;
     const canvasRef = useRef(null);
     const slideRefs = useRef([]);
@@ -416,19 +420,42 @@ export default function App() {
     }, [copiedElements, currentSlideId]);
 
     const addSlide = useCallback(() => {
-        const newSlide = {
-            id: crypto.randomUUID(),
-            elements: [],
-            background: { type: 'color', value: '#ffffff' },
-            transition: null, // null = use global transition
-            parentId: null // top-level slide
-        };
-        setPresentation(prev => ({
-            ...prev,
-            slides: [...prev.slides, newSlide]
-        }));
-        setCurrentSlideId(newSlide.id);
+        // Show layout selector for new slide
+        setLayoutTargetSlideId('new');
+        setShowLayoutSelector(true);
     }, []);
+
+    const handleLayoutSelect = useCallback((layoutId) => {
+        const layoutElements = applyLayout(layoutId);
+
+        if (layoutTargetSlideId === 'new') {
+            // Create new slide with layout
+            const newSlide = {
+                id: crypto.randomUUID(),
+                elements: layoutElements,
+                background: { type: 'color', value: '#ffffff' },
+                transition: null,
+                parentId: null
+            };
+            setPresentation(prev => ({
+                ...prev,
+                slides: [...prev.slides, newSlide]
+            }));
+            setCurrentSlideId(newSlide.id);
+        } else {
+            // Apply layout to existing slide
+            setPresentation(prev => ({
+                ...prev,
+                slides: prev.slides.map(slide =>
+                    slide.id === layoutTargetSlideId
+                        ? { ...slide, elements: layoutElements }
+                        : slide
+                )
+            }));
+        }
+
+        setLayoutTargetSlideId(null);
+    }, [layoutTargetSlideId]);
 
     const addNestedSlide = useCallback((parentId) => {
         const newSlide = {
@@ -1623,6 +1650,16 @@ export default function App() {
                 isOpen={showImportDialog}
                 onClose={() => setShowImportDialog(false)}
                 onImport={handleImport}
+            />
+
+            {/* Layout Selector */}
+            <LayoutSelector
+                isOpen={showLayoutSelector}
+                onClose={() => {
+                    setShowLayoutSelector(false);
+                    setLayoutTargetSlideId(null);
+                }}
+                onSelectLayout={handleLayoutSelect}
             />
         </div>
     );
