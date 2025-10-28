@@ -61,15 +61,40 @@ export function generateRevealHTML(presentation) {
             // Generate base element HTML based on type
             let baseElementHtml = '';
             switch (el.type) {
-                case 'text':
-                    baseElementHtml = `<div style="color: ${el.color}; font-size: ${el.fontSize}px; width: 100%; height: 100%;">${el.content}</div>`;
+                case 'text': {
+                    // Build style string with preserved styles
+                    let textStyles = `color: ${el.color}; font-size: ${el.fontSize}px; width: 100%; height: 100%;`;
+
+                    // Add computed styles if available (from reveal.js import)
+                    if (el.computedStyles) {
+                        if (el.computedStyles.fontFamily) textStyles += ` font-family: ${el.computedStyles.fontFamily};`;
+                        if (el.computedStyles.fontWeight) textStyles += ` font-weight: ${el.computedStyles.fontWeight};`;
+                        if (el.computedStyles.fontStyle) textStyles += ` font-style: ${el.computedStyles.fontStyle};`;
+                        if (el.computedStyles.textAlign) textStyles += ` text-align: ${el.computedStyles.textAlign};`;
+                        if (el.computedStyles.lineHeight) textStyles += ` line-height: ${el.computedStyles.lineHeight};`;
+                        if (el.computedStyles.textTransform) textStyles += ` text-transform: ${el.computedStyles.textTransform};`;
+                        if (el.computedStyles.letterSpacing) textStyles += ` letter-spacing: ${el.computedStyles.letterSpacing};`;
+                        if (el.computedStyles.textShadow) textStyles += ` text-shadow: ${el.computedStyles.textShadow};`;
+                    }
+
+                    // Add inline style if available
+                    if (el.inlineStyle) {
+                        textStyles += ` ${el.inlineStyle}`;
+                    }
+
+                    const className = el.className ? ` class="${el.className}"` : '';
+                    baseElementHtml = `<div${className} style="${textStyles}">${el.content}</div>`;
                     break;
+                }
                 case 'shape':
                     baseElementHtml = `<div style="background-color: ${el.backgroundColor}; width: 100%; height: 100%;"></div>`;
                     break;
-                case 'image':
-                    baseElementHtml = `<img src="${el.src}" style="object-fit: cover; width: 100%; height: 100%;" draggable="false">`;
+                case 'image': {
+                    const imgClass = el.className ? ` class="${el.className}"` : '';
+                    const imgStyle = el.style || 'object-fit: cover; width: 100%; height: 100%;';
+                    baseElementHtml = `<img src="${el.src}"${imgClass} style="${imgStyle}" draggable="false">`;
                     break;
+                }
                 case 'iframe': {
                     const escapedHtml = (el.htmlContent || '')
                         .replace(/"/g, '&quot;')
@@ -78,6 +103,10 @@ export function generateRevealHTML(presentation) {
                     baseElementHtml = `<iframe srcdoc="${escapedHtml}" style="border: none; width: 100%; height: 100%;"></iframe>`;
                     break;
                 }
+                case 'htmlContent':
+                    // For htmlContent elements, return the raw HTML without wrapping
+                    // This preserves the original reveal.js slide structure
+                    return el.htmlContent || '';
                 case 'table': {
                     const tableRows = el.cellData.map((row, rowIdx) => {
                         const cells = row.map((cellContent, colIdx) => {
@@ -153,6 +182,9 @@ export function generateRevealHTML(presentation) {
         height: 100%;
     }
     ${allComponentCss}
+
+    /* Custom CSS from imported reveal.js presentations */
+    ${presentation.customCSS || ''}
     </style>
 </head>
 <body>

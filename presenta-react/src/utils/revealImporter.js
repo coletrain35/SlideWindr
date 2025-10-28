@@ -147,11 +147,54 @@ function detectUnsupportedFeatures(doc) {
 }
 
 /**
+ * Extract all CSS from the reveal.js HTML document
+ * @param {Document} doc - The parsed HTML document
+ * @returns {Object} - CSS data including inline and linked stylesheets
+ */
+async function extractCSS(doc) {
+  let css = '';
+
+  // Extract inline styles
+  const styleElements = doc.querySelectorAll('style');
+  styleElements.forEach(style => {
+    css += style.textContent + '\n';
+  });
+
+  // Extract linked stylesheets
+  const linkElements = doc.querySelectorAll('link[rel="stylesheet"]');
+  const linkedStylesheets = [];
+
+  for (const link of linkElements) {
+    if (link.href) {
+      linkedStylesheets.push(link.href);
+
+      // Try to fetch CDN stylesheets to include them inline
+      try {
+        // Only fetch reveal.js CDN stylesheets
+        if (link.href.includes('cdnjs.cloudflare.com') ||
+            link.href.includes('unpkg.com') ||
+            link.href.includes('jsdelivr.net')) {
+          const response = await fetch(link.href);
+          if (response.ok) {
+            const cssContent = await response.text();
+            css += `\n/* From: ${link.href} */\n${cssContent}\n`;
+          }
+        }
+      } catch (error) {
+        console.warn(`Failed to fetch stylesheet: ${link.href}`, error);
+      }
+    }
+  }
+
+  return { inlineCSS: css, linkedStylesheets };
+}
+
+/**
  * Parse a reveal.js HTML file and convert it to SlideWindr format
  * @param {string} htmlContent - The HTML content of the reveal.js presentation
- * @returns {Object} - Presentation object in SlideWindr format with warnings
+ * @returns {Promise<Object>} - Presentation object in SlideWindr format with warnings
  */
-export function parseRevealHTML(htmlContent) {
+export async function parseRevealHTML(htmlContent) {
   // Create a temporary DOM parser
   const parser = new DOMParser();
   const doc = parser.parseFromString(htmlContent, 'text/html');
@@ -173,6 +216,9 @@ export function parseRevealHTML(htmlContent) {
     }
   }
 
+  // Extract all CSS from the document (async now)
+  const cssData = await extractCSS(doc);
+
   // Extract slides (including vertical slides - flatten them)
   const slideElements = doc.querySelectorAll('.reveal .slides > section');
   const slides = [];
@@ -184,12 +230,12 @@ export function parseRevealHTML(htmlContent) {
     if (verticalSlides.length > 0) {
       // Has vertical slides - process each one
       verticalSlides.forEach((verticalSlide) => {
-        const slide = parseSlide(verticalSlide);
+        const slide = parseSlidePreserveHTML(verticalSlide);
         slides.push(slide);
       });
     } else {
       // No vertical slides - process normally
-      const slide = parseSlide(slideEl);
+      const slide = parseSlidePreserveHTML(slideEl);
       slides.push(slide);
     }
   });
@@ -202,12 +248,215 @@ export function parseRevealHTML(htmlContent) {
     theme,
     slides: slides.length > 0 ? slides : [createEmptySlide()],
     settings: settings || createDefaultSettings(),
-    warnings
+    warnings,
+    customCSS: cssData.inlineCSS,
+    linkedStylesheets: cssData.linkedStylesheets
   };
 }
 
 /**
- * Parse a single slide element
+ * Parse a slide element while preserving individual elements with their styling
+ * @param {HTMLElement} slideEl - The section element representing a slide
+ * @returns {Object} - Slide object with individual editable elements
+ */
+function parseSlidePreserveHTML(slideEl) {
+  const slide = {
+    id: crypto.randomUUID(),
+    elements: [],
+    background: { type: 'color', value: 'transparent' }, // Use transparent to allow reveal.js theme bg
+    transition: null // null = use global transition
+  };
+
+  // Extract background settings
+  const bgColor = slideEl.getAttribute('data-background-color');
+  const bgImage = slideEl.getAttribute('data-background-image');
+  const bgVideo = slideEl.getAttribute('data-background-video');
+  const bgGradient = slideEl.getAttribute('data-background-gradient');
+
+  if (bgGradient) {
+    slide.background = { type: 'gradient', value: bgGradient };
+  } else if (bgImage) {
+    slide.background = { type: 'image', value: bgImage };
+  } else if (bgColor) {
+    slide.background = { type: 'color', value: bgColor };
+  } else if (bgVideo) {
+    slide.background = { type: 'video', value: bgVideo };
+  }
+
+  // Extract per-slide transition
+  const transition = slideEl.getAttribute('data-transition');
+  if (transition) {
+    slide.transition = transition;
+  }
+
+  // Parse child elements individually with preserved styling
+  const children = Array.from(slideEl.children);
+  let elementIndex = 0;
+
+  children.forEach((child, index) => {
+    // Skip speaker notes and other special elements
+    if (child.classList.contains('notes') || child.tagName === 'ASIDE') {
+      return;
+    }
+
+    const element = parseElementWithStyles(child, elementIndex);
+    if (element) {
+      slide.elements.push(element);
+      elementIndex++;
+    }
+  });
+
+  return slide;
+}
+
+/**
+ * Parse an element while preserving all its styling information
+ * @param {HTMLElement} el - The HTML element to parse
+ * @param {number} index - Element index for default positioning
+ * @returns {Object|null} - Element object with preserved styles
+ */
+function parseElementWithStyles(el, index) {
+  const computedStyle = window.getComputedStyle(el);
+  const tagName = el.tagName.toLowerCase();
+
+  // Get position - reveal.js typically centers content, so we'll use a stacked layout
+  const position = getElementPositionFromStyle(el, computedStyle, index);
+
+  // Get size - use computed size if no explicit size set
+  const size = getElementSizeFromStyle(el, computedStyle);
+
+  // Check for images
+  if (tagName === 'img') {
+    return {
+      id: crypto.randomUUID(),
+      type: 'image',
+      ...position,
+      ...size,
+      rotation: 0,
+      src: el.src,
+      className: el.className,
+      style: el.getAttribute('style') || ''
+    };
+  }
+
+  // Check for iframes
+  if (tagName === 'iframe') {
+    return {
+      id: crypto.randomUUID(),
+      type: 'iframe',
+      ...position,
+      ...size,
+      rotation: 0,
+      htmlContent: el.getAttribute('srcdoc') || el.src || '',
+      className: el.className,
+      style: el.getAttribute('style') || ''
+    };
+  }
+
+  // Check for text elements (headings, paragraphs, divs with text, lists, blockquotes, etc.)
+  if (isTextElement(el)) {
+    // Extract key styling properties from computed styles
+    const fontSize = parseInt(computedStyle.fontSize) || 24;
+    const color = rgbToHex(computedStyle.color) || '#000000';
+    const fontFamily = computedStyle.fontFamily;
+    const fontWeight = computedStyle.fontWeight;
+    const fontStyle = computedStyle.fontStyle;
+    const textAlign = computedStyle.textAlign;
+    const lineHeight = computedStyle.lineHeight;
+    const textTransform = computedStyle.textTransform;
+    const letterSpacing = computedStyle.letterSpacing;
+    const textShadow = computedStyle.textShadow;
+
+    return {
+      id: crypto.randomUUID(),
+      type: 'text',
+      ...position,
+      ...size,
+      rotation: 0,
+      content: el.innerHTML,
+      fontSize: fontSize,
+      color: color,
+      className: el.className, // Preserve CSS classes
+      inlineStyle: el.getAttribute('style') || '', // Preserve inline styles
+      // Store computed styles for accurate rendering
+      computedStyles: {
+        fontFamily,
+        fontWeight,
+        fontStyle,
+        textAlign,
+        lineHeight,
+        textTransform,
+        letterSpacing,
+        textShadow
+      }
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Extract element position from inline styles or provide default
+ * Reveal.js typically uses centered, stacked layout
+ */
+function getElementPositionFromStyle(el, computedStyle, index) {
+  const style = el.style;
+
+  // Check for absolute positioning
+  if (computedStyle.position === 'absolute' && (style.left || style.top)) {
+    return {
+      x: parseInt(style.left) || 50,
+      y: parseInt(style.top) || 50
+    };
+  }
+
+  // Check for transform translate
+  const transform = style.transform || computedStyle.transform;
+  if (transform && transform.includes('translate')) {
+    const match = transform.match(/translate\(([^,]+),\s*([^)]+)\)/);
+    if (match) {
+      return {
+        x: parseInt(match[1]) || 50,
+        y: parseInt(match[2]) || 50
+      };
+    }
+  }
+
+  // Default: center horizontally, stack vertically with spacing
+  // This mimics reveal.js's default centered layout
+  return {
+    x: 50, // Center horizontally
+    y: 100 + (index * 120) // Stack vertically with spacing
+  };
+}
+
+/**
+ * Extract element size from styles or use content-based defaults
+ */
+function getElementSizeFromStyle(el, computedStyle) {
+  const inlineWidth = el.style.width;
+  const inlineHeight = el.style.height;
+
+  // Use inline styles if available
+  if (inlineWidth && inlineHeight) {
+    return {
+      width: parseInt(inlineWidth) || 800,
+      height: parseInt(inlineHeight) || 100
+    };
+  }
+
+  // Use computed size, but cap at reasonable maximums
+  const computedWidth = parseInt(computedStyle.width) || 800;
+  const computedHeight = parseInt(computedStyle.height) || 100;
+
+  return {
+    width: Math.min(computedWidth, 860), // Max width for slide (960 - margins)
+    height: Math.min(computedHeight, 400) // Reasonable max height
+  };
+}
+
+/**
+ * Parse a single slide element (legacy method for backwards compatibility)
  * @param {HTMLElement} slideEl - The section element representing a slide
  * @returns {Object} - Slide object
  */

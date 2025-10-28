@@ -67,7 +67,7 @@ export default function App() {
     };
 
     // Use history hook for undo/redo functionality
-    const { state: presentation, setState: setPresentation, undo, redo, canUndo, canRedo } = useHistory(initialPresentation);
+    const { state: presentation, setState: setPresentation, undo, redo, canUndo, canRedo, startBatch, endBatch } = useHistory(initialPresentation);
     const { saveStatus, loadSave, clearSave } = useAutoSave(presentation);
     const [currentSlideId, setCurrentSlideId] = useState(presentation?.slides?.[0]?.id || initialPresentation.slides[0].id);
     const performanceMetrics = useComponentPerformance(presentation?.slides || [], currentSlideId);
@@ -125,6 +125,33 @@ export default function App() {
             }
         }
     }, [loadSave, clearSave, setPresentation]);
+
+    // Inject custom CSS from imported reveal.js presentations
+    useEffect(() => {
+        const styleId = 'revealjs-custom-css';
+        let styleElement = document.getElementById(styleId);
+
+        if (presentation?.customCSS) {
+            // Create or update style element
+            if (!styleElement) {
+                styleElement = document.createElement('style');
+                styleElement.id = styleId;
+                document.head.appendChild(styleElement);
+            }
+            styleElement.textContent = presentation.customCSS;
+        } else {
+            // Remove style element if no custom CSS
+            if (styleElement) {
+                styleElement.remove();
+            }
+        }
+
+        // Cleanup on unmount
+        return () => {
+            const el = document.getElementById(styleId);
+            if (el) el.remove();
+        };
+    }, [presentation?.customCSS]);
 
     const currentSlide = presentation?.slides?.find(s => s.id === currentSlideId);
     const selectedElement = currentSlide?.elements?.find(e => e.id === selectedElementId);
@@ -651,7 +678,10 @@ export default function App() {
             elementId: element.id,
             offsets: offsets, // Store all element offsets for multi-move
         });
-    }, [currentSlideId, selectedElementIds]);
+
+        // Start batching history updates
+        startBatch();
+    }, [currentSlideId, selectedElementIds, startBatch]);
 
     const handleResizeMouseDown = useCallback((e, elementId, handle) => {
         e.stopPropagation();
@@ -676,7 +706,10 @@ export default function App() {
             initialWidth: element.width,
             initialHeight: element.height,
         });
-    }, [currentSlideId]);
+
+        // Start batching history updates
+        startBatch();
+    }, [currentSlideId, startBatch]);
 
     const handleRotateMouseDown = useCallback((e, elementId) => {
         e.stopPropagation();
@@ -703,7 +736,10 @@ export default function App() {
             centerY,
             initialRotation: element.rotation || 0,
         });
-    }, [currentSlideId]);
+
+        // Start batching history updates
+        startBatch();
+    }, [currentSlideId, startBatch]);
 
     const handleCanvasMouseMove = useCallback((e) => {
         if (interactingElementId) return;
@@ -825,6 +861,12 @@ export default function App() {
 
     const handleCanvasMouseUp = useCallback(() => {
         isDraggingOrResizingRef.current = false;
+
+        // End batching if any operation was in progress
+        if (dragging || resizing || rotating) {
+            endBatch();
+        }
+
         setDragging(null);
         setResizing(null);
         setRotating(null);
@@ -864,20 +906,30 @@ export default function App() {
 
             setMarquee(null);
         }
-    }, [marquee, currentSlideId]);
+    }, [marquee, currentSlideId, dragging, resizing, rotating, endBatch]);
 
     const handleCanvasMouseLeave = useCallback(() => {
+        // End batching if any operation was in progress
+        if (dragging || resizing || rotating) {
+            endBatch();
+        }
+
         setDragging(null);
         setResizing(null);
         setRotating(null);
         setAlignmentGuides(null); // Clear guides when leaving canvas
         setMarquee(null); // Clear marquee when leaving canvas
-    }, []);
+    }, [dragging, resizing, rotating, endBatch]);
 
     const getBackgroundStyle = useCallback((bg) => {
         if (!bg) return { backgroundColor: '#ffffff' };
-        if (bg.type === 'color') return { backgroundColor: bg.value };
+        if (bg.type === 'color') {
+            // Handle transparent backgrounds for imported reveal.js slides
+            if (bg.value === 'transparent') return { backgroundColor: 'transparent' };
+            return { backgroundColor: bg.value };
+        }
         if (bg.type === 'image') return { backgroundImage: `url(${bg.value})`, backgroundSize: 'cover', backgroundPosition: 'center' };
+        if (bg.type === 'gradient') return { background: bg.value };
         return { backgroundColor: '#ffffff' };
     }, []);
 

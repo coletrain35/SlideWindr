@@ -7,6 +7,7 @@ import RichTextEditor from './RichTextEditor';
 import TableComponent from './TableComponent';
 import CodeBlock from './CodeBlock';
 import ChartComponent from './ChartComponent';
+import HTMLContentElement from './HTMLContentElement';
 import { CodeIcon, MousePointerClickIcon, StopCircleIcon } from './Icons';
 
 const ElementComponent = ({ element, onMouseDown, onResizeMouseDown, onRotateMouseDown, isSelected, isMultiSelected, updateElement, isInteracting, setInteractingElementId, librariesLoaded, onEditorReady }) => {
@@ -25,6 +26,26 @@ const ElementComponent = ({ element, onMouseDown, onResizeMouseDown, onRotateMou
     const renderContent = () => {
         switch (element.type) {
             case 'text':
+                // Build style object with preserved styles from import
+                const textStyle = {
+                    fontSize: `${element.fontSize}px`,
+                    color: element.color,
+                    width: '100%',
+                    height: '100%',
+                    pointerEvents: 'none',
+                    // Apply computed styles if available (from reveal.js import)
+                    ...(element.computedStyles && {
+                        fontFamily: element.computedStyles.fontFamily,
+                        fontWeight: element.computedStyles.fontWeight,
+                        fontStyle: element.computedStyles.fontStyle,
+                        textAlign: element.computedStyles.textAlign,
+                        lineHeight: element.computedStyles.lineHeight,
+                        textTransform: element.computedStyles.textTransform,
+                        letterSpacing: element.computedStyles.letterSpacing,
+                        textShadow: element.computedStyles.textShadow
+                    })
+                };
+
                 return isSelected && !element.reactComponent ? (
                     <RichTextEditor
                         content={element.content}
@@ -36,8 +57,8 @@ const ElementComponent = ({ element, onMouseDown, onResizeMouseDown, onRotateMou
                 ) : (
                     <div
                         dangerouslySetInnerHTML={{ __html: element.content }}
-                        style={{ fontSize: `${element.fontSize}px`, color: element.color, width: '100%', height: '100%', pointerEvents: 'none' }}
-                        className="prose"
+                        style={textStyle}
+                        className={`prose reveal ${element.className || ''}`}
                     />
                 );
             case 'shape':
@@ -82,6 +103,8 @@ const ElementComponent = ({ element, onMouseDown, onResizeMouseDown, onRotateMou
                         height={element.height}
                     />
                 );
+            case 'htmlContent':
+                return <HTMLContentElement element={element} />;
             default:
                 return null;
         }

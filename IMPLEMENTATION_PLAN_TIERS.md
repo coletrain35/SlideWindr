@@ -724,6 +724,112 @@ These features provide advanced capabilities that differentiate the app from bas
 
 ---
 
+### 3.6 Robust Reveal.js Import
+
+**Goal**: Make importing reveal.js presentations fully preserve formatting while maintaining individual element editability
+
+**Status**: ⏳ **PARTIALLY COMPLETE** - Basic import works but needs refinement for 1:1 formatting preservation
+
+**Current State**:
+- ✅ Imports reveal.js HTML files
+- ✅ Extracts and injects custom CSS
+- ✅ Fetches CDN stylesheets (theme, reset, etc.)
+- ✅ Parses individual elements (text, images, etc.)
+- ✅ Preserves CSS classes and computed styles
+- ⏳ Element positioning needs improvement
+- ⏳ Some complex layouts don't import correctly
+- ⏳ Elements sometimes overflow canvas
+
+**Implementation Steps**:
+
+1. **Improve Element Positioning Algorithm** (`presenta-react/src/utils/revealImporter.js`)
+   - Better detection of absolute vs relative positioning
+   - Properly handle Reveal.js centered layout paradigm
+   - Calculate positions relative to 960x540 canvas
+   - Detect and preserve flexbox/grid layouts
+   - Handle nested containers and their positioning
+
+2. **Enhanced Style Preservation**
+   - Capture parent container styles that affect children
+   - Preserve z-index and layer ordering
+   - Better handling of percentage-based sizes
+   - Detect and apply viewport-relative units (vh, vw)
+   - Preserve CSS transforms beyond just rotation
+
+3. **Layout Analysis**
+   - Detect common reveal.js layout patterns (title slides, two-column, etc.)
+   - Create layout hints for better positioning
+   - Handle slides with data-auto-animate
+   - Preserve vertical slide groupings (flatten with visual indicator)
+
+4. **Content Wrapping & Overflow Prevention**
+   - Auto-scale oversized elements to fit canvas
+   - Detect and warn about content that exceeds bounds
+   - Smart wrapping for long text elements
+   - Preserve aspect ratios for images
+
+5. **Advanced CSS Handling**
+   - Support for CSS Grid and Flexbox layouts
+   - Preserve gradient backgrounds (linear, radial)
+   - Handle pseudo-elements (::before, ::after)
+   - Import and apply custom fonts from @font-face
+   - Preserve CSS animations and transitions
+
+6. **Element Type Detection**
+   - Better detection of lists (ul, ol) with styling
+   - Preserve blockquotes with styling
+   - Handle pre-formatted code blocks
+   - Detect and import SVG graphics inline
+   - Handle background images on divs
+
+7. **Interactive Import Preview**
+   - Show import preview before committing
+   - Side-by-side comparison (original vs imported)
+   - Option to adjust positioning before import
+   - Manual override for problematic elements
+   - "Fix Layout" button to auto-adjust positions
+
+8. **Template Library Integration**
+   - Create library of tested reveal.js templates
+   - Pre-configured import profiles for popular themes
+   - One-click import for known templates
+   - User can save custom import profiles
+
+9. **Import Settings & Options**
+   - Option to preserve original HTML structure vs parse elements
+   - Toggle for aggressive vs conservative style extraction
+   - Choose between auto-positioning vs manual layout
+   - Option to import as locked groups vs editable elements
+
+10. **Testing Suite**
+    - Test import with 10+ reveal.js demo presentations
+    - Test with popular reveal.js themes (night, white, black, league, etc.)
+    - Test with complex presentations (nested slides, fragments, backgrounds)
+    - Automated visual regression testing
+    - Unit tests for positioning algorithms
+
+**Success Criteria**:
+- ✅ Import any reveal.js template from https://revealjs.com/demo/
+- ✅ Preserve 90%+ of original visual formatting
+- ✅ All elements remain individually editable
+- ✅ No elements overflow canvas boundaries
+- ✅ Text styling (fonts, colors, sizes, shadows) perfectly preserved
+- ✅ Background colors, gradients, and images work correctly
+- ✅ Element positioning matches original layout within 5px margin
+- ✅ User can customize imported slides without layout breaking
+
+**Estimated Effort**: 6-8 days
+
+**Priority**: Medium-High (required for PowerPoint parity - users need to import existing presentations)
+
+**Notes**:
+- This feature is critical for user adoption - many users have existing reveal.js presentations
+- Current implementation provides basic functionality but needs polish for production use
+- Should be completed before marketing as a "PowerPoint alternative"
+- Consider adding a "Report Import Issues" button to gather user feedback
+
+---
+
 ## Implementation Strategy
 
 ### Recommended Order
@@ -744,18 +850,19 @@ These features provide advanced capabilities that differentiate the app from bas
 5. Slide Layouts & Templates (6-7 days)
 6. PowerPoint Import/Export (7-10 days)
 
-**Phase 3: Advanced (Tier 3 - 4-6 weeks)**
+**Phase 3: Advanced (Tier 3 - 5-7 weeks)**
 1. Element Animations (6-7 days)
 2. Video & Audio Support (5-6 days)
 3. Presenter View (7-8 days)
 4. SmartArt Diagrams (8-10 days)
 5. Collaboration Features (10-14 days)
+6. Robust Reveal.js Import (6-8 days)
 
 ### Total Estimated Time
 - **Tier 1**: 14-20 days (3-4 weeks)
 - **Tier 2**: 26-37 days (5-7 weeks)
-- **Tier 3**: 36-45 days (7-9 weeks)
-- **Total**: 76-102 days (15-20 weeks) for full implementation
+- **Tier 3**: 42-53 days (8-11 weeks)
+- **Total**: 82-110 days (16-22 weeks) for full implementation
 
 ### Development Best Practices
 
