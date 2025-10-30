@@ -2,7 +2,7 @@ import { useState } from 'react';
 import PropTypes from 'prop-types';
 
 const ExportDialog = ({ isOpen, onClose, onExport, presentationTitle }) => {
-    const [exportType, setExportType] = useState('html'); // 'html', 'pdf', 'images', 'json'
+    const [exportType, setExportType] = useState('html'); // 'html', 'pdf', 'images', 'json', 'pptx'
     const [quality, setQuality] = useState('high'); // 'low', 'medium', 'high'
     const [imageFormat, setImageFormat] = useState('png'); // 'png', 'jpeg'
     const [isExporting, setIsExporting] = useState(false);
@@ -62,6 +62,16 @@ const ExportDialog = ({ isOpen, onClose, onExport, presentationTitle }) => {
                                 }`}
                             >
                                 HTML (Reveal.js)
+                            </button>
+                            <button
+                                onClick={() => setExportType('pptx')}
+                                className={`px-4 py-3 rounded-lg border-2 transition-all text-sm font-medium ${
+                                    exportType === 'pptx'
+                                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                                        : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+                                }`}
+                            >
+                                PowerPoint (.pptx)
                             </button>
                             <button
                                 onClick={() => setExportType('pdf')}
@@ -174,6 +184,7 @@ const ExportDialog = ({ isOpen, onClose, onExport, presentationTitle }) => {
                     <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
                         <p className="text-xs text-blue-700 dark:text-blue-300">
                             {exportType === 'html' && 'Export as a standalone HTML file with Reveal.js presentation.'}
+                            {exportType === 'pptx' && 'Export as a PowerPoint presentation (.pptx) compatible with Microsoft PowerPoint and Google Slides.'}
                             {exportType === 'pdf' && 'Export all slides as a single PDF document.'}
                             {exportType === 'images' && 'Export each slide as a separate image file.'}
                             {exportType === 'json' && 'Export presentation data as JSON for backup or sharing.'}

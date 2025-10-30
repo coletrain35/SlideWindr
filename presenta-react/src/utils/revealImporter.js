@@ -150,43 +150,19 @@ function detectUnsupportedFeatures(doc) {
  * Extract all CSS from the reveal.js HTML document
  * @param {Document} doc - The parsed HTML document
  * @returns {Object} - CSS data including inline and linked stylesheets
+ *
+ * NOTE: We DO NOT import CSS at all because:
+ * 1. Reveal.js CSS (reset, themes) would break SlideWinder's UI layout
+ * 2. SlideWinder extracts computed styles directly from elements
+ * 3. Custom styles are already captured in element computedStyles
  */
 async function extractCSS(doc) {
-  let css = '';
-
-  // Extract inline styles
-  const styleElements = doc.querySelectorAll('style');
-  styleElements.forEach(style => {
-    css += style.textContent + '\n';
-  });
-
-  // Extract linked stylesheets
-  const linkElements = doc.querySelectorAll('link[rel="stylesheet"]');
-  const linkedStylesheets = [];
-
-  for (const link of linkElements) {
-    if (link.href) {
-      linkedStylesheets.push(link.href);
-
-      // Try to fetch CDN stylesheets to include them inline
-      try {
-        // Only fetch reveal.js CDN stylesheets
-        if (link.href.includes('cdnjs.cloudflare.com') ||
-            link.href.includes('unpkg.com') ||
-            link.href.includes('jsdelivr.net')) {
-          const response = await fetch(link.href);
-          if (response.ok) {
-            const cssContent = await response.text();
-            css += `\n/* From: ${link.href} */\n${cssContent}\n`;
-          }
-        }
-      } catch (error) {
-        console.warn(`Failed to fetch stylesheet: ${link.href}`, error);
-      }
-    }
-  }
-
-  return { inlineCSS: css, linkedStylesheets };
+  // Return empty CSS to prevent breaking SlideWinder's UI
+  // All styling is captured via getComputedStyle() on individual elements
+  return {
+    inlineCSS: '',
+    linkedStylesheets: []
+  };
 }
 
 /**
@@ -219,8 +195,25 @@ export async function parseRevealHTML(htmlContent) {
   // Extract all CSS from the document (async now)
   const cssData = await extractCSS(doc);
 
+  // Create a temporary container to render the slides for accurate measurements
+  const tempContainer = document.createElement('div');
+  tempContainer.style.position = 'absolute';
+  tempContainer.style.left = '-9999px';
+  tempContainer.style.top = '-9999px';
+  tempContainer.style.width = '1920px'; // Typical Reveal.js size
+  tempContainer.style.height = '1080px';
+  tempContainer.style.visibility = 'hidden';
+
+  // Copy the slides content into the temp container
+  const slidesContainer = doc.querySelector('.reveal .slides');
+  if (slidesContainer) {
+    tempContainer.innerHTML = slidesContainer.innerHTML;
+  }
+
+  document.body.appendChild(tempContainer);
+
   // Extract slides (including vertical slides - flatten them)
-  const slideElements = doc.querySelectorAll('.reveal .slides > section');
+  const slideElements = tempContainer.querySelectorAll(':scope > section');
   const slides = [];
 
   slideElements.forEach((slideEl) => {
@@ -239,6 +232,9 @@ export async function parseRevealHTML(htmlContent) {
       slides.push(slide);
     }
   });
+
+  // Remove the temporary container
+  document.body.removeChild(tempContainer);
 
   // Extract settings from Reveal.initialize call if present
   const settings = extractRevealSettings(doc);
@@ -264,7 +260,9 @@ function parseSlidePreserveHTML(slideEl) {
     id: crypto.randomUUID(),
     elements: [],
     background: { type: 'color', value: 'transparent' }, // Use transparent to allow reveal.js theme bg
-    transition: null // null = use global transition
+    transition: null, // null = use global transition
+    parentId: null, // Top-level slide (SlideWinder doesn't support nested slides from Reveal.js vertical stacks)
+    notes: '' // Speaker notes (extract if present)
   };
 
   // Extract background settings
@@ -398,15 +396,17 @@ function parseElementWithStyles(el, index) {
 /**
  * Extract element position from inline styles or provide default
  * Reveal.js typically uses centered, stacked layout
+ * Scales from Reveal.js size (1920x1080) to SlideWinder size (960x540)
  */
 function getElementPositionFromStyle(el, computedStyle, index) {
+  const SCALE_FACTOR = 0.5; // 1920x1080 -> 960x540
   const style = el.style;
 
   // Check for absolute positioning
   if (computedStyle.position === 'absolute' && (style.left || style.top)) {
     return {
-      x: parseInt(style.left) || 50,
-      y: parseInt(style.top) || 50
+      x: Math.round((parseInt(style.left) || 50) * SCALE_FACTOR),
+      y: Math.round((parseInt(style.top) || 50) * SCALE_FACTOR)
     };
   }
 
@@ -416,8 +416,8 @@ function getElementPositionFromStyle(el, computedStyle, index) {
     const match = transform.match(/translate\(([^,]+),\s*([^)]+)\)/);
     if (match) {
       return {
-        x: parseInt(match[1]) || 50,
-        y: parseInt(match[2]) || 50
+        x: Math.round((parseInt(match[1]) || 50) * SCALE_FACTOR),
+        y: Math.round((parseInt(match[2]) || 50) * SCALE_FACTOR)
       };
     }
   }
@@ -425,33 +425,43 @@ function getElementPositionFromStyle(el, computedStyle, index) {
   // Default: center horizontally, stack vertically with spacing
   // This mimics reveal.js's default centered layout
   return {
-    x: 50, // Center horizontally
-    y: 100 + (index * 120) // Stack vertically with spacing
+    x: 80, // Center horizontally with some margin
+    y: 50 + (index * 80) // Stack vertically with spacing
   };
 }
 
 /**
  * Extract element size from styles or use content-based defaults
+ * Scales from typical Reveal.js size (1920x1080) to SlideWinder size (960x540)
  */
 function getElementSizeFromStyle(el, computedStyle) {
+  // Reveal.js typical size: 1920x1080, SlideWinder: 960x540 = 0.5 scale factor
+  const SCALE_FACTOR = 0.5;
+
   const inlineWidth = el.style.width;
   const inlineHeight = el.style.height;
 
   // Use inline styles if available
   if (inlineWidth && inlineHeight) {
+    const width = parseInt(inlineWidth) || 800;
+    const height = parseInt(inlineHeight) || 80;
     return {
-      width: parseInt(inlineWidth) || 800,
-      height: parseInt(inlineHeight) || 100
+      width: Math.min(Math.round(width * SCALE_FACTOR), 800),
+      height: Math.min(Math.round(height * SCALE_FACTOR), 200)
     };
   }
 
-  // Use computed size, but cap at reasonable maximums
+  // Use computed size and scale down for SlideWinder's 960x540 canvas
   const computedWidth = parseInt(computedStyle.width) || 800;
-  const computedHeight = parseInt(computedStyle.height) || 100;
+  const computedHeight = parseInt(computedStyle.height) || 80;
+
+  // Scale from Reveal.js dimensions to SlideWinder dimensions
+  const scaledWidth = Math.round(computedWidth * SCALE_FACTOR);
+  const scaledHeight = Math.round(computedHeight * SCALE_FACTOR);
 
   return {
-    width: Math.min(computedWidth, 860), // Max width for slide (960 - margins)
-    height: Math.min(computedHeight, 400) // Reasonable max height
+    width: Math.min(scaledWidth, 800), // Max width for slide (960 - margins)
+    height: Math.min(scaledHeight, 200) // Reasonable max height
   };
 }
 
@@ -465,7 +475,9 @@ function parseSlide(slideEl) {
     id: crypto.randomUUID(),
     elements: [],
     background: { type: 'color', value: '#ffffff' },
-    transition: null // null = use global transition
+    transition: null, // null = use global transition
+    parentId: null,
+    notes: ''
   };
 
   // Extract background settings
@@ -585,15 +597,17 @@ function parseElement(el, index) {
 
 /**
  * Extract element position from style or use default based on index
+ * Scales from Reveal.js size to SlideWinder size
  */
 function getElementPosition(el, index) {
+  const SCALE_FACTOR = 0.5;
   const style = el.style;
 
   // Try to get absolute positioning
   if (style.left || style.top) {
     return {
-      x: parseInt(style.left) || 50,
-      y: parseInt(style.top) || 50 + (index * 100)
+      x: Math.round((parseInt(style.left) || 50) * SCALE_FACTOR),
+      y: Math.round((parseInt(style.top) || 50 + (index * 100)) * SCALE_FACTOR)
     };
   }
 
@@ -603,29 +617,38 @@ function getElementPosition(el, index) {
     const match = transform.match(/translate\(([^,]+),\s*([^)]+)\)/);
     if (match) {
       return {
-        x: parseInt(match[1]) || 50,
-        y: parseInt(match[2]) || 50
+        x: Math.round((parseInt(match[1]) || 50) * SCALE_FACTOR),
+        y: Math.round((parseInt(match[2]) || 50) * SCALE_FACTOR)
       };
     }
   }
 
   // Default positioning - stack vertically
   return {
-    x: 50,
-    y: 50 + (index * 100)
+    x: 80,
+    y: 50 + (index * 80)
   };
 }
 
 /**
  * Extract element size from style or use defaults
+ * Scales from Reveal.js size to SlideWinder size
  */
 function getElementSize(el) {
+  const SCALE_FACTOR = 0.5;
   const style = el.style;
   const computed = window.getComputedStyle(el);
 
+  const width = parseInt(style.width) || parseInt(computed.width) || 200;
+  const height = parseInt(style.height) || parseInt(computed.height) || 80;
+
+  // Scale from Reveal.js dimensions to SlideWinder dimensions
+  const scaledWidth = Math.round(width * SCALE_FACTOR);
+  const scaledHeight = Math.round(height * SCALE_FACTOR);
+
   return {
-    width: parseInt(style.width) || parseInt(computed.width) || 200,
-    height: parseInt(style.height) || parseInt(computed.height) || 100
+    width: Math.min(scaledWidth, 800),
+    height: Math.min(scaledHeight, 200)
   };
 }
 
@@ -777,7 +800,9 @@ function createEmptySlide() {
     id: crypto.randomUUID(),
     elements: [],
     background: { type: 'color', value: '#ffffff' },
-    transition: null
+    transition: null,
+    parentId: null,
+    notes: ''
   };
 }
 

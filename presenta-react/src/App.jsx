@@ -33,6 +33,7 @@ import { useAutoSave } from './hooks/useAutoSave';
 import { useComponentPerformance, getPerformanceWarning } from './hooks/useComponentPerformance';
 import { exportSlidesAsPDF, exportAllSlidesAsImages, exportAsJSON, importFromJSON } from './utils/exportUtils';
 import { importRevealHTML } from './utils/revealImporter';
+import { exportToPowerPoint } from './utils/pptxUtils';
 import { alignHorizontal, alignVertical, distributeElements, snapToGrid as snapPositionToGrid, findAlignmentGuides, reorderElement } from './utils/alignmentUtils';
 import ExportDialog from './components/ExportDialog';
 import ImportDialog from './components/ImportDialog';
@@ -1035,6 +1036,8 @@ export default function App() {
         try {
             if (type === 'html') {
                 generateRevealHTML(presentation);
+            } else if (type === 'pptx') {
+                await exportToPowerPoint(presentation);
             } else if (type === 'json') {
                 exportAsJSON(presentation, presentation.title || 'presentation');
             } else if (type === 'pdf') {
