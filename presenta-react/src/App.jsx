@@ -9,6 +9,8 @@ import UnifiedRibbon from './components/UnifiedRibbon';
 import ReactComponentEditor from './components/ReactComponentEditor';
 import PerformanceWarning from './components/PerformanceWarning';
 import SpeakerNotes from './components/SpeakerNotes';
+import PresenterView from './components/PresenterView';
+import AudienceView from './components/AudienceView';
 import {
     TypeIcon,
     SquareIcon,
@@ -43,8 +45,51 @@ import { applyLayout } from './data/slideLayouts';
 // --- Helper Functions & Constants ---
 const REVEAL_THEMES = ["black", "white", "league", "beige", "sky", "night", "serif", "simple", "solarized", "blood", "moon"];
 
+// Presenter View Wrapper - manages state for presenter mode
+function PresenterViewWrapper({ presentation, initialSlideIndex }) {
+    const [currentSlideIndex, setCurrentSlideIndex] = useState(initialSlideIndex);
+
+    const handleSlideChange = (newIndex) => {
+        setCurrentSlideIndex(newIndex);
+    };
+
+    const handleClose = () => {
+        window.close();
+    };
+
+    return (
+        <PresenterView
+            presentation={presentation}
+            currentSlideIndex={currentSlideIndex}
+            onSlideChange={handleSlideChange}
+            onClose={handleClose}
+        />
+    );
+}
+
 // --- Main App Component ---
 export default function App() {
+    // Check if we're in presenter or audience mode
+    const urlParams = new URLSearchParams(window.location.search);
+    const mode = urlParams.get('mode'); // 'presenter' or 'audience'
+
+    // If in presenter or audience mode, load presentation from localStorage
+    if (mode === 'presenter' || mode === 'audience') {
+        const storedPresentation = localStorage.getItem('slidewindr-presentation-data');
+        const storedSlideIndex = parseInt(localStorage.getItem('slidewindr-presenter-slide') || '0', 10);
+
+        if (storedPresentation) {
+            const presentation = JSON.parse(storedPresentation);
+            const slides = presentation.slides.filter(s => !s.parentId);
+            const initialSlideIndex = Math.min(storedSlideIndex, slides.length - 1);
+
+            if (mode === 'presenter') {
+                return <PresenterViewWrapper presentation={presentation} initialSlideIndex={initialSlideIndex} />;
+            } else {
+                return <AudienceView presentation={presentation} initialSlideIndex={initialSlideIndex} />;
+            }
+        }
+    }
     const initialPresentation = {
         title: "My Presentation",
         theme: "black",
@@ -89,6 +134,8 @@ export default function App() {
     const [showImportDialog, setShowImportDialog] = useState(false);
     const [showGrid, setShowGrid] = useState(false);
     const [snapToGrid, setSnapToGrid] = useState(false);
+    const [previewAnimations, setPreviewAnimations] = useState(false);
+    const [animationKey, setAnimationKey] = useState(0);
     const [alignmentGuides, setAlignmentGuides] = useState(null);
     const [textEditor, setTextEditor] = useState(null); // Store TipTap editor instance
     const [marquee, setMarquee] = useState(null); // { startX, startY, endX, endY }
@@ -210,6 +257,12 @@ export default function App() {
             height: 100,
             rotation: 0,
             fragmentOrder: 0, // 0 = always visible, 1+ = fragment reveal order
+            animation: {
+                type: 'none', // Animation type: fadeIn, slideInLeft, etc.
+                duration: 0.5, // Duration in seconds
+                delay: 0, // Delay in seconds
+                easing: 'easeOut' // Easing function
+            }
         };
         let newElement;
         switch (type) {
@@ -359,6 +412,37 @@ export default function App() {
                     },
                     width: 500,
                     height: 350
+                };
+                break;
+            case 'video':
+                newElement = {
+                    ...baseElement,
+                    type,
+                    videoUrl: '',
+                    videoData: null,
+                    autoplay: false,
+                    loop: false,
+                    muted: false,
+                    controls: true,
+                    objectFit: 'contain',
+                    borderRadius: 0,
+                    width: 640,
+                    height: 360
+                };
+                break;
+            case 'audio':
+                newElement = {
+                    ...baseElement,
+                    type,
+                    audioUrl: '',
+                    audioData: null,
+                    autoplay: false,
+                    loop: false,
+                    muted: false,
+                    backgroundColor: '#f3f4f6',
+                    borderRadius: 8,
+                    width: 400,
+                    height: 100
                 };
                 break;
             default:
@@ -1030,6 +1114,30 @@ export default function App() {
         generateRevealHTML(presentation);
     };
 
+    const startPresenterMode = () => {
+        // Save current presentation to localStorage
+        localStorage.setItem('slidewindr-presentation-data', JSON.stringify(presentation));
+        localStorage.setItem('slidewindr-presenter-slide', '0');
+
+        // Open presenter window
+        const presenterWindow = window.open(
+            `${window.location.origin}${window.location.pathname}?mode=presenter`,
+            'slidewindr-presenter',
+            'width=1200,height=800'
+        );
+
+        // Open audience window (fullscreen)
+        const audienceWindow = window.open(
+            `${window.location.origin}${window.location.pathname}?mode=audience`,
+            'slidewindr-audience',
+            'width=1920,height=1080'
+        );
+
+        if (!presenterWindow || !audienceWindow) {
+            alert('Please allow pop-ups to use Presenter Mode');
+        }
+    };
+
     const handleExport = async (options) => {
         const { type, format, quality, scale } = options;
 
@@ -1518,6 +1626,11 @@ export default function App() {
                         onToggleGrid={() => setShowGrid(!showGrid)}
                         snapToGrid={snapToGrid}
                         onToggleSnapToGrid={() => setSnapToGrid(!snapToGrid)}
+                        previewAnimations={previewAnimations}
+                        onTogglePreviewAnimations={() => {
+                            setPreviewAnimations(!previewAnimations);
+                            setAnimationKey(prev => prev + 1);
+                        }}
                         editor={textEditor}
                     />
 
@@ -1564,6 +1677,8 @@ export default function App() {
                                     setInteractingElementId={setInteractingElementId}
                                     librariesLoaded={librariesLoaded}
                                     onEditorReady={setTextEditor}
+                                    previewAnimations={previewAnimations}
+                                    animationKey={animationKey}
                                 />
                             ))}
                             {/* Marquee Selection Rectangle */}

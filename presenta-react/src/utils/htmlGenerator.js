@@ -44,7 +44,68 @@ export function generateRevealHTML(presentation) {
 
         // Generate HTML for each element
         const elementsHtml = slide.elements.map(el => {
-            const style = `position: absolute; left: ${el.x}px; top: ${el.y}px; width: ${el.width}px; height: ${el.height}px; transform: rotate(${el.rotation || 0}deg);`;
+            // Map animation types to custom CSS animation classes
+            const animationClassMap = {
+                'fadeIn': 'custom-fadeIn',
+                'slideInLeft': 'custom-slideInLeft',
+                'slideInRight': 'custom-slideInRight',
+                'slideInUp': 'custom-slideInUp',
+                'slideInDown': 'custom-slideInDown',
+                'zoomIn': 'custom-zoomIn',
+                'bounceIn': 'custom-bounceIn',
+                'rotateIn': 'custom-rotateIn',
+                'flipIn': 'custom-flipIn',
+                'pulse': 'custom-pulse',
+                'shake': 'custom-shake',
+                'swing': 'custom-swing'
+            };
+
+            // Build outer wrapper style (positioning and rotation)
+            const outerStyle = `position: absolute; left: ${el.x}px; top: ${el.y}px; width: ${el.width}px; height: ${el.height}px; transform: rotate(${el.rotation || 0}deg);`;
+
+            // Build inner wrapper for animation (if applicable)
+            let innerWrapperOpen = '';
+            let innerWrapperClose = '';
+
+            if (el.animation?.type && el.animation.type !== 'none') {
+                const duration = el.animation.duration || 0.5;
+                const delay = el.animation.delay || 0;
+                const rawEasing = el.animation.easing || 'ease-out';
+
+                // Map easing values to valid CSS timing functions
+                const easingMap = {
+                    'linear': 'linear',
+                    'easeIn': 'ease-in',
+                    'easeOut': 'ease-out',
+                    'easeInOut': 'ease-in-out',
+                    'spring': 'ease-out', // Spring doesn't exist in CSS, use ease-out
+                    'ease-in': 'ease-in',
+                    'ease-out': 'ease-out',
+                    'ease-in-out': 'ease-in-out'
+                };
+                const easing = easingMap[rawEasing] || 'ease-out';
+
+                const animationClass = animationClassMap[el.animation.type] || 'custom-fadeIn';
+
+                // Keyframe-based animations (bounceIn, pulse, shake, swing) use CSS custom properties
+                // Transition-based animations use inline transition styles
+                let animationStyle;
+                const keyframeAnimations = ['bounceIn', 'pulse', 'shake', 'swing'];
+
+                if (keyframeAnimations.includes(el.animation.type)) {
+                    // Use CSS custom properties for keyframe animations
+                    animationStyle = `width: 100%; height: 100%; --anim-duration: ${duration}s; --anim-delay: ${delay}s; --anim-easing: ${easing};`;
+                } else {
+                    // Build transition property with actual values for entrance animations
+                    const transitionValue = `opacity ${duration}s ${easing} ${delay}s, transform ${duration}s ${easing} ${delay}s`;
+                    animationStyle = `width: 100%; height: 100%; transition: ${transitionValue};`;
+                }
+
+                innerWrapperOpen = `<div class="fragment ${animationClass}" style="${animationStyle}">`;
+                innerWrapperClose = `</div>`;
+            }
+
+            const style = outerStyle;
 
             // Generate React component container for element
             let reactContainer = '';
@@ -119,9 +180,61 @@ export function generateRevealHTML(presentation) {
                     baseElementHtml = `<table style="width: 100%; height: 100%; border-collapse: collapse;"><tbody>${tableRows}</tbody></table>`;
                     break;
                 }
+                case 'video': {
+                    const videoUrl = el.videoUrl || el.videoData || '';
+                    if (!videoUrl) {
+                        baseElementHtml = `<div style="width: 100%; height: 100%; background-color: #f3f4f6; display: flex; align-items: center; justify-content: center; color: #6b7280; border-radius: ${el.borderRadius || 0}px;">No video URL</div>`;
+                        break;
+                    }
+
+                    // Detect YouTube/Vimeo embeds
+                    const youtubeRegex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+                    const vimeoRegex = /(?:vimeo\.com\/)(\d+)/;
+                    const youtubeMatch = videoUrl.match(youtubeRegex);
+                    const vimeoMatch = videoUrl.match(vimeoRegex);
+
+                    if (youtubeMatch) {
+                        const embedUrl = `https://www.youtube.com/embed/${youtubeMatch[1]}`;
+                        const autoplayParam = el.autoplay ? '?autoplay=1' : '';
+                        const loopParam = el.loop ? (el.autoplay ? '&loop=1' : '?loop=1') : '';
+                        const muteParam = el.muted ? (el.autoplay || el.loop ? '&mute=1' : '?mute=1') : '';
+                        baseElementHtml = `<iframe src="${embedUrl}${autoplayParam}${loopParam}${muteParam}" style="width: 100%; height: 100%; border: none; border-radius: ${el.borderRadius || 0}px;" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
+                    } else if (vimeoMatch) {
+                        const embedUrl = `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+                        const autoplayParam = el.autoplay ? '?autoplay=1' : '';
+                        const loopParam = el.loop ? (el.autoplay ? '&loop=1' : '?loop=1') : '';
+                        const muteParam = el.muted ? (el.autoplay || el.loop ? '&muted=1' : '?muted=1') : '';
+                        baseElementHtml = `<iframe src="${embedUrl}${autoplayParam}${loopParam}${muteParam}" style="width: 100%; height: 100%; border: none; border-radius: ${el.borderRadius || 0}px;" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>`;
+                    } else {
+                        // Direct video file
+                        const autoplayAttr = el.autoplay ? ' autoplay' : '';
+                        const loopAttr = el.loop ? ' loop' : '';
+                        const mutedAttr = el.muted ? ' muted' : '';
+                        const controlsAttr = el.controls !== false ? ' controls' : '';
+                        const objectFit = el.objectFit || 'contain';
+                        baseElementHtml = `<video src="${videoUrl}" style="width: 100%; height: 100%; object-fit: ${objectFit}; border-radius: ${el.borderRadius || 0}px;"${autoplayAttr}${loopAttr}${mutedAttr}${controlsAttr}></video>`;
+                    }
+                    break;
+                }
+                case 'audio': {
+                    const audioUrl = el.audioUrl || el.audioData || '';
+                    if (!audioUrl) {
+                        baseElementHtml = `<div style="width: 100%; height: 100%; background-color: ${el.backgroundColor || '#f3f4f6'}; display: flex; align-items: center; justify-content: center; color: #6b7280; border-radius: ${el.borderRadius || 8}px;">No audio URL</div>`;
+                        break;
+                    }
+
+                    const autoplayAttr = el.autoplay ? ' autoplay' : '';
+                    const loopAttr = el.loop ? ' loop' : '';
+                    const mutedAttr = el.muted ? ' muted' : '';
+                    const controlsAttr = ' controls'; // Always show controls for audio
+                    const audioStyle = `width: 100%; height: 100%; background-color: ${el.backgroundColor || '#f3f4f6'}; border-radius: ${el.borderRadius || 8}px; padding: 8px; box-sizing: border-box;`;
+
+                    baseElementHtml = `<div style="${audioStyle}"><audio src="${audioUrl}" style="width: 100%; height: 100%;"${autoplayAttr}${loopAttr}${mutedAttr}${controlsAttr}></audio></div>`;
+                    break;
+                }
             }
 
-            return `<div style="${style}">${baseElementHtml}${reactContainer}</div>`;
+            return `<div style="${style}">${innerWrapperOpen}${baseElementHtml}${reactContainer}${innerWrapperClose}</div>`;
         }).join('\n');
 
         return `<section ${bgAttrs}>${bgReactContainer}${elementsHtml}</section>`;
@@ -185,6 +298,141 @@ export function generateRevealHTML(presentation) {
 
     /* Custom CSS from imported reveal.js presentations */
     ${presentation.customCSS || ''}
+
+    /* Custom animations for elements - Initial hidden states */
+    /* Transition timing is set via inline styles on each element */
+    .fragment.custom-fadeIn {
+        opacity: 0;
+    }
+    .fragment.custom-slideInLeft {
+        opacity: 0;
+        transform: translateX(-100px);
+    }
+    .fragment.custom-slideInRight {
+        opacity: 0;
+        transform: translateX(100px);
+    }
+    .fragment.custom-slideInUp {
+        opacity: 0;
+        transform: translateY(100px);
+    }
+    .fragment.custom-slideInDown {
+        opacity: 0;
+        transform: translateY(-100px);
+    }
+    .fragment.custom-zoomIn {
+        opacity: 0;
+        transform: scale(0);
+    }
+    .fragment.custom-bounceIn {
+        opacity: 0;
+        transform: scale(0);
+    }
+    .fragment.custom-rotateIn {
+        opacity: 0;
+        transform: rotate(-180deg) scale(0);
+    }
+    .fragment.custom-flipIn {
+        opacity: 0;
+        transform: perspective(400px) rotateY(-90deg);
+    }
+
+    /* Visible states - when Reveal.js makes the fragment visible */
+    .fragment.visible.custom-fadeIn,
+    .fragment.visible.custom-slideInLeft,
+    .fragment.visible.custom-slideInRight,
+    .fragment.visible.custom-slideInUp,
+    .fragment.visible.custom-slideInDown,
+    .fragment.visible.custom-zoomIn,
+    .fragment.visible.custom-rotateIn,
+    .fragment.visible.custom-flipIn {
+        opacity: 1;
+        transform: translateX(0) translateY(0) scale(1) rotate(0deg);
+    }
+
+    /* BounceIn needs keyframe animation for the bounce effect */
+    @keyframes bounceIn {
+        0% {
+            transform: scale(0);
+            opacity: 0;
+        }
+        60% {
+            transform: scale(1.2);
+            opacity: 1;
+        }
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+    .fragment.visible.custom-bounceIn {
+        animation: bounceIn var(--anim-duration, 0.6s) var(--anim-easing, ease-out) var(--anim-delay, 0s) both;
+        opacity: 1;
+    }
+
+    /* Emphasis animations - pulse, shake, swing */
+    @keyframes pulse {
+        0%, 100% {
+            transform: scale(1);
+        }
+        50% {
+            transform: scale(1.05);
+        }
+    }
+    @keyframes shake {
+        0%, 100% {
+            transform: translateX(0);
+        }
+        20% {
+            transform: translateX(-10px);
+        }
+        40% {
+            transform: translateX(10px);
+        }
+        60% {
+            transform: translateX(-10px);
+        }
+        80% {
+            transform: translateX(10px);
+        }
+    }
+    @keyframes swing {
+        0%, 100% {
+            transform: rotate(0deg);
+        }
+        20% {
+            transform: rotate(15deg);
+        }
+        40% {
+            transform: rotate(-15deg);
+        }
+        60% {
+            transform: rotate(10deg);
+        }
+        80% {
+            transform: rotate(-10deg);
+        }
+    }
+
+    /* Emphasis animation classes - visible from start */
+    .fragment.custom-pulse {
+        opacity: 1;
+    }
+    .fragment.visible.custom-pulse {
+        animation: pulse var(--anim-duration, 0.5s) var(--anim-easing, ease-out) var(--anim-delay, 0s) infinite;
+    }
+    .fragment.custom-shake {
+        opacity: 1;
+    }
+    .fragment.visible.custom-shake {
+        animation: shake var(--anim-duration, 0.5s) var(--anim-easing, ease-out) var(--anim-delay, 0s) both;
+    }
+    .fragment.custom-swing {
+        opacity: 1;
+    }
+    .fragment.visible.custom-swing {
+        animation: swing var(--anim-duration, 0.8s) var(--anim-easing, ease-out) var(--anim-delay, 0s) both;
+    }
     </style>
 </head>
 <body>

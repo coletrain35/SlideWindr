@@ -8,9 +8,12 @@ import TableComponent from './TableComponent';
 import CodeBlock from './CodeBlock';
 import ChartComponent from './ChartComponent';
 import HTMLContentElement from './HTMLContentElement';
+import AnimatedElement from './AnimatedElement';
+import VideoElement from './VideoElement';
+import AudioElement from './AudioElement';
 import { CodeIcon, MousePointerClickIcon, StopCircleIcon } from './Icons';
 
-const ElementComponent = ({ element, onMouseDown, onResizeMouseDown, onRotateMouseDown, isSelected, isMultiSelected, updateElement, isInteracting, setInteractingElementId, librariesLoaded, onEditorReady }) => {
+const ElementComponent = ({ element, onMouseDown, onResizeMouseDown, onRotateMouseDown, isSelected, isMultiSelected, updateElement, isInteracting, setInteractingElementId, librariesLoaded, onEditorReady, previewAnimations = false, animationKey = 0 }) => {
     const style = {
         left: `${element.x}px`,
         top: `${element.y}px`,
@@ -105,6 +108,10 @@ const ElementComponent = ({ element, onMouseDown, onResizeMouseDown, onRotateMou
                 );
             case 'htmlContent':
                 return <HTMLContentElement element={element} />;
+            case 'video':
+                return <VideoElement element={element} isInteracting={isInteracting} updateElement={updateElement} />;
+            case 'audio':
+                return <AudioElement element={element} isInteracting={isInteracting} updateElement={updateElement} />;
             default:
                 return null;
         }
@@ -117,7 +124,14 @@ const ElementComponent = ({ element, onMouseDown, onResizeMouseDown, onRotateMou
             onMouseDown={!isInteracting ? (e) => onMouseDown(e, element.id) : undefined}
             onClick={(e) => e.stopPropagation()}
         >
-            {renderContent()}
+            <AnimatedElement
+                key={`anim-${element.id}-${animationKey}`}
+                animation={element.animation}
+                isInPresentationMode={previewAnimations}
+                shouldAnimate={true}
+            >
+                {renderContent()}
+            </AnimatedElement>
             {/* For component type, render directly (not as overlay) */}
             {element.type === 'component' && Object.values(librariesLoaded).every(Boolean) && element.reactComponent && (
                 <div className="absolute inset-0 w-full h-full flex items-center justify-center" style={{ pointerEvents: isInteracting ? 'auto' : 'none', fontSize: `${element.fontSize || 48}px` }}>
@@ -249,7 +263,7 @@ ElementComponent.propTypes = {
 };
 
 // Memoize component to prevent unnecessary re-renders
-// Only re-render when element data, selection state, or interaction state changes
+// Only re-render when element data, selection state, interaction state, or animation preview state changes
 export default React.memo(ElementComponent, (prevProps, nextProps) => {
     return (
         prevProps.element.id === nextProps.element.id &&
@@ -261,6 +275,8 @@ export default React.memo(ElementComponent, (prevProps, nextProps) => {
         prevProps.element.type === nextProps.element.type &&
         prevProps.isSelected === nextProps.isSelected &&
         prevProps.isInteracting === nextProps.isInteracting &&
+        prevProps.previewAnimations === nextProps.previewAnimations &&
+        prevProps.animationKey === nextProps.animationKey &&
         JSON.stringify(prevProps.element) === JSON.stringify(nextProps.element)
     );
 });

@@ -619,12 +619,322 @@ const ElementProperties = ({ selectedElement, updateElement, deleteElement, copy
                     </div>
                 )}
 
+                {/* Video Properties */}
+                {selectedElement.type === 'video' && (
+                    <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 border border-red-200 dark:border-red-800">
+                        <h3 className="text-xs font-semibold text-red-600 dark:text-red-400 mb-2 uppercase tracking-wide">Video Properties</h3>
+                        <div className="space-y-3">
+                            {/* Video URL */}
+                            <div>
+                                <label className="text-xs text-gray-600 dark:text-gray-400 block mb-1">Video URL:</label>
+                                <input
+                                    type="text"
+                                    value={selectedElement.videoUrl || ''}
+                                    onChange={(e) => updateElement(selectedElement.id, { videoUrl: e.target.value })}
+                                    placeholder="https://youtube.com/watch?v=... or direct video URL"
+                                    className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                                />
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    Supports YouTube, Vimeo, or direct video URLs (.mp4, .webm)
+                                </p>
+                            </div>
+
+                            {/* Object Fit */}
+                            <div>
+                                <label className="text-xs text-gray-600 dark:text-gray-400 block mb-1">Fit:</label>
+                                <select
+                                    value={selectedElement.objectFit || 'contain'}
+                                    onChange={(e) => updateElement(selectedElement.id, { objectFit: e.target.value })}
+                                    className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                                >
+                                    <option value="contain">Contain (fit inside)</option>
+                                    <option value="cover">Cover (fill area)</option>
+                                    <option value="fill">Fill (stretch)</option>
+                                    <option value="none">None (original size)</option>
+                                </select>
+                            </div>
+
+                            {/* Playback Options */}
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        id="video-autoplay"
+                                        checked={selectedElement.autoplay || false}
+                                        onChange={(e) => updateElement(selectedElement.id, { autoplay: e.target.checked })}
+                                        className="rounded"
+                                    />
+                                    <label htmlFor="video-autoplay" className="text-xs text-gray-700 dark:text-gray-300">
+                                        Autoplay
+                                    </label>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        id="video-loop"
+                                        checked={selectedElement.loop || false}
+                                        onChange={(e) => updateElement(selectedElement.id, { loop: e.target.checked })}
+                                        className="rounded"
+                                    />
+                                    <label htmlFor="video-loop" className="text-xs text-gray-700 dark:text-gray-300">
+                                        Loop
+                                    </label>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        id="video-muted"
+                                        checked={selectedElement.muted || false}
+                                        onChange={(e) => updateElement(selectedElement.id, { muted: e.target.checked })}
+                                        className="rounded"
+                                    />
+                                    <label htmlFor="video-muted" className="text-xs text-gray-700 dark:text-gray-300">
+                                        Muted
+                                    </label>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        id="video-controls"
+                                        checked={selectedElement.controls !== false}
+                                        onChange={(e) => updateElement(selectedElement.id, { controls: e.target.checked })}
+                                        className="rounded"
+                                    />
+                                    <label htmlFor="video-controls" className="text-xs text-gray-700 dark:text-gray-300">
+                                        Show Controls
+                                    </label>
+                                </div>
+                            </div>
+
+                            {/* Border Radius */}
+                            <div>
+                                <label className="text-xs text-gray-600 dark:text-gray-400 block mb-1">
+                                    Border Radius: {selectedElement.borderRadius || 0}px
+                                </label>
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="50"
+                                    value={selectedElement.borderRadius || 0}
+                                    onChange={(e) => updateElement(selectedElement.id, { borderRadius: parseInt(e.target.value) })}
+                                    className="w-full"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Audio Properties */}
+                {selectedElement.type === 'audio' && (
+                    <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3 border border-orange-200 dark:border-orange-800">
+                        <h3 className="text-xs font-semibold text-orange-600 dark:text-orange-400 mb-2 uppercase tracking-wide">Audio Properties</h3>
+                        <div className="space-y-3">
+                            {/* Audio URL */}
+                            <div>
+                                <label className="text-xs text-gray-600 dark:text-gray-400 block mb-1">Audio URL:</label>
+                                <input
+                                    type="text"
+                                    value={selectedElement.audioUrl || ''}
+                                    onChange={(e) => updateElement(selectedElement.id, { audioUrl: e.target.value })}
+                                    placeholder="https://example.com/audio.mp3"
+                                    className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                                />
+                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                    Supports .mp3, .wav, .ogg audio files
+                                </p>
+                            </div>
+
+                            {/* Playback Options */}
+                            <div className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        id="audio-autoplay"
+                                        checked={selectedElement.autoplay || false}
+                                        onChange={(e) => updateElement(selectedElement.id, { autoplay: e.target.checked })}
+                                        className="rounded"
+                                    />
+                                    <label htmlFor="audio-autoplay" className="text-xs text-gray-700 dark:text-gray-300">
+                                        Autoplay
+                                    </label>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        id="audio-loop"
+                                        checked={selectedElement.loop || false}
+                                        onChange={(e) => updateElement(selectedElement.id, { loop: e.target.checked })}
+                                        className="rounded"
+                                    />
+                                    <label htmlFor="audio-loop" className="text-xs text-gray-700 dark:text-gray-300">
+                                        Loop
+                                    </label>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        id="audio-muted"
+                                        checked={selectedElement.muted || false}
+                                        onChange={(e) => updateElement(selectedElement.id, { muted: e.target.checked })}
+                                        className="rounded"
+                                    />
+                                    <label htmlFor="audio-muted" className="text-xs text-gray-700 dark:text-gray-300">
+                                        Muted
+                                    </label>
+                                </div>
+                            </div>
+
+                            {/* Background Color */}
+                            <div>
+                                <label className="text-xs text-gray-600 dark:text-gray-400 block mb-1">Background Color:</label>
+                                <input
+                                    type="color"
+                                    value={selectedElement.backgroundColor || '#f3f4f6'}
+                                    onChange={(e) => updateElement(selectedElement.id, { backgroundColor: e.target.value })}
+                                    className="w-full h-8 rounded cursor-pointer"
+                                />
+                            </div>
+
+                            {/* Border Radius */}
+                            <div>
+                                <label className="text-xs text-gray-600 dark:text-gray-400 block mb-1">
+                                    Border Radius: {selectedElement.borderRadius || 8}px
+                                </label>
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="50"
+                                    value={selectedElement.borderRadius || 8}
+                                    onChange={(e) => updateElement(selectedElement.id, { borderRadius: parseInt(e.target.value) })}
+                                    className="w-full"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
                     <ReactComponentEditor
                         title="Element Component"
                         componentData={selectedElement.reactComponent}
                         onChange={(data) => updateElement(selectedElement.id, { reactComponent: data })}
                     />
+                </div>
+
+                {/* Animation Properties Card */}
+                <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3 border border-purple-200 dark:border-purple-800">
+                    <h3 className="text-xs font-semibold text-purple-600 dark:text-purple-400 mb-2 uppercase tracking-wide">Animation</h3>
+                    <div className="space-y-3">
+                        {/* Animation Type */}
+                        <div>
+                            <label className="text-xs text-gray-600 dark:text-gray-400 block mb-1">Entrance Effect:</label>
+                            <select
+                                value={selectedElement.animation?.type || 'none'}
+                                onChange={(e) => updateElement(selectedElement.id, {
+                                    animation: {
+                                        ...(selectedElement.animation || {}),
+                                        type: e.target.value
+                                    }
+                                })}
+                                className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                            >
+                                <option value="none">No Animation</option>
+                                <optgroup label="Fade">
+                                    <option value="fadeIn">Fade In</option>
+                                </optgroup>
+                                <optgroup label="Slide">
+                                    <option value="slideInLeft">Slide In from Left</option>
+                                    <option value="slideInRight">Slide In from Right</option>
+                                    <option value="slideInUp">Slide In from Bottom</option>
+                                    <option value="slideInDown">Slide In from Top</option>
+                                </optgroup>
+                                <optgroup label="Zoom">
+                                    <option value="zoomIn">Zoom In</option>
+                                    <option value="bounceIn">Bounce In</option>
+                                </optgroup>
+                                <optgroup label="Rotate">
+                                    <option value="rotateIn">Rotate In</option>
+                                    <option value="flipIn">Flip In</option>
+                                </optgroup>
+                                <optgroup label="Emphasis">
+                                    <option value="pulse">Pulse (Loop)</option>
+                                    <option value="shake">Shake</option>
+                                    <option value="swing">Swing</option>
+                                </optgroup>
+                            </select>
+                        </div>
+
+                        {/* Duration */}
+                        <div>
+                            <label className="text-xs text-gray-600 dark:text-gray-400 block mb-1">
+                                Duration: {selectedElement.animation?.duration || 0.5}s
+                            </label>
+                            <input
+                                type="range"
+                                min="0.1"
+                                max="3"
+                                step="0.1"
+                                value={selectedElement.animation?.duration || 0.5}
+                                onChange={(e) => updateElement(selectedElement.id, {
+                                    animation: {
+                                        ...(selectedElement.animation || {}),
+                                        duration: parseFloat(e.target.value)
+                                    }
+                                })}
+                                className="w-full"
+                            />
+                        </div>
+
+                        {/* Delay */}
+                        <div>
+                            <label className="text-xs text-gray-600 dark:text-gray-400 block mb-1">
+                                Delay: {selectedElement.animation?.delay || 0}s
+                            </label>
+                            <input
+                                type="range"
+                                min="0"
+                                max="5"
+                                step="0.1"
+                                value={selectedElement.animation?.delay || 0}
+                                onChange={(e) => updateElement(selectedElement.id, {
+                                    animation: {
+                                        ...(selectedElement.animation || {}),
+                                        delay: parseFloat(e.target.value)
+                                    }
+                                })}
+                                className="w-full"
+                            />
+                        </div>
+
+                        {/* Easing */}
+                        <div>
+                            <label className="text-xs text-gray-600 dark:text-gray-400 block mb-1">Easing:</label>
+                            <select
+                                value={selectedElement.animation?.easing || 'easeOut'}
+                                onChange={(e) => updateElement(selectedElement.id, {
+                                    animation: {
+                                        ...(selectedElement.animation || {}),
+                                        easing: e.target.value
+                                    }
+                                })}
+                                className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                            >
+                                <option value="linear">Linear</option>
+                                <option value="easeIn">Ease In</option>
+                                <option value="easeOut">Ease Out</option>
+                                <option value="easeInOut">Ease In-Out</option>
+                                <option value="spring">Spring</option>
+                            </select>
+                        </div>
+
+                        {(selectedElement.animation?.type && selectedElement.animation.type !== 'none') && (
+                            <div className="bg-purple-100 dark:bg-purple-900/40 rounded p-2 border border-purple-300 dark:border-purple-700">
+                                <p className="text-xs text-purple-800 dark:text-purple-200">
+                                    🎬 Animation will play when exporting to HTML presentation
+                                </p>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 <div className="space-y-2 mt-4">

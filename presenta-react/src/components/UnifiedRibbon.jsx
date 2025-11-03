@@ -7,6 +7,8 @@ import {
     CodeIcon,
     TableIcon,
     BarChartIcon,
+    VideoIcon,
+    AudioIcon,
     AlignLeftIcon,
     AlignCenterHorizontalIcon,
     AlignRightIcon,
@@ -58,6 +60,8 @@ const UnifiedRibbon = ({
     onToggleGrid,
     snapToGrid,
     onToggleSnapToGrid,
+    previewAnimations,
+    onTogglePreviewAnimations,
 
     // Text editor
     editor
@@ -126,6 +130,8 @@ const UnifiedRibbon = ({
                         onToggleGrid={onToggleGrid}
                         snapToGrid={snapToGrid}
                         onToggleSnapToGrid={onToggleSnapToGrid}
+                        previewAnimations={previewAnimations}
+                        onTogglePreviewAnimations={onTogglePreviewAnimations}
                         hasSelection={hasSelection}
                         hasMultiple={hasMultiple}
                         hasMultipleForDistribute={hasMultipleForDistribute}
@@ -158,6 +164,7 @@ const HomeTab = ({
     addElement, selectedShapeType, setSelectedShapeType,
     selectedElementIds, onAlign, onDistribute, onReorder,
     showGrid, onToggleGrid, snapToGrid, onToggleSnapToGrid,
+    previewAnimations, onTogglePreviewAnimations,
     hasSelection, hasMultiple, hasMultipleForDistribute
 }) => {
     return (
@@ -269,6 +276,22 @@ const HomeTab = ({
                 >
                     <BarChartIcon /> Chart
                 </button>
+
+                <button
+                    onClick={() => addElement('video')}
+                    className="flex items-center gap-1 px-2 py-1 rounded text-xs hover:bg-red-50 dark:hover:bg-red-900/30 text-gray-700 dark:text-gray-300"
+                    title="Add Video"
+                >
+                    <VideoIcon /> Video
+                </button>
+
+                <button
+                    onClick={() => addElement('audio')}
+                    className="flex items-center gap-1 px-2 py-1 rounded text-xs hover:bg-orange-50 dark:hover:bg-orange-900/30 text-gray-700 dark:text-gray-300"
+                    title="Add Audio"
+                >
+                    <AudioIcon /> Audio
+                </button>
             </div>
 
             <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" />
@@ -326,6 +349,24 @@ const HomeTab = ({
                     />
                     <span className="text-xs text-gray-700 dark:text-gray-300">Snap</span>
                 </label>
+            </div>
+
+            <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" />
+
+            {/* Animation Preview */}
+            <div className="flex items-center gap-2">
+                <button
+                    onClick={onTogglePreviewAnimations}
+                    className={`px-2 py-1.5 rounded transition-all flex items-center gap-1 text-xs font-medium ${
+                        previewAnimations ? 'bg-purple-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }`}
+                    title="Preview Animations"
+                >
+                    <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M6 3L13 8L6 13V3z" />
+                    </svg>
+                    <span>Animations</span>
+                </button>
             </div>
         </div>
     );
@@ -620,6 +661,8 @@ UnifiedRibbon.propTypes = {
     onToggleGrid: PropTypes.func.isRequired,
     snapToGrid: PropTypes.bool.isRequired,
     onToggleSnapToGrid: PropTypes.func.isRequired,
+    previewAnimations: PropTypes.bool.isRequired,
+    onTogglePreviewAnimations: PropTypes.func.isRequired,
     editor: PropTypes.object
 };
 
@@ -639,6 +682,8 @@ HomeTab.propTypes = {
     onToggleGrid: PropTypes.func.isRequired,
     snapToGrid: PropTypes.bool.isRequired,
     onToggleSnapToGrid: PropTypes.func.isRequired,
+    previewAnimations: PropTypes.bool.isRequired,
+    onTogglePreviewAnimations: PropTypes.func.isRequired,
     hasSelection: PropTypes.bool.isRequired,
     hasMultiple: PropTypes.bool.isRequired,
     hasMultipleForDistribute: PropTypes.bool.isRequired

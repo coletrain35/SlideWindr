@@ -807,3 +807,48 @@ export const BarChartIcon = ({ label, className }) => (
 );
 BarChartIcon.propTypes = { label: PropTypes.string, className: PropTypes.string };
 
+export const VideoIcon = ({ label, className }) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden={!label}
+        role={label ? "img" : undefined}
+        aria-label={label}
+        className={className}
+    >
+        <polygon points="23 7 16 12 23 17 23 7"/>
+        <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+    </svg>
+);
+VideoIcon.propTypes = { label: PropTypes.string, className: PropTypes.string };
+
+export const AudioIcon = ({ label, className }) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden={!label}
+        role={label ? "img" : undefined}
+        aria-label={label}
+        className={className}
+    >
+        <path d="M9 18V5l12-2v13"/>
+        <circle cx="6" cy="18" r="3"/>
+        <circle cx="18" cy="16" r="3"/>
+    </svg>
+);
+AudioIcon.propTypes = { label: PropTypes.string, className: PropTypes.string };
+
