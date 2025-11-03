@@ -5,6 +5,7 @@ import {
     SquareIcon,
     ImageIcon,
     CodeIcon,
+    SmartArtIcon,
     TableIcon,
     BarChartIcon,
     VideoIcon,
@@ -275,6 +276,14 @@ const HomeTab = ({
                     title="Add Chart"
                 >
                     <BarChartIcon /> Chart
+                </button>
+
+                <button
+                    onClick={() => addElement('smartart')}
+                    className="flex items-center gap-1 px-2 py-1 rounded text-xs hover:bg-teal-50 dark:hover:bg-teal-900/30 text-gray-700 dark:text-gray-300"
+                    title="Add SmartArt Diagram"
+                >
+                    <SmartArtIcon /> Diagram
                 </button>
 
                 <button

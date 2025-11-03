@@ -829,6 +829,240 @@ const ElementProperties = ({ selectedElement, updateElement, deleteElement, copy
                     </div>
                 )}
 
+                {/* SmartArt Properties */}
+                {selectedElement.type === 'smartart' && (
+                    <div className="bg-teal-50 dark:bg-teal-900/20 rounded-lg p-3 border border-teal-200 dark:border-teal-800">
+                        <h3 className="text-xs font-semibold text-teal-600 dark:text-teal-400 mb-2 uppercase tracking-wide">SmartArt Diagram Properties</h3>
+                        <div className="space-y-3">
+                            {/* Diagram Type */}
+                            <div>
+                                <label className="text-xs text-gray-600 dark:text-gray-400 block mb-1">Diagram Type:</label>
+                                <select
+                                    value={selectedElement.diagramType || 'process'}
+                                    onChange={(e) => updateElement(selectedElement.id, { diagramType: e.target.value })}
+                                    className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                                >
+                                    <option value="process">Process (Horizontal)</option>
+                                    <option value="vertical-process">Process (Vertical)</option>
+                                    <option value="hierarchy">Hierarchy</option>
+                                    <option value="cycle">Cycle</option>
+                                    <option value="relationship">Relationship</option>
+                                    <option value="matrix">Matrix</option>
+                                    <option value="pyramid">Pyramid</option>
+                                    <option value="funnel">Funnel</option>
+                                </select>
+                            </div>
+
+                            {/* Node Editor */}
+                            <div>
+                                <label className="text-xs text-gray-600 dark:text-gray-400 block mb-2">Nodes:</label>
+                                <div className="space-y-2 max-h-48 overflow-y-auto">
+                                    {(selectedElement.nodes || []).map((node, index) => (
+                                        <div key={node.id} className="flex items-center gap-2 bg-white dark:bg-gray-800 p-2 rounded border border-gray-200 dark:border-gray-700">
+                                            <input
+                                                type="text"
+                                                value={node.text}
+                                                onChange={(e) => {
+                                                    const newNodes = [...selectedElement.nodes];
+                                                    newNodes[index] = { ...node, text: e.target.value };
+                                                    updateElement(selectedElement.id, { nodes: newNodes });
+                                                }}
+                                                className="flex-1 px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                                                placeholder="Node text"
+                                            />
+                                            <input
+                                                type="color"
+                                                value={node.color || '#3b82f6'}
+                                                onChange={(e) => {
+                                                    const newNodes = [...selectedElement.nodes];
+                                                    newNodes[index] = { ...node, color: e.target.value };
+                                                    updateElement(selectedElement.id, { nodes: newNodes });
+                                                }}
+                                                className="w-8 h-8 rounded cursor-pointer"
+                                                title="Node color"
+                                            />
+                                            <button
+                                                onClick={() => {
+                                                    const newNodes = selectedElement.nodes.filter((_, i) => i !== index);
+                                                    updateElement(selectedElement.id, { nodes: newNodes });
+                                                }}
+                                                className="px-2 py-1 bg-red-500 hover:bg-red-600 text-white rounded text-xs"
+                                                title="Remove node"
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        const newNode = {
+                                            id: crypto.randomUUID(),
+                                            text: `Step ${(selectedElement.nodes?.length || 0) + 1}`,
+                                            color: '#3b82f6'
+                                        };
+                                        updateElement(selectedElement.id, {
+                                            nodes: [...(selectedElement.nodes || []), newNode]
+                                        });
+                                    }}
+                                    className="w-full mt-2 px-2 py-1 bg-teal-500 hover:bg-teal-600 text-white rounded text-xs"
+                                >
+                                    + Add Node
+                                </button>
+                            </div>
+
+                            {/* Style Settings */}
+                            <div className="border-t border-teal-200 dark:border-teal-700 pt-2">
+                                <h4 className="text-xs font-semibold text-teal-700 dark:text-teal-300 mb-2">Style Settings</h4>
+
+                                {/* Node Shape */}
+                                <div className="mb-2">
+                                    <label className="text-xs text-gray-600 dark:text-gray-400 block mb-1">Node Shape:</label>
+                                    <select
+                                        value={selectedElement.smartArtStyle?.shape || 'rounded'}
+                                        onChange={(e) => updateElement(selectedElement.id, {
+                                            smartArtStyle: { ...selectedElement.smartArtStyle, shape: e.target.value }
+                                        })}
+                                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                                    >
+                                        <option value="rectangle">Rectangle</option>
+                                        <option value="rounded">Rounded Rectangle</option>
+                                        <option value="circle">Circle</option>
+                                        <option value="hexagon">Hexagon</option>
+                                    </select>
+                                </div>
+
+                                {/* Text Color */}
+                                <div className="mb-2">
+                                    <label className="text-xs text-gray-600 dark:text-gray-400 block mb-1">Text Color:</label>
+                                    <input
+                                        type="color"
+                                        value={selectedElement.smartArtStyle?.textColor || '#ffffff'}
+                                        onChange={(e) => updateElement(selectedElement.id, {
+                                            smartArtStyle: { ...selectedElement.smartArtStyle, textColor: e.target.value }
+                                        })}
+                                        className="w-full h-8 rounded cursor-pointer"
+                                    />
+                                </div>
+
+                                {/* Border Settings */}
+                                <div className="mb-2">
+                                    <label className="text-xs text-gray-600 dark:text-gray-400 block mb-1">Border Color:</label>
+                                    <input
+                                        type="color"
+                                        value={selectedElement.smartArtStyle?.borderColor || '#1e40af'}
+                                        onChange={(e) => updateElement(selectedElement.id, {
+                                            smartArtStyle: { ...selectedElement.smartArtStyle, borderColor: e.target.value }
+                                        })}
+                                        className="w-full h-8 rounded cursor-pointer"
+                                    />
+                                </div>
+
+                                <div className="mb-2">
+                                    <label className="text-xs text-gray-600 dark:text-gray-400 block mb-1">
+                                        Border Width: {selectedElement.smartArtStyle?.borderWidth || 2}px
+                                    </label>
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="10"
+                                        value={selectedElement.smartArtStyle?.borderWidth || 2}
+                                        onChange={(e) => updateElement(selectedElement.id, {
+                                            smartArtStyle: { ...selectedElement.smartArtStyle, borderWidth: parseInt(e.target.value) }
+                                        })}
+                                        className="w-full"
+                                    />
+                                </div>
+
+                                {/* Font Size */}
+                                <div className="mb-2">
+                                    <label className="text-xs text-gray-600 dark:text-gray-400 block mb-1">
+                                        Font Size: {selectedElement.smartArtStyle?.fontSize || 14}px
+                                    </label>
+                                    <input
+                                        type="range"
+                                        min="8"
+                                        max="24"
+                                        value={selectedElement.smartArtStyle?.fontSize || 14}
+                                        onChange={(e) => updateElement(selectedElement.id, {
+                                            smartArtStyle: { ...selectedElement.smartArtStyle, fontSize: parseInt(e.target.value) }
+                                        })}
+                                        className="w-full"
+                                    />
+                                </div>
+
+                                {/* Connector Settings */}
+                                <div className="mb-2 flex items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        id="smartart-connectors"
+                                        checked={selectedElement.smartArtStyle?.showConnectors !== false}
+                                        onChange={(e) => updateElement(selectedElement.id, {
+                                            smartArtStyle: { ...selectedElement.smartArtStyle, showConnectors: e.target.checked }
+                                        })}
+                                        className="rounded"
+                                    />
+                                    <label htmlFor="smartart-connectors" className="text-xs text-gray-700 dark:text-gray-300">
+                                        Show Connectors
+                                    </label>
+                                </div>
+
+                                {selectedElement.smartArtStyle?.showConnectors !== false && (
+                                    <>
+                                        <div className="mb-2">
+                                            <label className="text-xs text-gray-600 dark:text-gray-400 block mb-1">Connector Color:</label>
+                                            <input
+                                                type="color"
+                                                value={selectedElement.smartArtStyle?.connectorColor || '#64748b'}
+                                                onChange={(e) => updateElement(selectedElement.id, {
+                                                    smartArtStyle: { ...selectedElement.smartArtStyle, connectorColor: e.target.value }
+                                                })}
+                                                className="w-full h-8 rounded cursor-pointer"
+                                            />
+                                        </div>
+
+                                        <div className="mb-2">
+                                            <label className="text-xs text-gray-600 dark:text-gray-400 block mb-1">Connector Style:</label>
+                                            <select
+                                                value={selectedElement.smartArtStyle?.connectorStyle || 'solid'}
+                                                onChange={(e) => updateElement(selectedElement.id, {
+                                                    smartArtStyle: { ...selectedElement.smartArtStyle, connectorStyle: e.target.value }
+                                                })}
+                                                className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                                            >
+                                                <option value="solid">Solid</option>
+                                                <option value="dashed">Dashed</option>
+                                                <option value="dotted">Dotted</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="mb-2">
+                                            <label className="text-xs text-gray-600 dark:text-gray-400 block mb-1">Arrow Type:</label>
+                                            <select
+                                                value={selectedElement.smartArtStyle?.arrowType || 'arrow'}
+                                                onChange={(e) => updateElement(selectedElement.id, {
+                                                    smartArtStyle: { ...selectedElement.smartArtStyle, arrowType: e.target.value }
+                                                })}
+                                                className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                                            >
+                                                <option value="arrow">Arrow</option>
+                                                <option value="none">None</option>
+                                                <option value="line">Line</option>
+                                            </select>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+
+                            <div className="bg-teal-100 dark:bg-teal-900/40 rounded p-2 border border-teal-300 dark:border-teal-700">
+                                <p className="text-xs text-teal-800 dark:text-teal-200">
+                                    💡 Tip: Add or remove nodes using the buttons above. Customize colors and styles to match your presentation theme.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
                     <ReactComponentEditor
                         title="Element Component"

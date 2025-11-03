@@ -11,6 +11,7 @@ import HTMLContentElement from './HTMLContentElement';
 import AnimatedElement from './AnimatedElement';
 import VideoElement from './VideoElement';
 import AudioElement from './AudioElement';
+import SmartArtComponent from './SmartArtComponent';
 import { CodeIcon, MousePointerClickIcon, StopCircleIcon } from './Icons';
 
 const ElementComponent = ({ element, onMouseDown, onResizeMouseDown, onRotateMouseDown, isSelected, isMultiSelected, updateElement, isInteracting, setInteractingElementId, librariesLoaded, onEditorReady, previewAnimations = false, animationKey = 0 }) => {
@@ -112,6 +113,16 @@ const ElementComponent = ({ element, onMouseDown, onResizeMouseDown, onRotateMou
                 return <VideoElement element={element} isInteracting={isInteracting} updateElement={updateElement} />;
             case 'audio':
                 return <AudioElement element={element} isInteracting={isInteracting} updateElement={updateElement} />;
+            case 'smartart':
+                return (
+                    <SmartArtComponent
+                        diagramType={element.diagramType}
+                        nodes={element.nodes}
+                        style={element.smartArtStyle}
+                        width={element.width}
+                        height={element.height}
+                    />
+                );
             default:
                 return null;
         }

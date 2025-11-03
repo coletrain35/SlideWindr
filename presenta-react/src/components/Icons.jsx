@@ -807,6 +807,34 @@ export const BarChartIcon = ({ label, className }) => (
 );
 BarChartIcon.propTypes = { label: PropTypes.string, className: PropTypes.string };
 
+export const SmartArtIcon = ({ label, className }) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden={!label}
+        role={label ? "img" : undefined}
+        aria-label={label}
+        className={className}
+    >
+        <rect x="3" y="3" width="6" height="6" rx="1"/>
+        <rect x="15" y="3" width="6" height="6" rx="1"/>
+        <rect x="9" y="15" width="6" height="6" rx="1"/>
+        <path d="M6 9v3"/>
+        <path d="M18 9v3"/>
+        <path d="M9 18h-3"/>
+        <path d="M18 18h-3"/>
+        <path d="M12 12v3"/>
+    </svg>
+);
+SmartArtIcon.propTypes = { label: PropTypes.string, className: PropTypes.string };
+
 export const VideoIcon = ({ label, className }) => (
     <svg
         xmlns="http://www.w3.org/2000/svg"

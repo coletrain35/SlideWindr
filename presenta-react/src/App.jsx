@@ -445,6 +445,34 @@ export default function App() {
                     height: 100
                 };
                 break;
+            case 'smartart':
+                newElement = {
+                    ...baseElement,
+                    type,
+                    diagramType: 'process', // process, vertical-process, hierarchy, cycle, relationship, matrix, pyramid, funnel
+                    nodes: [
+                        { id: '1', text: 'Step 1', color: '#3b82f6' },
+                        { id: '2', text: 'Step 2', color: '#8b5cf6' },
+                        { id: '3', text: 'Step 3', color: '#ec4899' }
+                    ],
+                    smartArtStyle: {
+                        nodeColor: '#3b82f6',
+                        textColor: '#ffffff',
+                        borderColor: '#1e40af',
+                        borderWidth: 2,
+                        fontSize: 14,
+                        fontWeight: 'normal',
+                        shape: 'rounded',
+                        showConnectors: true,
+                        connectorColor: '#64748b',
+                        connectorWidth: 2,
+                        connectorStyle: 'solid',
+                        arrowType: 'arrow'
+                    },
+                    width: 600,
+                    height: 300
+                };
+                break;
             default:
                 return;
         }

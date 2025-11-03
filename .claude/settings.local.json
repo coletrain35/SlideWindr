@@ -17,7 +17,8 @@
       "Bash(git add .)",
       "WebFetch(domain:reactbits.dev)",
       "WebSearch",
-      "WebFetch(domain:revealjs.com)"
+      "WebFetch(domain:revealjs.com)",
+      "Bash(git log:*)"
     ],
     "deny": [],
     "ask": []
