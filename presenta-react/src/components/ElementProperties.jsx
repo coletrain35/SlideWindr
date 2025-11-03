@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import ReactComponentEditor from './ReactComponentEditor';
 import ImageUploader from './ImageUploader';
+import VideoUploader from './VideoUploader';
+import AudioUploader from './AudioUploader';
 import { useDebouncedCallback } from '../utils/debounce';
 
 const ElementProperties = ({ selectedElement, updateElement, deleteElement, copyElement, pasteElement }) => {
@@ -624,19 +626,26 @@ const ElementProperties = ({ selectedElement, updateElement, deleteElement, copy
                     <div className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 border border-red-200 dark:border-red-800">
                         <h3 className="text-xs font-semibold text-red-600 dark:text-red-400 mb-2 uppercase tracking-wide">Video Properties</h3>
                         <div className="space-y-3">
-                            {/* Video URL */}
+                            {/* Video Upload or URL */}
                             <div>
-                                <label className="text-xs text-gray-600 dark:text-gray-400 block mb-1">Video URL:</label>
-                                <input
-                                    type="text"
-                                    value={selectedElement.videoUrl || ''}
-                                    onChange={(e) => updateElement(selectedElement.id, { videoUrl: e.target.value })}
-                                    placeholder="https://youtube.com/watch?v=... or direct video URL"
-                                    className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                                />
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                    Supports YouTube, Vimeo, or direct video URLs (.mp4, .webm)
-                                </p>
+                                <label className="text-xs text-gray-600 dark:text-gray-400 block mb-1">Video Source:</label>
+                                <div className="space-y-2">
+                                    <VideoUploader
+                                        onVideoUpload={(data) => updateElement(selectedElement.id, { videoData: data, videoUrl: '' })}
+                                        currentVideo={selectedElement.videoData}
+                                    />
+                                    <div className="text-xs text-gray-500 dark:text-gray-400 text-center">or</div>
+                                    <input
+                                        type="text"
+                                        value={selectedElement.videoUrl || ''}
+                                        onChange={(e) => updateElement(selectedElement.id, { videoUrl: e.target.value, videoData: '' })}
+                                        placeholder="https://youtube.com/watch?v=... or direct video URL"
+                                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                                    />
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                        Upload a file or paste YouTube/Vimeo/direct video URL
+                                    </p>
+                                </div>
                             </div>
 
                             {/* Object Fit */}
@@ -729,19 +738,26 @@ const ElementProperties = ({ selectedElement, updateElement, deleteElement, copy
                     <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3 border border-orange-200 dark:border-orange-800">
                         <h3 className="text-xs font-semibold text-orange-600 dark:text-orange-400 mb-2 uppercase tracking-wide">Audio Properties</h3>
                         <div className="space-y-3">
-                            {/* Audio URL */}
+                            {/* Audio Upload or URL */}
                             <div>
-                                <label className="text-xs text-gray-600 dark:text-gray-400 block mb-1">Audio URL:</label>
-                                <input
-                                    type="text"
-                                    value={selectedElement.audioUrl || ''}
-                                    onChange={(e) => updateElement(selectedElement.id, { audioUrl: e.target.value })}
-                                    placeholder="https://example.com/audio.mp3"
-                                    className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
-                                />
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                    Supports .mp3, .wav, .ogg audio files
-                                </p>
+                                <label className="text-xs text-gray-600 dark:text-gray-400 block mb-1">Audio Source:</label>
+                                <div className="space-y-2">
+                                    <AudioUploader
+                                        onAudioUpload={(data) => updateElement(selectedElement.id, { audioData: data, audioUrl: '' })}
+                                        currentAudio={selectedElement.audioData}
+                                    />
+                                    <div className="text-xs text-gray-500 dark:text-gray-400 text-center">or</div>
+                                    <input
+                                        type="text"
+                                        value={selectedElement.audioUrl || ''}
+                                        onChange={(e) => updateElement(selectedElement.id, { audioUrl: e.target.value, audioData: '' })}
+                                        placeholder="https://example.com/audio.mp3"
+                                        className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                                    />
+                                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                                        Upload a file or paste direct audio URL
+                                    </p>
+                                </div>
                             </div>
 
                             {/* Playback Options */}
