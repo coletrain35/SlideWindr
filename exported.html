@@ -1,0 +1,613 @@
+
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Stop Making Slides. Start Telling Interactive Stories.</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reset.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/theme/white.min.css">
+    <style>
+    /* Set explicit slide dimensions (16:9 aspect ratio) */
+    .reveal .slides section {
+        width: 960px !important;
+        height: 540px !important;
+    }
+    /* Ensure React component containers have proper dimensions */
+    [data-react-code] {
+        position: absolute;
+        inset: 0;
+        width: 960px;
+        height: 540px;
+    }
+    .pixel-blast-container {
+        width: 100%;
+        height: 100%;
+    }
+    
+
+    /* Custom CSS from imported reveal.js presentations */
+    /* Don't override theme background colors */
+        
+        /* Helper class for 3-column layout */
+        .flex-container {
+            display: flex;
+            gap: 20px;
+            align-items: start;
+            text-align: center;
+        }
+        .flex-container figure {
+            flex: 1;
+        }
+        .flex-container figure img {
+            width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        /* Helper class for Markdown vs. Rendered slide */
+        .side-by-side {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+        .side-by-side > div {
+            flex: 1;
+            text-align: left;
+        }
+        .side-by-side .markdown-example {
+            font-family: 'Courier New', monospace;
+            background: #2d2d2d;
+            padding: 15px;
+            border-radius: 5px;
+            color: #f8f8f2;
+        }
+        .side-by-side .markdown-example h4 {
+            margin-top: 0;
+            font-size: 0.9em;
+            color: #f8f8f2;
+        }
+        .side-by-side .rendered-example {
+            border: 2px dashed #ccc;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .side-by-side .rendered-example h4 {
+            margin-top: 0;
+            font-size: 0.9em;
+        }
+        
+        /* Responsive iframe container */
+        .responsive-iframe {
+            position: relative;
+            width: 80%;
+            margin: 0 auto;
+            padding-bottom: 45%; /* Adjust ratio as needed */
+        }
+        .responsive-iframe iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+        
+        /* Keyboard shortcuts styling */
+        kbd {
+            background: #f4f4f4;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            padding: 2px 8px;
+            font-family: monospace;
+            box-shadow: 0 2px 0 rgba(0,0,0,0.2);
+        }
+        
+        /* Consistent section spacing - don't override colors */
+        .reveal h2, .reveal h3 {
+            margin-bottom: 20px;
+        }
+        
+        /* Better text sizing for readability */
+        .reveal {
+            font-size: 32px;
+        }
+        
+        /* Responsive font sizing */
+        @media (max-width: 1200px) {
+            .reveal { font-size: 28px; }
+        }
+        
+        @media (max-width: 900px) {
+            .reveal { font-size: 24px; }
+        }
+        
+        @media (max-width: 600px) {
+            .reveal { font-size: 20px; }
+        }
+        
+        /* Ensure headings scale proportionally but don't use clamp that might break centering */
+        .reveal h1 {
+            font-size: 2.5em;
+            line-height: 1.2;
+        }
+        
+        .reveal h2 {
+            font-size: 1.8em;
+            line-height: 1.3;
+        }
+        
+        .reveal h3 {
+            font-size: 1.4em;
+            line-height: 1.3;
+        }
+        
+        /* Make sure content doesn't overflow */
+            height: auto !important;
+        }
+        
+        /* Video background overlay */
+        .video-overlay {
+            background: rgba(0,0,0,0.6);
+            color: #fff;
+            padding: 40px;
+            border-radius: 10px;
+            backdrop-filter: blur(5px);
+        }
+        
+        /* Placeholder for missing images */
+        .placeholder-img {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            border-radius: 8px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .theme-selector:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+        }
+        
+        .theme-selector:active {
+            transform: translateY(-2px);
+        }
+
+    /* Custom animations for elements - Initial hidden states */
+    /* Transition timing is set via inline styles on each element */
+    .fragment.custom-fadeIn {
+        opacity: 0;
+    }
+    .fragment.custom-slideInLeft {
+        opacity: 0;
+        transform: translateX(-100px);
+    }
+    .fragment.custom-slideInRight {
+        opacity: 0;
+        transform: translateX(100px);
+    }
+    .fragment.custom-slideInUp {
+        opacity: 0;
+        transform: translateY(100px);
+    }
+    .fragment.custom-slideInDown {
+        opacity: 0;
+        transform: translateY(-100px);
+    }
+    .fragment.custom-zoomIn {
+        opacity: 0;
+        transform: scale(0);
+    }
+    .fragment.custom-bounceIn {
+        opacity: 0;
+        transform: scale(0);
+    }
+    .fragment.custom-rotateIn {
+        opacity: 0;
+        transform: rotate(-180deg) scale(0);
+    }
+    .fragment.custom-flipIn {
+        opacity: 0;
+        transform: perspective(400px) rotateY(-90deg);
+    }
+
+    /* Visible states - when Reveal.js makes the fragment visible */
+    .fragment.visible.custom-fadeIn,
+    .fragment.visible.custom-slideInLeft,
+    .fragment.visible.custom-slideInRight,
+    .fragment.visible.custom-slideInUp,
+    .fragment.visible.custom-slideInDown,
+    .fragment.visible.custom-zoomIn,
+    .fragment.visible.custom-rotateIn,
+    .fragment.visible.custom-flipIn {
+        opacity: 1;
+        transform: translateX(0) translateY(0) scale(1) rotate(0deg);
+    }
+
+    /* BounceIn needs keyframe animation for the bounce effect */
+    @keyframes bounceIn {
+        0% {
+            transform: scale(0);
+            opacity: 0;
+        }
+        60% {
+            transform: scale(1.2);
+            opacity: 1;
+        }
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+    .fragment.visible.custom-bounceIn {
+        animation: bounceIn var(--anim-duration, 0.6s) var(--anim-easing, ease-out) var(--anim-delay, 0s) both;
+        opacity: 1;
+    }
+
+    /* Emphasis animations - pulse, shake, swing */
+    @keyframes pulse {
+        0%, 100% {
+            transform: scale(1);
+        }
+        50% {
+            transform: scale(1.05);
+        }
+    }
+    @keyframes shake {
+        0%, 100% {
+            transform: translateX(0);
+        }
+        20% {
+            transform: translateX(-10px);
+        }
+        40% {
+            transform: translateX(10px);
+        }
+        60% {
+            transform: translateX(-10px);
+        }
+        80% {
+            transform: translateX(10px);
+        }
+    }
+    @keyframes swing {
+        0%, 100% {
+            transform: rotate(0deg);
+        }
+        20% {
+            transform: rotate(15deg);
+        }
+        40% {
+            transform: rotate(-15deg);
+        }
+        60% {
+            transform: rotate(10deg);
+        }
+        80% {
+            transform: rotate(-10deg);
+        }
+    }
+
+    /* Emphasis animation classes - visible from start */
+    .fragment.custom-pulse {
+        opacity: 1;
+    }
+    .fragment.visible.custom-pulse {
+        animation: pulse var(--anim-duration, 0.5s) var(--anim-easing, ease-out) var(--anim-delay, 0s) infinite;
+    }
+    .fragment.custom-shake {
+        opacity: 1;
+    }
+    .fragment.visible.custom-shake {
+        animation: shake var(--anim-duration, 0.5s) var(--anim-easing, ease-out) var(--anim-delay, 0s) both;
+    }
+    .fragment.custom-swing {
+        opacity: 1;
+    }
+    .fragment.visible.custom-swing {
+        animation: swing var(--anim-duration, 0.8s) var(--anim-easing, ease-out) var(--anim-delay, 0s) both;
+    }
+    </style>
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+            <section data-background-color="transparent"><div style="position: absolute; left: 20px; top: 100px; width: 900px; height: 48px; transform: rotate(0deg);"><h1 style="color: #000000; font-size: 80px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 96px; text-transform: none; letter-spacing: normal; text-shadow: none;">Stop Making Slides.</h1></div>
+<div style="position: absolute; left: 20px; top: 188px; width: 900px; height: 37px; transform: rotate(0deg);"><h2 style="color: #000000; font-size: 57px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 74.88px; text-transform: none; letter-spacing: normal; text-shadow: none;">Start Telling Interactive Stories.</h2></div>
+<div style="position: absolute; left: 20px; top: 345.4375px; width: 900px; height: 24px; transform: rotate(0deg);"><p style="color: #000000; font-size: 32px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 48px; text-transform: none; letter-spacing: normal; text-shadow: none;"><small>A look at reveal.js for creatives, marketers, and educators</small></p></div></section>
+<section data-background-color="transparent"><div style="position: absolute; left: 20px; top: 100px; width: 900px; height: 37px; transform: rotate(0deg);"><h2 style="color: #000000; font-size: 57px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 74.88px; text-transform: none; letter-spacing: normal; text-shadow: none;">The "Template Trap"</h2></div>
+<div style="position: absolute; left: 20px; top: 177.4375px; width: 900px; height: 96px; transform: rotate(0deg);"><div style="color: #000000; font-size: undefinedpx; width: 100%; height: 100%; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 48px; text-transform: none; letter-spacing: normal; text-shadow: none;"><ul>
+                    <li class="fragment" data-fragment-index="1">Trapped in the "Title + 3 Bullets" box.</li>
+                    <li class="fragment" data-fragment-index="2">Or... the dreaded "Wall of Text" slide.</li>
+                    <li class="fragment" data-fragment-index="3">Your graphs and charts look flat and dated.</li>
+                    <li class="fragment" data-fragment-index="4">And embedding live content? Forget it.</li>
+                </ul></div></div></section>
+<section data-background-color="#2c3e50"><div style="position: absolute; left: 40px; top: 50px; width: 900px; height: 164px; transform: rotate(0deg);"><div class="video-overlay" style="color: #ffffff; font-size: 32px; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); padding: 40px; border-radius: 10px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 48px; text-transform: none; letter-spacing: normal; text-shadow: none;">
+                    <h2 style="font-size: 1.3em;">What if your presentation was just...</h2>
+                    <h1 style="font-size: 2em; margin: 20px 0;">A beautiful, interactive webpage?</h1>
+                    <p style="font-size: 0.9em;">That's reveal.js. It's a modern tool for building presentations that <em>engage</em>.</p>
+                    <p style="font-size: 0.7em;"><small>Note: Add your background video with data-background-video attribute</small></p>
+                </div></div></section>
+<section data-background-color="transparent"><div style="position: absolute; left: 40px; top: 50px; width: 900px; height: 37px; transform: rotate(0deg);"><h2 style="color: #000000; font-size: 57px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 74.88px; text-transform: none; letter-spacing: normal; text-shadow: none;">Your Brand. Your Rules.</h2></div>
+<div style="position: absolute; left: 40px; top: 130px; width: 900px; height: 19px; transform: rotate(0deg);"><p style="color: #000000; font-size: 25px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 38.4px; text-transform: none; letter-spacing: normal; text-shadow: none; font-size: 0.8em; margin-bottom: 30px;">Click any theme below to instantly transform this presentation:</p></div>
+<div style="position: absolute; left: 40px; top: 210px; width: 900px; height: 124px; transform: rotate(0deg);"><div class="flex-container" style="color: #000000; font-size: 32px; width: 100%; height: 100%; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: center; line-height: 48px; text-transform: none; letter-spacing: normal; text-shadow: none;">
+                    <figure>
+                        <div class="placeholder-img theme-selector" style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); cursor: pointer;" onclick="changeTheme('night')" role="button" tabindex="0">
+                            Dark &amp; Techy
+                        </div>
+                        <figcaption><small>Dark &amp; Techy</small></figcaption>
+                    </figure>
+                    <figure>
+                        <div class="placeholder-img theme-selector" style="background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%); color: #333; cursor: pointer;" onclick="changeTheme('simple')" role="button" tabindex="0">
+                            Clean Minimal
+                        </div>
+                        <figcaption><small>Clean, "FAANG-style"</small></figcaption>
+                    </figure>
+                    <figure>
+                        <div class="placeholder-img theme-selector" style="background: linear-gradient(135deg, #4a90e2 0%, #50c9e9 100%); cursor: pointer;" onclick="changeTheme('sky')" role="button" tabindex="0">
+                            Sky Blue
+                        </div>
+                        <figcaption><small>Playful &amp; Branded</small></figcaption>
+                    </figure>
+                </div></div>
+<div style="position: absolute; left: 40px; top: 290px; width: 900px; height: 36px; transform: rotate(0deg);"><div style="color: #000000; font-size: 32px; width: 100%; height: 100%; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 48px; text-transform: none; letter-spacing: normal; text-shadow: none; margin-top: 40px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                    <button onclick="changeTheme('moon')" style="padding: 10px 20px; cursor: pointer; border-radius: 5px; border: 2px solid #ccc; background: #2b2b2b; color: white;">Moon</button>
+                    <button onclick="changeTheme('solarized')" style="padding: 10px 20px; cursor: pointer; border-radius: 5px; border: 2px solid #ccc; background: #fdf6e3; color: #586e75;">Solarized</button>
+                    <button onclick="changeTheme('serif')" style="padding: 10px 20px; cursor: pointer; border-radius: 5px; border: 2px solid #ccc; background: #f0f1eb; color: #000;">Serif</button>
+                    <button onclick="changeTheme('white')" style="padding: 10px 20px; cursor: pointer; border-radius: 5px; border: 2px solid #333; background: white; color: #222;">Reset</button>
+                </div></div>
+<div style="position: absolute; left: 40px; top: 370px; width: 900px; height: 17px; transform: rotate(0deg);"><p style="color: #666666; font-size: 22px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 33.6px; text-transform: none; letter-spacing: normal; text-shadow: none; font-size: 0.7em; margin-top: 30px; color: #666;">
+                    <em>Try it now! Click any theme to see instant transformation.</em>
+                </p></div></section>
+<section data-background-color="transparent"><div style="position: absolute; left: 40px; top: 50px; width: 900px; height: 29px; transform: rotate(0deg);"><h3 style="color: #000000; font-size: 44px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 58.24px; text-transform: none; letter-spacing: normal; text-shadow: none;">Beyond the "Right-Click"</h3></div>
+<div style="position: absolute; left: 40px; top: 130px; width: 900px; height: 24px; transform: rotate(0deg);"><p style="color: #000000; font-size: 32px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 48px; text-transform: none; letter-spacing: normal; text-shadow: none;">Reveal.js gives you presentation superpowers:</p></div>
+<div style="position: absolute; left: 40px; top: 210px; width: 900px; height: 96px; transform: rotate(0deg);"><div style="color: #000000; font-size: undefinedpx; width: 100%; height: 100%; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 48px; text-transform: none; letter-spacing: normal; text-shadow: none;"><ul>
+                    <li class="fragment"><strong>Cinematic transitions:</strong> Fade, slide, zoom, and custom effects</li>
+                    <li class="fragment"><strong>Parallax backgrounds:</strong> Create depth with moving images</li>
+                    <li class="fragment"><strong>2D Navigation:</strong> Organize content horizontally AND vertically</li>
+                    <li class="fragment"><strong>Custom animations:</strong> Make elements appear with style</li>
+                </ul></div></div></section>
+<section data-background-color="transparent"><div style="position: absolute; left: 40px; top: 50px; width: 900px; height: 29px; transform: rotate(0deg);"><h3 style="color: #000000; font-size: 44px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 58.24px; text-transform: none; letter-spacing: normal; text-shadow: none;">Example: Cinematic Transitions</h3></div>
+<div style="position: absolute; left: 40px; top: 130px; width: 900px; height: 24px; transform: rotate(0deg);"><p style="color: #000000; font-size: 32px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 48px; text-transform: none; letter-spacing: normal; text-shadow: none;">Watch how smoothly slides transition</p></div>
+<div style="position: absolute; left: 40px; top: 210px; width: 900px; height: 24px; transform: rotate(0deg);"><p class="fragment fade-up" style="color: #000000; font-size: 32px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 48px; text-transform: none; letter-spacing: normal; text-shadow: none;">This text fades up</p></div>
+<div style="position: absolute; left: 40px; top: 290px; width: 900px; height: 24px; transform: rotate(0deg);"><p class="fragment fade-right" style="color: #000000; font-size: 32px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 48px; text-transform: none; letter-spacing: normal; text-shadow: none;">This text slides from the left</p></div>
+<div style="position: absolute; left: 40px; top: 370px; width: 900px; height: 24px; transform: rotate(0deg);"><p class="fragment zoom-in" style="color: #000000; font-size: 32px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 48px; text-transform: none; letter-spacing: normal; text-shadow: none;">This text zooms in</p></div>
+<div style="position: absolute; left: 40px; top: 450px; width: 900px; height: 24px; transform: rotate(0deg);"><p style="color: #000000; font-size: 32px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 48px; text-transform: none; letter-spacing: normal; text-shadow: none;"><small>Try changing slides to see the slide transition effect</small></p></div></section>
+<section ><div style="position: absolute; left: 20px; top: 100px; width: 900px; height: 37px; transform: rotate(0deg);"><h2 style="color: #ffffff; font-size: 57px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 74.88px; text-transform: none; letter-spacing: normal; text-shadow: none; color: white;">Example: Custom Backgrounds</h2></div>
+<div style="position: absolute; left: 20px; top: 177.4375px; width: 900px; height: 24px; transform: rotate(0deg);"><p style="color: #ffffff; font-size: 32px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 48px; text-transform: none; letter-spacing: normal; text-shadow: none; color: white;">This slide has a beautiful gradient background</p></div>
+<div style="position: absolute; left: 20px; top: 321.4375px; width: 900px; height: 24px; transform: rotate(0deg);"><p style="color: #ffffff; font-size: 32px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 48px; text-transform: none; letter-spacing: normal; text-shadow: none; color: white;"><small>You can use colors, gradients, images, or even videos!</small></p></div></section>
+<section>
+<section data-background-color="transparent"></section>
+<section data-background-color="transparent"><div style="position: absolute; left: 40px; top: 50px; width: 900px; height: 29px; transform: rotate(0deg);"><h3 style="color: #000000; font-size: 44px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 58.24px; text-transform: none; letter-spacing: normal; text-shadow: none;">Example: 2D Navigation</h3></div>
+<div style="position: absolute; left: 40px; top: 130px; width: 900px; height: 24px; transform: rotate(0deg);"><p style="color: #000000; font-size: 32px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 48px; text-transform: none; letter-spacing: normal; text-shadow: none;">Press the <kbd>↓</kbd> down arrow to explore this vertical stack</p></div>
+<div style="position: absolute; left: 40px; top: 210px; width: 900px; height: 24px; transform: rotate(0deg);"><p style="color: #000000; font-size: 32px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 48px; text-transform: none; letter-spacing: normal; text-shadow: none;"><small>Then use <kbd>→</kbd> to move to the next horizontal section</small></p></div></section>
+<section data-background-color="transparent"><div style="position: absolute; left: 40px; top: 50px; width: 900px; height: 24px; transform: rotate(0deg);"><h4 style="color: #000000; font-size: 32px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 48px; text-transform: none; letter-spacing: normal; text-shadow: none;">Vertical Slide 1</h4></div>
+<div style="position: absolute; left: 40px; top: 130px; width: 900px; height: 24px; transform: rotate(0deg);"><p style="color: #000000; font-size: 32px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 48px; text-transform: none; letter-spacing: normal; text-shadow: none;">This is the first slide in a vertical stack</p></div>
+<div style="position: absolute; left: 40px; top: 210px; width: 900px; height: 24px; transform: rotate(0deg);"><p style="color: #000000; font-size: 32px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 48px; text-transform: none; letter-spacing: normal; text-shadow: none;">Press <kbd>↓</kbd> to continue down</p></div></section>
+<section data-background-color="transparent"><div style="position: absolute; left: 40px; top: 50px; width: 900px; height: 24px; transform: rotate(0deg);"><h4 style="color: #000000; font-size: 32px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 48px; text-transform: none; letter-spacing: normal; text-shadow: none;">Vertical Slide 2</h4></div>
+<div style="position: absolute; left: 40px; top: 130px; width: 900px; height: 24px; transform: rotate(0deg);"><p style="color: #000000; font-size: 32px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 48px; text-transform: none; letter-spacing: normal; text-shadow: none;">You can organize related content vertically</p></div>
+<div style="position: absolute; left: 40px; top: 210px; width: 900px; height: 24px; transform: rotate(0deg);"><p style="color: #000000; font-size: 32px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 48px; text-transform: none; letter-spacing: normal; text-shadow: none;">And separate different topics horizontally</p></div>
+<div style="position: absolute; left: 40px; top: 290px; width: 900px; height: 24px; transform: rotate(0deg);"><p style="color: #000000; font-size: 32px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 48px; text-transform: none; letter-spacing: normal; text-shadow: none;">Press <kbd>→</kbd> to move to the next topic</p></div></section>
+</section>
+<section data-background-color="transparent"><div style="position: absolute; left: 20px; top: 100px; width: 900px; height: 37px; transform: rotate(0deg);"><h2 style="color: #000000; font-size: 57px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 74.88px; text-transform: none; letter-spacing: normal; text-shadow: none;">Advantage 2: Unmatched Interactivity</h2></div>
+<div style="position: absolute; left: 20px; top: 177.4375px; width: 900px; height: 24px; transform: rotate(0deg);"><p style="color: #000000; font-size: 32px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 48px; text-transform: none; letter-spacing: normal; text-shadow: none;">If it works in a browser, it works in your presentation.</p></div></section>
+<section data-background-color="transparent"><div style="position: absolute; left: 20px; top: 100px; width: 900px; height: 37px; transform: rotate(0deg);"><h2 style="color: #000000; font-size: 57px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 74.88px; text-transform: none; letter-spacing: normal; text-shadow: none;">Embed <em>Anything</em> (Live!)</h2></div>
+<div style="position: absolute; left: 20px; top: 496px; width: 900px; height: 24px; transform: rotate(0deg);"><p style="color: #000000; font-size: 32px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 48px; text-transform: none; letter-spacing: normal; text-shadow: none; margin-top: 1rem;"><small>Live demo: Upload a CSV and pick random names!</small></p></div>
+<div style="position: absolute; left: 20px; top: 496px; width: 900px; height: 24px; transform: rotate(0deg);"><p style="color: #000000; font-size: 32px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 48px; text-transform: none; letter-spacing: normal; text-shadow: none;"><small>Also works with: YouTube/Vimeo, Dashboards, Games, Forms...</small></p></div></section>
+<section data-background-color="transparent"></section>
+<section data-background-color="transparent"><div style="position: absolute; left: 20px; top: 100px; width: 900px; height: 37px; transform: rotate(0deg);"><h2 style="color: #000000; font-size: 57px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 74.88px; text-transform: none; letter-spacing: normal; text-shadow: none;">Keyboard Shortcuts</h2></div>
+<div style="position: absolute; left: 20px; top: 177.4375px; width: 900px; height: 24px; transform: rotate(0deg);"><p style="color: #000000; font-size: 32px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 48px; text-transform: none; letter-spacing: normal; text-shadow: none;">Master these shortcuts to present like a pro:</p></div>
+<div style="position: absolute; left: 20px; top: 321.4375px; width: 900px; height: 146px; transform: rotate(0deg);"><div style="color: #000000; font-size: undefinedpx; width: 100%; height: 100%; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 48px; text-transform: none; letter-spacing: normal; text-shadow: none;"><ul>
+                    <li><kbd>B</kbd> or <kbd>C</kbd> - Toggle chalkboard/drawing mode</li>
+                    <li><kbd>S</kbd> - Open speaker notes view</li>
+                    <li><kbd>F</kbd> - Enter fullscreen mode</li>
+                    <li><kbd>ESC</kbd> - Slide overview mode</li>
+                    <li><kbd>?</kbd> - Show all keyboard shortcuts</li>
+                    <li>Arrow keys - Navigate slides</li>
+                </ul></div></div></section>
+<section data-background-color="transparent"><div style="position: absolute; left: 20px; top: 100px; width: 900px; height: 37px; transform: rotate(0deg);"><h2 style="color: #000000; font-size: 57px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 74.88px; text-transform: none; letter-spacing: normal; text-shadow: none;">Advantage 3: A Simple, Focused Workflow</h2></div>
+<div style="position: absolute; left: 20px; top: 177.4375px; width: 900px; height: 29px; transform: rotate(0deg);"><h3 class="fragment" style="color: #000000; font-size: 44px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 58.24px; text-transform: none; letter-spacing: normal; text-shadow: none;">"But isn't this... <em>technical</em>?"</h3></div>
+<div style="position: absolute; left: 20px; top: 326.5562496185303px; width: 900px; height: 24px; transform: rotate(0deg);"><h4 class="fragment" style="color: #000000; font-size: 32px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 48px; text-transform: none; letter-spacing: normal; text-shadow: none;"><strong>No. You don't have to write code.</strong></h4></div>
+<div style="position: absolute; left: 20px; top: 366.5562496185303px; width: 900px; height: 24px; transform: rotate(0deg);"><p class="fragment" style="color: #000000; font-size: 32px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 48px; text-transform: none; letter-spacing: normal; text-shadow: none;">You can write your entire presentation in a simple text file.</p></div></section>
+<section data-background-color="transparent"><div style="position: absolute; left: 40px; top: 50px; width: 900px; height: 29px; transform: rotate(0deg);"><h3 style="color: #000000; font-size: 44px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 58.24px; text-transform: none; letter-spacing: normal; text-shadow: none;">Meet Markdown: Focus on Content</h3></div>
+<div style="position: absolute; left: 40px; top: 130px; width: 900px; height: 126px; transform: rotate(0deg);"><div class="side-by-side" style="color: #000000; font-size: 32px; width: 100%; height: 100%; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 48px; text-transform: none; letter-spacing: normal; text-shadow: none;">
+                    <div class="markdown-example">
+                        <h4>Your Text:</h4>
+<pre style="font-size: 0.5em; margin: 10px 0;"><code class="language-markdown">## This is a Headline
+
+* This is a bullet point
+* This is another one
+
+**Bold text** and *italic text*
+</code></pre>
+                    </div>
+                    <div class="rendered-example">
+                        <h4>Your Slide:</h4>
+                        <h2 style="font-size: 1.3em; margin: 10px 0;">This is a Headline</h2>
+                        <ul style="font-size: 0.7em;">
+                            <li>This is a bullet point</li>
+                            <li>This is another one</li>
+                        </ul>
+                        <p style="font-size: 0.7em;"><strong>Bold text</strong> and <em>italic text</em></p>
+                    </div>
+                </div></div></section>
+<section data-background-color="transparent"><div style="position: absolute; left: 20px; top: 100px; width: 900px; height: 37px; transform: rotate(0deg);"><h2 style="color: #000000; font-size: 57px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 74.88px; text-transform: none; letter-spacing: normal; text-shadow: none;">How You <em>Actually</em> Get Started</h2></div>
+<div style="position: absolute; left: 20px; top: 177.4375px; width: 900px; height: 29px; transform: rotate(0deg);"><h3 style="color: #000000; font-size: 44px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 58.24px; text-transform: none; letter-spacing: normal; text-shadow: none;">You have three great options.</h3></div></section>
+<section data-background-color="transparent"></section>
+<section data-background-color="transparent"><div style="position: absolute; left: 20px; top: 100px; width: 900px; height: 37px; transform: rotate(0deg);"><h2 style="color: #000000; font-size: 57px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 74.88px; text-transform: none; letter-spacing: normal; text-shadow: none;">Option 2: Use a Visual Editor</h2></div>
+<div style="position: absolute; left: 405px; top: 177.4375px; width: 150px; height: 93px; transform: rotate(0deg);"><div style="color: #ffffff; font-size: 32px; width: 100%; height: 100%; background-color: rgb(66, 133, 244); padding: 20px; border-radius: 10px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 48px; text-transform: none; letter-spacing: normal; text-shadow: none; background: #4285f4; color: white; padding: 20px; border-radius: 10px; margin: 20px auto; max-width: 300px;">
+                    <h3 style="margin: 0; color: white;">Slides.com</h3>
+                    <p style="margin: 10px 0 0 0; font-size: 0.8em;">Visual Editor for reveal.js</p>
+                </div></div>
+<div style="position: absolute; left: 20px; top: 389.9562530517578px; width: 900px; height: 24px; transform: rotate(0deg);"><p style="color: #000000; font-size: 32px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 48px; text-transform: none; letter-spacing: normal; text-shadow: none;">Tools like <strong>Slides.com</strong> are built on reveal.js!</p></div>
+<div style="position: absolute; left: 20px; top: 429.9562530517578px; width: 900px; height: 72px; transform: rotate(0deg);"><div style="color: #000000; font-size: undefinedpx; width: 100%; height: 100%; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 48px; text-transform: none; letter-spacing: normal; text-shadow: none;"><ul>
+                    <li>Get a "PowerPoint-like" drag-and-drop interface</li>
+                    <li>Get the power of reveal.js with a familiar workflow</li>
+                    <li>Export to HTML for full customization later</li>
+                </ul></div></div></section>
+<section data-background-color="transparent"><div style="position: absolute; left: 20px; top: 100px; width: 900px; height: 37px; transform: rotate(0deg);"><h2 style="color: #000000; font-size: 57px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 74.88px; text-transform: none; letter-spacing: normal; text-shadow: none;">Option 3: Use an LLM to Code It</h2></div>
+<div style="position: absolute; left: 330px; top: 177.4375px; width: 300px; height: 120px; transform: rotate(0deg);"><div style="color: #ffffff; font-size: 32px; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0); padding: 20px; border-radius: 10px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 48px; text-transform: none; letter-spacing: normal; text-shadow: none; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px; margin: 20px auto; max-width: 600px;">
+                    <h3 style="margin: 0 0 10px 0; color: white; font-size: 1.3em;">🤖 AI-Powered Presentations</h3>
+                    <p style="margin: 0; font-size: 0.85em; line-height: 1.5;">
+                        Use ChatGPT, Claude, or other LLMs to generate your entire presentation in HTML!
+                    </p>
+                </div></div>
+<div style="position: absolute; left: 305px; top: 342px; width: 350px; height: 178px; transform: rotate(0deg);"><div style="color: #000000; font-size: undefinedpx; width: 100%; height: 100%; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: left; line-height: 40.8px; text-transform: none; letter-spacing: normal; text-shadow: none; text-align: left; max-width: 700px; margin: 15px auto; font-size: 0.85em;"><ul style="text-align: left; max-width: 700px; margin: 15px auto; font-size: 0.85em;">
+                    <li style="margin-bottom: 10px;"><strong>Just describe what you want:</strong> "Create a reveal.js presentation about climate change"</li>
+                    <li style="margin-bottom: 10px;"><strong>Get instant HTML:</strong> Copy, paste, and present in minutes</li>
+                    <li style="margin-bottom: 10px;"><strong>Easy iterations:</strong> "Make that slide more visual" or "Add a chart here"</li>
+                    <li style="margin-bottom: 10px;"><strong>No coding required:</strong> The AI handles all the technical details</li>
+                </ul></div></div>
+<div style="position: absolute; left: 20px; top: 457.3125px; width: 900px; height: 19px; transform: rotate(0deg);"><p style="color: #000000; font-size: 25px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: italic; text-align: start; line-height: 38.4px; text-transform: none; letter-spacing: normal; text-shadow: none; margin-top: 20px; font-style: italic; opacity: 0.8; font-size: 0.8em;">
+                    <small>💡 Pro tip: This entire presentation was built with an LLM!</small>
+                </p></div></section>
+<section data-background-color="transparent"><div style="position: absolute; left: 40px; top: 50px; width: 900px; height: 48px; transform: rotate(0deg);"><h1 style="color: #000000; font-size: 80px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 96px; text-transform: none; letter-spacing: normal; text-shadow: none;">Stop fighting your tools.</h1></div>
+<div style="position: absolute; left: 40px; top: 130px; width: 900px; height: 48px; transform: rotate(0deg);"><h1 style="color: #000000; font-size: 80px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 96px; text-transform: none; letter-spacing: normal; text-shadow: none;">Start telling interactive stories.</h1></div>
+<div style="position: absolute; left: 40px; top: 210px; width: 900px; height: 29px; transform: rotate(0deg);"><h3 style="color: #000000; font-size: 44px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 58.24px; text-transform: none; letter-spacing: normal; text-shadow: none;"><a href="https://revealjs.com" target="_blank">revealjs.com</a></h3></div>
+<div style="position: absolute; left: 40px; top: 290px; width: 900px; height: 37px; transform: rotate(0deg);"><h2 style="color: #000000; font-size: 57px; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-weight: 400; font-style: normal; text-align: start; line-height: 74.88px; text-transform: none; letter-spacing: normal; text-shadow: none;">Questions?</h2></div></section>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.min.js"></script>
+    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/postprocessing@6.23.5/build/postprocessing.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script>
+        Reveal.initialize({
+  "transition": "slide",
+  "backgroundTransition": "fade",
+  "controls": true,
+  "progress": true,
+  "slideNumber": false,
+  "center": true,
+  "loop": false,
+  "autoSlide": 0,
+  "mouseWheel": false,
+  "width": 960,
+  "height": 540,
+  "hash": true,
+  "embedded": false,
+  "plugins": []
+});
+
+        const dependencyResolver = (dep) => {
+            if (dep === 'react') return React;
+            if (dep === 'three') return THREE;
+            if (dep === 'postprocessing') return POSTPROCESSING;
+            if (dep === 'gsap') return gsap;
+            // Allow relative path imports for CSS by ignoring them
+            if (dep.startsWith('./') && dep.endsWith('.css')) return {};
+            console.warn('Unknown dependency:', dep);
+            return {};
+        };
+
+        // Track which containers have been rendered to prevent re-renders
+        const renderedContainers = new Set();
+
+        // Render all React components once on load
+        Reveal.on('ready', event => {
+            const containers = document.querySelectorAll('[data-react-code]');
+            console.log('Found', containers.length, 'React component(s) to render');
+
+            containers.forEach((container, index) => {
+                // Skip if already rendered
+                if (renderedContainers.has(container)) {
+                    console.log('Skipping already rendered container', index);
+                    return;
+                }
+
+                const code = container.dataset.reactCode.replace(/\\\\/g, '\\').replace(/&#39;/g, "'").replace(/\\n/g, '\n');
+                const propsString = container.dataset.reactProps.replace(/&#39;/g, "'");
+
+                console.log('Rendering React component', index);
+
+                try {
+                    const transformed = Babel.transform(code, {
+                        presets: ['react'],
+                        plugins: [ ["transform-modules-commonjs", { "loose": true }] ]
+                    }).code;
+
+                    const exports = {};
+                    new Function(
+                        'exports',
+                        'require',
+                        'React',
+                        'useState',
+                        'useEffect',
+                        'useLayoutEffect',
+                        'useRef',
+                        'useMemo',
+                        'useCallback',
+                        'useContext',
+                        'useReducer',
+                        'useImperativeHandle',
+                        'useDebugValue',
+                        'useId',
+                        'useDeferredValue',
+                        'useTransition',
+                        'useInsertionEffect',
+                        'useSyncExternalStore',
+                        'THREE',
+                        'POSTPROCESSING',
+                        'gsap',
+                        transformed
+                    )(
+                        exports,
+                        dependencyResolver,
+                        React,
+                        React.useState,
+                        React.useEffect,
+                        React.useLayoutEffect,
+                        React.useRef,
+                        React.useMemo,
+                        React.useCallback,
+                        React.useContext,
+                        React.useReducer,
+                        React.useImperativeHandle,
+                        React.useDebugValue,
+                        React.useId,
+                        React.useDeferredValue,
+                        React.useTransition,
+                        React.useInsertionEffect,
+                        React.useSyncExternalStore,
+                        typeof THREE !== 'undefined' ? THREE : {},
+                        typeof POSTPROCESSING !== 'undefined' ? POSTPROCESSING : {},
+                        typeof gsap !== 'undefined' ? gsap : {}
+                    );
+
+                    const Component = exports.default;
+                    if (!Component) throw new Error("Component must have a default export.");
+
+                    const props = JSON.parse(propsString);
+
+                    ReactDOM.render(React.createElement(Component, props), container);
+                    renderedContainers.add(container);
+                    console.log('Successfully rendered React component', index);
+                } catch (e) {
+                    console.error("Failed to render React component", index, ":", e);
+                    container.innerHTML = '<div style="color:red; background: #fee; padding: 10px; font-size: 12px; text-align: left;">Error: ' + e.message + '</div>';
+                }
+            });
+        });
+
+        // Detect WebGL context loss
+        window.addEventListener('webglcontextlost', (e) => {
+            console.error('WebGL context lost detected on element:', e.target);
+            e.preventDefault(); // Prevent default behavior
+        }, true);
+
+        window.addEventListener('webglcontextrestored', (e) => {
+            console.log('WebGL context restored on element:', e.target);
+        }, true);
+    </script>
+</body>
+</html>

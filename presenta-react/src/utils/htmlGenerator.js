@@ -123,8 +123,24 @@ export function generateRevealHTML(presentation) {
             let baseElementHtml = '';
             switch (el.type) {
                 case 'text': {
+                    // Use semantic tag if available (h1, h2, p, ul, etc.) or default to div
+                    const semanticTag = el.tagName || 'div';
+
                     // Build style string with preserved styles
-                    let textStyles = `color: ${el.color}; font-size: ${el.fontSize}px; width: 100%; height: 100%;`;
+                    const color = el.color || '#000000';
+                    let textStyles = `color: ${color}; font-size: ${el.fontSize}px;`;
+
+                    // For non-semantic wrapper divs, add width/height
+                    if (semanticTag === 'div' || semanticTag === 'section') {
+                        textStyles += ` width: 100%; height: 100%;`;
+                    }
+
+                    // Add container styles if this is a styled container (from reveal.js import)
+                    if (el.isStyledContainer) {
+                        if (el.backgroundColor) textStyles += ` background-color: ${el.backgroundColor};`;
+                        if (el.padding) textStyles += ` padding: ${el.padding};`;
+                        if (el.borderRadius) textStyles += ` border-radius: ${el.borderRadius}px;`;
+                    }
 
                     // Add computed styles if available (from reveal.js import)
                     if (el.computedStyles) {
@@ -144,7 +160,9 @@ export function generateRevealHTML(presentation) {
                     }
 
                     const className = el.className ? ` class="${el.className}"` : '';
-                    baseElementHtml = `<div${className} style="${textStyles}">${el.content}</div>`;
+
+                    // Use semantic tag for output (preserves h1, h2, p, ul, etc.)
+                    baseElementHtml = `<${semanticTag}${className} style="${textStyles}">${el.content}</${semanticTag}>`;
                     break;
                 }
                 case 'shape':

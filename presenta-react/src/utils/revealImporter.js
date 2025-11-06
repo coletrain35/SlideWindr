@@ -1,7 +1,829 @@
 /**
  * Utility to import and parse reveal.js HTML presentations
  * Converts reveal.js HTML format to SlideWindr internal format
+ *
+ * PHASE 1 IMPROVEMENTS (Enhanced Positioning System):
+ * - Smart layout detection for common Reveal.js patterns
+ * - Multi-pass position calculation algorithm
+ * - Canvas boundary detection with auto-fix
  */
+
+// ===== PHASE 1: ENHANCED POSITIONING SYSTEM =====
+
+/**
+ * Detect common Reveal.js slide layout patterns
+ * @param {HTMLElement} slideEl - The slide section element
+ * @returns {Object} - Layout information with type and relevant elements
+ */
+function detectSlideLayout(slideEl) {
+  const children = Array.from(slideEl.children).filter(child =>
+    !child.classList.contains('notes') && child.tagName !== 'ASIDE'
+  );
+
+  if (children.length === 0) {
+    return { type: 'empty', elements: [] };
+  }
+
+  // Pattern 1: Title Slide (h1/h2 with optional subtitle and description)
+  // More flexible - detects title slides with 2-4 elements if first is heading
+  if (children.length >= 2 && children.length <= 4 &&
+      ['H1', 'H2'].includes(children[0].tagName)) {
+    return {
+      type: 'title-slide',
+      title: children[0],
+      subtitle: children[1],
+      elements: children
+    };
+  }
+
+  // Pattern 2: Full-slide Image/Video
+  if (children.length === 1 &&
+      ['IMG', 'VIDEO', 'IFRAME'].includes(children[0].tagName)) {
+    return {
+      type: 'full-media',
+      media: children[0],
+      elements: children
+    };
+  }
+
+  // Pattern 3: Detect Flexbox Layout
+  const computedStyle = window.getComputedStyle(slideEl);
+  if (computedStyle.display === 'flex' || computedStyle.display === 'inline-flex') {
+    return {
+      type: 'flex',
+      flexDirection: computedStyle.flexDirection,
+      justifyContent: computedStyle.justifyContent,
+      alignItems: computedStyle.alignItems,
+      elements: children
+    };
+  }
+
+  // Pattern 4: Detect Grid Layout
+  if (computedStyle.display === 'grid' || computedStyle.display === 'inline-grid') {
+    return {
+      type: 'grid',
+      gridTemplateColumns: computedStyle.gridTemplateColumns,
+      gridTemplateRows: computedStyle.gridTemplateRows,
+      gap: computedStyle.gap,
+      elements: children
+    };
+  }
+
+  // Pattern 5: Multi-column layout
+  const columnCount = parseInt(computedStyle.columnCount);
+  if (columnCount > 1) {
+    return {
+      type: 'multi-column',
+      columnCount,
+      elements: children
+    };
+  }
+
+  // Pattern 6: Centered Content (default Reveal.js style)
+  if ((computedStyle.display === 'flex' &&
+       computedStyle.justifyContent.includes('center') &&
+       computedStyle.alignItems.includes('center')) ||
+      computedStyle.textAlign === 'center') {
+    return {
+      type: 'centered',
+      elements: children
+    };
+  }
+
+  // Default: Generic layout
+  return {
+    type: 'generic',
+    elements: children
+  };
+}
+
+/**
+ * Calculate element position using multi-pass algorithm
+ * Priority: absolute → transform → flex → grid → flow
+ * @param {HTMLElement} el - The element to position
+ * @param {Object} layout - Detected slide layout
+ * @param {number} index - Element index
+ * @param {Array} siblings - Sibling elements
+ * @param {Object} canvasSize - Target canvas dimensions
+ * @returns {Object} - Position {x, y} and positioning mode
+ */
+function calculateSmartPosition(el, layout, index, siblings, canvasSize = { width: 960, height: 540 }) {
+  const computed = window.getComputedStyle(el);
+  const rect = el.getBoundingClientRect();
+  const parentEl = el.parentElement;
+  const parentRect = parentEl ? parentEl.getBoundingClientRect() : rect;
+
+  // Reveal.js typical viewport size (can be configured, but 1920x1080 is common)
+  const REVEAL_WIDTH = 1920;
+  const REVEAL_HEIGHT = 1080;
+  const scaleX = canvasSize.width / REVEAL_WIDTH;
+  const scaleY = canvasSize.height / REVEAL_HEIGHT;
+
+  let x, y, mode;
+
+  // Priority 1: Explicit absolute/fixed positioning
+  if (computed.position === 'absolute' || computed.position === 'fixed') {
+    const left = parseInt(computed.left) || 0;
+    const top = parseInt(computed.top) || 0;
+
+    x = Math.round(left * scaleX);
+    y = Math.round(top * scaleY);
+    mode = 'absolute';
+
+    return { x, y, mode };
+  }
+
+  // Priority 2: Transform translate positioning
+  const transform = computed.transform;
+  if (transform && transform !== 'none' && transform.includes('matrix')) {
+    const values = transform.match(/matrix\(([^)]+)\)/);
+    if (values) {
+      const parts = values[1].split(',').map(v => parseFloat(v.trim()));
+      if (parts.length >= 6) {
+        const translateX = parts[4];
+        const translateY = parts[5];
+
+        x = Math.round((rect.left + translateX) * scaleX);
+        y = Math.round((rect.top + translateY) * scaleY);
+        mode = 'transform';
+
+        return { x, y, mode };
+      }
+    }
+  }
+
+  // Priority 3: Flexbox positioning
+  if (layout.type === 'flex') {
+    const relX = rect.left - parentRect.left;
+    const relY = rect.top - parentRect.top;
+
+    x = Math.round(relX * scaleX);
+    y = Math.round(relY * scaleY);
+    mode = 'flex';
+
+    return { x, y, mode };
+  }
+
+  // Priority 4: Grid positioning
+  if (layout.type === 'grid') {
+    const relX = rect.left - parentRect.left;
+    const relY = rect.top - parentRect.top;
+
+    x = Math.round(relX * scaleX);
+    y = Math.round(relY * scaleY);
+    mode = 'grid';
+
+    return { x, y, mode };
+  }
+
+  // Priority 5: Layout-specific positioning
+  switch (layout.type) {
+    case 'title-slide':
+      // Center all elements horizontally, stack vertically
+      x = Math.round((canvasSize.width - (rect.width * scaleX)) / 2);
+
+      if (el === layout.title) {
+        // Title at top-center with more space
+        y = 100;
+      } else if (el === layout.subtitle) {
+        // Subtitle below title
+        const titleHeight = layout.title ? layout.title.getBoundingClientRect().height * scaleY : 0;
+        y = 100 + titleHeight + 40; // Increased spacing
+      } else {
+        // Additional elements (description, notes) stacked below
+        const titleHeight = layout.title ? layout.title.getBoundingClientRect().height * scaleY : 0;
+        const subtitleHeight = layout.subtitle ? layout.subtitle.getBoundingClientRect().height * scaleY : 0;
+        y = 100 + titleHeight + subtitleHeight + 80 + (index * 40);
+      }
+      mode = 'title-slide';
+      break;
+
+    case 'full-media':
+      // Center the media element
+      x = Math.round((canvasSize.width - (rect.width * scaleX)) / 2);
+      y = Math.round((canvasSize.height - (rect.height * scaleY)) / 2);
+      mode = 'full-media';
+      break;
+
+    case 'centered':
+      // Center horizontally, stack vertically
+      x = Math.round((canvasSize.width - (rect.width * scaleX)) / 2);
+      y = 60 + (index * 100);
+      mode = 'centered';
+      break;
+
+    default:
+      // Generic flow layout - smart stacking
+      x = 80; // Left margin
+      y = 50 + (index * 80); // Vertical stacking with spacing
+      mode = 'flow';
+  }
+
+  return { x, y, mode };
+}
+
+/**
+ * Ensure element stays within canvas boundaries with auto-fix
+ * @param {Object} element - Element with x, y, width, height
+ * @param {Object} canvasSize - Canvas dimensions
+ * @returns {Object} - Adjustment info {adjusted, method, scale}
+ */
+function ensureWithinBounds(element, canvasSize = { width: 960, height: 540 }) {
+  const MARGIN = 20; // Safety margin
+
+  const overflowRight = (element.x + element.width) > (canvasSize.width - MARGIN);
+  const overflowBottom = (element.y + element.height) > (canvasSize.height - MARGIN);
+  const overflowLeft = element.x < MARGIN;
+  const overflowTop = element.y < MARGIN;
+
+  if (!overflowRight && !overflowBottom && !overflowLeft && !overflowTop) {
+    return { adjusted: false };
+  }
+
+  // Strategy 1: Reposition if element fits
+  if (element.width <= canvasSize.width - 2 * MARGIN &&
+      element.height <= canvasSize.height - 2 * MARGIN) {
+
+    element.x = Math.max(MARGIN, Math.min(element.x, canvasSize.width - element.width - MARGIN));
+    element.y = Math.max(MARGIN, Math.min(element.y, canvasSize.height - element.height - MARGIN));
+
+    return { adjusted: true, method: 'reposition' };
+  }
+
+  // Strategy 2: Scale down if too large
+  const scaleX = (canvasSize.width - 2 * MARGIN) / element.width;
+  const scaleY = (canvasSize.height - 2 * MARGIN) / element.height;
+  const scale = Math.min(scaleX, scaleY, 1.0); // Don't scale up
+
+  if (scale < 1.0) {
+    element.width = Math.floor(element.width * scale);
+    element.height = Math.floor(element.height * scale);
+    element.x = MARGIN;
+    element.y = MARGIN;
+
+    return { adjusted: true, method: 'scale', scale };
+  }
+
+  return { adjusted: false };
+}
+
+/**
+ * Smart layout-based element stacking
+ * Used when generic flow positioning is needed
+ * @param {Array} elements - Array of elements with their types
+ * @param {Object} canvasSize - Canvas dimensions
+ * @returns {Array} - Elements with updated positions
+ */
+function smartLayoutStack(elements, canvasSize = { width: 960, height: 540 }) {
+  // Group by type for intelligent positioning
+  const headers = elements.filter(el => el.tagName && el.tagName.match(/^H[1-6]$/));
+  const images = elements.filter(el => el.type === 'image');
+  const text = elements.filter(el => el.type === 'text' && !el.tagName?.match(/^H[1-6]$/));
+  const other = elements.filter(el =>
+    !headers.includes(el) && !images.includes(el) && !text.includes(el)
+  );
+
+  let currentY = 40; // Top margin
+  const centerX = canvasSize.width / 2;
+  const HEADER_SPACING = 20;
+  const IMAGE_SPACING = 30;
+  const TEXT_SPACING = 15;
+  const OTHER_SPACING = 20;
+
+  // Position headers (centered, top)
+  headers.forEach(header => {
+    header.x = centerX - header.width / 2;
+    header.y = currentY;
+    currentY += header.height + HEADER_SPACING;
+  });
+
+  // Position images (centered)
+  images.forEach(img => {
+    img.x = centerX - img.width / 2;
+    img.y = currentY;
+    currentY += img.height + IMAGE_SPACING;
+  });
+
+  // Position text content
+  text.forEach(txt => {
+    txt.x = centerX - txt.width / 2;
+    txt.y = currentY;
+    currentY += txt.height + TEXT_SPACING;
+  });
+
+  // Position other elements
+  other.forEach(el => {
+    el.x = centerX - el.width / 2;
+    el.y = currentY;
+    currentY += el.height + OTHER_SPACING;
+  });
+
+  return elements;
+}
+
+// ===== END PHASE 1 ENHANCEMENTS =====
+
+// ===== PHASE 2: ENHANCED STYLE PRESERVATION =====
+
+/**
+ * Check if an element has significant background styling worth preserving
+ * @param {HTMLElement} el - The element to check
+ * @param {CSSStyleDeclaration} computed - Computed styles
+ * @returns {boolean} - True if has styled background
+ */
+function hasStyledBackground(el, computed) {
+  const bg = computed.backgroundColor;
+  const bgImage = computed.backgroundImage;
+
+  // Check for non-transparent background color
+  if (bg && bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') {
+    // Parse to check if it has opacity
+    const rgba = parseRGBA(bg);
+    if (rgba && rgba.a > 0) {
+      return true;
+    }
+  }
+
+  // Check for background image or gradient
+  if (bgImage && bgImage !== 'none') {
+    return true;
+  }
+
+  // Check for border that creates visual container
+  const borderWidth = parseInt(computed.borderWidth);
+  if (borderWidth > 0) {
+    return true;
+  }
+
+  // Check for box shadow
+  if (computed.boxShadow && computed.boxShadow !== 'none') {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Parse RGBA color string to extract components
+ * @param {string} rgba - RGBA color string
+ * @returns {Object|null} - Object with r, g, b, a or null
+ */
+function parseRGBA(rgba) {
+  if (!rgba) return null;
+
+  // Handle rgb() format
+  const rgbMatch = rgba.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+  if (rgbMatch) {
+    return {
+      r: parseInt(rgbMatch[1]),
+      g: parseInt(rgbMatch[2]),
+      b: parseInt(rgbMatch[3]),
+      a: 1
+    };
+  }
+
+  // Handle rgba() format
+  const rgbaMatch = rgba.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/);
+  if (rgbaMatch) {
+    return {
+      r: parseInt(rgbaMatch[1]),
+      g: parseInt(rgbaMatch[2]),
+      b: parseInt(rgbaMatch[3]),
+      a: parseFloat(rgbaMatch[4])
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Extract complete computed styles from an element (40+ properties)
+ * Captures all visual styling for accurate reproduction
+ * @param {HTMLElement} el - The element to extract styles from
+ * @returns {Object} - Complete style object
+ */
+function extractCompleteStyles(el) {
+  const computed = window.getComputedStyle(el);
+
+  return {
+    // Text Styling
+    fontFamily: computed.fontFamily,
+    fontSize: computed.fontSize,
+    fontWeight: computed.fontWeight,
+    fontStyle: computed.fontStyle,
+    fontVariant: computed.fontVariant,
+    color: computed.color,
+    textAlign: computed.textAlign,
+    textDecoration: computed.textDecoration,
+    textDecorationColor: computed.textDecorationColor,
+    textDecorationStyle: computed.textDecorationStyle,
+    textTransform: computed.textTransform,
+    letterSpacing: computed.letterSpacing,
+    lineHeight: computed.lineHeight,
+    textShadow: computed.textShadow,
+    textIndent: computed.textIndent,
+    wordSpacing: computed.wordSpacing,
+    whiteSpace: computed.whiteSpace,
+
+    // Box Model
+    width: computed.width,
+    height: computed.height,
+    minWidth: computed.minWidth,
+    minHeight: computed.minHeight,
+    maxWidth: computed.maxWidth,
+    maxHeight: computed.maxHeight,
+    padding: computed.padding,
+    paddingTop: computed.paddingTop,
+    paddingRight: computed.paddingRight,
+    paddingBottom: computed.paddingBottom,
+    paddingLeft: computed.paddingLeft,
+    margin: computed.margin,
+    marginTop: computed.marginTop,
+    marginRight: computed.marginRight,
+    marginBottom: computed.marginBottom,
+    marginLeft: computed.marginLeft,
+    border: computed.border,
+    borderRadius: computed.borderRadius,
+    borderWidth: computed.borderWidth,
+    borderStyle: computed.borderStyle,
+    borderColor: computed.borderColor,
+
+    // Background
+    backgroundColor: computed.backgroundColor,
+    backgroundImage: computed.backgroundImage,
+    backgroundSize: computed.backgroundSize,
+    backgroundPosition: computed.backgroundPosition,
+    backgroundRepeat: computed.backgroundRepeat,
+    backgroundAttachment: computed.backgroundAttachment,
+    backgroundClip: computed.backgroundClip,
+
+    // Visual Effects
+    boxShadow: computed.boxShadow,
+    opacity: computed.opacity,
+    filter: computed.filter,
+    backdropFilter: computed.backdropFilter,
+    mixBlendMode: computed.mixBlendMode,
+
+    // Transform
+    transform: computed.transform,
+    transformOrigin: computed.transformOrigin,
+    transformStyle: computed.transformStyle,
+    perspective: computed.perspective,
+
+    // Layout
+    display: computed.display,
+    position: computed.position,
+    zIndex: computed.zIndex,
+    float: computed.float,
+    clear: computed.clear,
+    verticalAlign: computed.verticalAlign,
+
+    // Flexbox (if parent or element is flex)
+    flexDirection: computed.flexDirection,
+    flexWrap: computed.flexWrap,
+    flexGrow: computed.flexGrow,
+    flexShrink: computed.flexShrink,
+    flexBasis: computed.flexBasis,
+    justifyContent: computed.justifyContent,
+    alignItems: computed.alignItems,
+    alignSelf: computed.alignSelf,
+    alignContent: computed.alignContent,
+    gap: computed.gap,
+
+    // Grid (if parent or element is grid)
+    gridTemplateColumns: computed.gridTemplateColumns,
+    gridTemplateRows: computed.gridTemplateRows,
+    gridColumn: computed.gridColumn,
+    gridRow: computed.gridRow,
+    gridGap: computed.gap,
+
+    // List styling
+    listStyle: computed.listStyle,
+    listStyleType: computed.listStyleType,
+    listStylePosition: computed.listStylePosition,
+    listStyleImage: computed.listStyleImage,
+
+    // Additional
+    overflow: computed.overflow,
+    overflowX: computed.overflowX,
+    overflowY: computed.overflowY,
+    cursor: computed.cursor,
+    visibility: computed.visibility,
+    clipPath: computed.clipPath,
+    objectFit: computed.objectFit,
+    objectPosition: computed.objectPosition
+  };
+}
+
+/**
+ * Extract and parse background gradient from computed styles
+ * Supports linear-gradient and radial-gradient
+ * @param {CSSStyleDeclaration} computed - Computed styles
+ * @returns {Object|null} - Gradient object or null if no gradient
+ */
+function extractBackgroundGradient(computed) {
+  const bgImage = computed.backgroundImage;
+
+  if (!bgImage || bgImage === 'none') {
+    return null;
+  }
+
+  // Linear gradient
+  if (bgImage.includes('linear-gradient')) {
+    const match = bgImage.match(/linear-gradient\(([^)]+)\)/);
+    if (match) {
+      return {
+        type: 'linear-gradient',
+        value: match[1],
+        css: bgImage
+      };
+    }
+  }
+
+  // Radial gradient
+  if (bgImage.includes('radial-gradient')) {
+    const match = bgImage.match(/radial-gradient\(([^)]+)\)/);
+    if (match) {
+      return {
+        type: 'radial-gradient',
+        value: match[1],
+        css: bgImage
+      };
+    }
+  }
+
+  // Repeating gradients
+  if (bgImage.includes('repeating-linear-gradient')) {
+    const match = bgImage.match(/repeating-linear-gradient\(([^)]+)\)/);
+    if (match) {
+      return {
+        type: 'repeating-linear-gradient',
+        value: match[1],
+        css: bgImage
+      };
+    }
+  }
+
+  if (bgImage.includes('repeating-radial-gradient')) {
+    const match = bgImage.match(/repeating-radial-gradient\(([^)]+)\)/);
+    if (match) {
+      return {
+        type: 'repeating-radial-gradient',
+        value: match[1],
+        css: bgImage
+      };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Detect if element is a list (ul/ol) and parse with styling
+ * @param {HTMLElement} el - The element to check
+ * @param {Object} position - Element position
+ * @param {Object} size - Element size
+ * @returns {Object|null} - List element object or null
+ */
+function parseListElement(el, position, size) {
+  const tagName = el.tagName.toLowerCase();
+
+  if (tagName !== 'ul' && tagName !== 'ol') {
+    return null;
+  }
+
+  const computed = window.getComputedStyle(el);
+  const items = Array.from(el.querySelectorAll('li'));
+
+  return {
+    id: crypto.randomUUID(),
+    type: 'text', // Use text type but preserve list HTML
+    ...position,
+    ...size,
+    rotation: 0,
+    content: el.outerHTML, // Preserve list HTML structure
+    fontSize: parseInt(computed.fontSize) || 32,  // Extract font size for lists
+    color: rgbToHex(computed.color) || '#000000',
+    tagName: tagName, // Store UL or OL tag
+    listType: tagName,
+    listStyle: computed.listStyleType,
+    itemCount: items.length,
+    className: el.className,
+    inlineStyle: el.getAttribute('style') || '',
+    computedStyles: extractCompleteStyles(el)
+  };
+}
+
+/**
+ * Detect code blocks and extract with language detection
+ * Supports <pre><code>, highlight.js, prism.js patterns
+ * @param {HTMLElement} el - The element to check
+ * @param {Object} position - Element position
+ * @param {Object} size - Element size
+ * @returns {Object|null} - Code element object or null
+ */
+function parseCodeBlock(el, position, size) {
+  const tagName = el.tagName.toLowerCase();
+
+  // Pattern 1: <pre><code> structure
+  if (tagName === 'pre') {
+    const codeEl = el.querySelector('code');
+    if (codeEl) {
+      const language = detectLanguage(codeEl);
+      const computed = window.getComputedStyle(el);
+
+      return {
+        id: crypto.randomUUID(),
+        type: 'code',
+        ...position,
+        ...size,
+        rotation: 0,
+        code: codeEl.textContent,
+        language: language,
+        showLineNumbers: el.classList.contains('line-numbers') ||
+                        el.classList.contains('number-lines'),
+        fontSize: 14,
+        className: el.className,
+        computedStyles: extractCompleteStyles(el)
+      };
+    }
+  }
+
+  // Pattern 2: Standalone <code> with highlight classes
+  if (tagName === 'code' &&
+      (el.classList.contains('hljs') ||
+       el.classList.contains('highlight') ||
+       Array.from(el.classList).some(c => c.startsWith('language-')))) {
+    const language = detectLanguage(el);
+
+    return {
+      id: crypto.randomUUID(),
+      type: 'code',
+      ...position,
+      ...size,
+      rotation: 0,
+      code: el.textContent,
+      language: language,
+      showLineNumbers: false,
+      fontSize: 14,
+      className: el.className,
+      computedStyles: extractCompleteStyles(el)
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Detect programming language from code element classes or content
+ * @param {HTMLElement} codeEl - Code element
+ * @returns {string} - Detected language
+ */
+function detectLanguage(codeEl) {
+  const classes = Array.from(codeEl.classList);
+
+  // Check for language- prefix (common pattern)
+  for (const cls of classes) {
+    if (cls.startsWith('language-')) {
+      return cls.replace('language-', '');
+    }
+    if (cls.startsWith('lang-')) {
+      return cls.replace('lang-', '');
+    }
+  }
+
+  // Check for Highlight.js specific language classes
+  for (const cls of classes) {
+    if (['javascript', 'js', 'python', 'py', 'java', 'cpp', 'c', 'csharp', 'cs',
+         'ruby', 'go', 'rust', 'php', 'swift', 'kotlin', 'typescript', 'ts',
+         'html', 'css', 'scss', 'sql', 'bash', 'shell', 'json', 'yaml', 'xml'].includes(cls)) {
+      return cls;
+    }
+  }
+
+  // Heuristic detection based on content
+  const code = codeEl.textContent.trim();
+
+  if (code.includes('function') && code.includes('{') && code.includes('}')) {
+    if (code.includes('=>') || code.includes('const ') || code.includes('let ')) {
+      return 'javascript';
+    }
+  }
+
+  if (code.includes('def ') && code.includes(':')) {
+    return 'python';
+  }
+
+  if (code.includes('public class') || code.includes('private ')) {
+    return 'java';
+  }
+
+  if (code.includes('<?php')) {
+    return 'php';
+  }
+
+  if (code.includes('<html') || code.includes('<!DOCTYPE')) {
+    return 'html';
+  }
+
+  return 'plaintext';
+}
+
+/**
+ * Parse table element with cell data and styling
+ * @param {HTMLElement} el - Table element
+ * @param {Object} position - Element position
+ * @param {Object} size - Element size
+ * @returns {Object|null} - Table element object or null
+ */
+function parseTableElement(el, position, size) {
+  if (el.tagName.toLowerCase() !== 'table') {
+    return null;
+  }
+
+  const rows = Array.from(el.querySelectorAll('tr'));
+  const rowCount = rows.length;
+  const colCount = rows[0] ? rows[0].querySelectorAll('th, td').length : 0;
+
+  if (rowCount === 0 || colCount === 0) {
+    return null;
+  }
+
+  // Extract cell data and styles
+  const cellData = [];
+  const cellStyles = [];
+
+  rows.forEach(row => {
+    const rowData = [];
+    const rowStyles = [];
+
+    row.querySelectorAll('th, td').forEach(cell => {
+      rowData.push(cell.textContent.trim());
+
+      const computed = window.getComputedStyle(cell);
+      rowStyles.push({
+        backgroundColor: computed.backgroundColor,
+        color: computed.color,
+        textAlign: computed.textAlign,
+        fontWeight: computed.fontWeight,
+        fontSize: computed.fontSize,
+        padding: computed.padding,
+        borderColor: computed.borderColor,
+        borderWidth: computed.borderWidth,
+        borderStyle: computed.borderStyle
+      });
+    });
+
+    cellData.push(rowData);
+    cellStyles.push(rowStyles);
+  });
+
+  return {
+    id: crypto.randomUUID(),
+    type: 'table',
+    ...position,
+    ...size,
+    rotation: 0,
+    rows: rowCount,
+    columns: colCount,
+    cellData,
+    cellStyles,
+    className: el.className,
+    computedStyles: extractCompleteStyles(el)
+  };
+}
+
+/**
+ * Parse SVG element and preserve as inline SVG
+ * @param {HTMLElement} el - SVG element
+ * @param {Object} position - Element position
+ * @param {Object} size - Element size
+ * @returns {Object|null} - SVG element object or null
+ */
+function parseSVGElement(el, position, size) {
+  if (el.tagName.toLowerCase() !== 'svg') {
+    return null;
+  }
+
+  // Clone SVG to preserve it
+  const svgClone = el.cloneNode(true);
+  const svgString = new XMLSerializer().serializeToString(svgClone);
+
+  return {
+    id: crypto.randomUUID(),
+    type: 'svg',
+    ...position,
+    ...size,
+    rotation: 0,
+    svgContent: svgString,
+    viewBox: el.getAttribute('viewBox') || '',
+    preserveAspectRatio: el.getAttribute('preserveAspectRatio') || 'xMidYMid meet',
+    className: el.className,
+    computedStyles: extractCompleteStyles(el)
+  };
+}
+
+// ===== END PHASE 2 ENHANCEMENTS =====
 
 /**
  * Detect unsupported Reveal.js features in the presentation
@@ -151,16 +973,33 @@ function detectUnsupportedFeatures(doc) {
  * @param {Document} doc - The parsed HTML document
  * @returns {Object} - CSS data including inline and linked stylesheets
  *
- * NOTE: We DO NOT import CSS at all because:
+ * NOTE: We extract ONLY custom CSS (not Reveal.js framework CSS) because:
  * 1. Reveal.js CSS (reset, themes) would break SlideWinder's UI layout
- * 2. SlideWinder extracts computed styles directly from elements
- * 3. Custom styles are already captured in element computedStyles
+ * 2. Custom CSS is needed for classes like .video-overlay, .flex-container, etc.
+ * 3. This CSS will be included in the export for proper styling
  */
 async function extractCSS(doc) {
-  // Return empty CSS to prevent breaking SlideWinder's UI
-  // All styling is captured via getComputedStyle() on individual elements
+  // Extract custom CSS from <style> tags
+  const styleElements = doc.querySelectorAll('style');
+  const allCSS = Array.from(styleElements)
+    .map(styleEl => styleEl.textContent)
+    .join('\n\n');
+
+  // Filter to keep only custom CSS (not reveal.js framework styles)
+  const customCSS = allCSS.split('\n')
+    .filter(line => {
+      // Keep lines that don't look like reveal.js framework CSS
+      const isRevealFramework =
+        line.includes('.reveal .slides section {') ||
+        line.includes('/* Custom animations for elements') ||
+        line.includes('/* Set explicit slide dimensions');
+      return !isRevealFramework;
+    })
+    .join('\n')
+    .trim();
+
   return {
-    inlineCSS: '',
+    inlineCSS: customCSS,
     linkedStylesheets: []
   };
 }
@@ -195,8 +1034,10 @@ export async function parseRevealHTML(htmlContent) {
   // Extract all CSS from the document (async now)
   const cssData = await extractCSS(doc);
 
-  // Create a temporary container to render the slides for accurate measurements
+  // Create a temporary container with proper reveal.js DOM structure
+  // This is CRITICAL so that CSS selectors like .reveal h2 actually match!
   const tempContainer = document.createElement('div');
+  tempContainer.className = 'reveal';  // Add reveal class for CSS selectors
   tempContainer.style.position = 'absolute';
   tempContainer.style.left = '-9999px';
   tempContainer.style.top = '-9999px';
@@ -204,16 +1045,29 @@ export async function parseRevealHTML(htmlContent) {
   tempContainer.style.height = '1080px';
   tempContainer.style.visibility = 'hidden';
 
-  // Copy the slides content into the temp container
+  // Extract and inject custom CSS for accurate computed styles
+  const styleElements = doc.querySelectorAll('style');
+  styleElements.forEach(styleEl => {
+    const newStyle = document.createElement('style');
+    newStyle.textContent = styleEl.textContent;
+    tempContainer.appendChild(newStyle);
+  });
+
+  // Create inner slides container with proper class
+  const slidesWrapper = document.createElement('div');
+  slidesWrapper.className = 'slides';  // Add slides class for CSS selectors
+
+  // Copy the slides content into the slides wrapper
   const slidesContainer = doc.querySelector('.reveal .slides');
   if (slidesContainer) {
-    tempContainer.innerHTML = slidesContainer.innerHTML;
+    slidesWrapper.innerHTML = slidesContainer.innerHTML;
   }
 
+  tempContainer.appendChild(slidesWrapper);
   document.body.appendChild(tempContainer);
 
-  // Extract slides (including vertical slides - flatten them)
-  const slideElements = tempContainer.querySelectorAll(':scope > section');
+  // Extract slides from the properly structured container
+  const slideElements = slidesWrapper.querySelectorAll(':scope > section');
   const slides = [];
 
   slideElements.forEach((slideEl) => {
@@ -221,11 +1075,20 @@ export async function parseRevealHTML(htmlContent) {
     const verticalSlides = slideEl.querySelectorAll(':scope > section');
 
     if (verticalSlides.length > 0) {
-      // Has vertical slides - process each one
-      verticalSlides.forEach((verticalSlide) => {
-        const slide = parseSlidePreserveHTML(verticalSlide);
-        slides.push(slide);
-      });
+      // Has vertical slides - use the first child as parent, rest as children
+      const verticalSlidesArray = Array.from(verticalSlides);
+
+      // First vertical slide becomes the parent
+      const parentSlide = parseSlidePreserveHTML(verticalSlidesArray[0]);
+      parentSlide.hasVerticalSlides = true;
+      slides.push(parentSlide);
+
+      // Remaining vertical slides are children
+      for (let i = 1; i < verticalSlidesArray.length; i++) {
+        const childSlide = parseSlidePreserveHTML(verticalSlidesArray[i]);
+        childSlide.parentId = parentSlide.id;
+        slides.push(childSlide);
+      }
     } else {
       // No vertical slides - process normally
       const slide = parseSlidePreserveHTML(slideEl);
@@ -252,6 +1115,7 @@ export async function parseRevealHTML(htmlContent) {
 
 /**
  * Parse a slide element while preserving individual elements with their styling
+ * PHASE 1: Now uses smart layout detection and enhanced positioning
  * @param {HTMLElement} slideEl - The section element representing a slide
  * @returns {Object} - Slide object with individual editable elements
  */
@@ -287,18 +1151,49 @@ function parseSlidePreserveHTML(slideEl) {
     slide.transition = transition;
   }
 
+  // Special handling for data-markdown sections
+  const textarea = slideEl.querySelector('textarea[data-template]');
+  if (slideEl.hasAttribute('data-markdown') && textarea) {
+    // For markdown sections, create a single text element with the rendered content
+    // Note: Reveal.js normally parses markdown, but we'll preserve the plain text for now
+    const markdownContent = textarea.textContent.trim();
+
+    slide.elements.push({
+      id: crypto.randomUUID(),
+      type: 'text',
+      x: 20,
+      y: 100,
+      width: 920,
+      height: 440,
+      rotation: 0,
+      content: `<pre style="white-space: pre-wrap; font-family: inherit;">${markdownContent}</pre>`,
+      fontSize: 32,
+      color: '#000000',
+      tagName: 'div'
+    });
+
+    return slide;
+  }
+
+  // PHASE 1: Detect slide layout pattern
+  const layout = detectSlideLayout(slideEl);
+
   // Parse child elements individually with preserved styling
-  const children = Array.from(slideEl.children);
+  const children = Array.from(slideEl.children).filter(child =>
+    !child.classList.contains('notes') && child.tagName !== 'ASIDE'
+  );
+
   let elementIndex = 0;
 
   children.forEach((child, index) => {
-    // Skip speaker notes and other special elements
-    if (child.classList.contains('notes') || child.tagName === 'ASIDE') {
-      return;
-    }
-
-    const element = parseElementWithStyles(child, elementIndex);
+    const element = parseElementWithStyles(child, elementIndex, children, layout);
     if (element) {
+      // PHASE 1: Apply boundary detection and auto-fix
+      const adjustment = ensureWithinBounds(element);
+      if (adjustment.adjusted) {
+        console.log(`Auto-fixed element overflow: ${adjustment.method}`, element);
+      }
+
       slide.elements.push(element);
       elementIndex++;
     }
@@ -309,22 +1204,86 @@ function parseSlidePreserveHTML(slideEl) {
 
 /**
  * Parse an element while preserving all its styling information
+ * PHASE 1: Now uses smart position calculation
+ * PHASE 2: Enhanced element type detection and complete style extraction
  * @param {HTMLElement} el - The HTML element to parse
  * @param {number} index - Element index for default positioning
+ * @param {Array} siblings - All sibling elements
+ * @param {Object} layout - Detected slide layout
  * @returns {Object|null} - Element object with preserved styles
  */
-function parseElementWithStyles(el, index) {
+function parseElementWithStyles(el, index, siblings = [], layout = { type: 'generic' }) {
   const computedStyle = window.getComputedStyle(el);
   const tagName = el.tagName.toLowerCase();
 
-  // Get position - reveal.js typically centers content, so we'll use a stacked layout
-  const position = getElementPositionFromStyle(el, computedStyle, index);
+  // PHASE 1: Use smart position calculation
+  const positionResult = calculateSmartPosition(el, layout, index, siblings);
+  const position = { x: positionResult.x, y: positionResult.y };
 
   // Get size - use computed size if no explicit size set
   const size = getElementSizeFromStyle(el, computedStyle);
 
+  // Store the positioning mode for debugging
+  const positioningMode = positionResult.mode;
+
+  // PHASE 2.5: Check for styled container divs (preserve as single element)
+  // This handles cases like .video-overlay, .card, etc. that have backgrounds/styling
+  if (tagName === 'div' && hasStyledBackground(el, computedStyle)) {
+    const backgroundColor = computedStyle.backgroundColor;
+    const bgOpacity = parseRGBA(backgroundColor);
+
+    return {
+      id: crypto.randomUUID(),
+      type: 'text',
+      ...position,
+      ...size,
+      rotation: 0,
+      content: el.innerHTML, // Keep all children as HTML
+      fontSize: parseInt(computedStyle.fontSize) || 32,  // Keep original size, don't scale
+      color: rgbToHex(computedStyle.color) || '#ffffff',
+      backgroundColor: backgroundColor,
+      borderRadius: parseInt(computedStyle.borderRadius) || 0,
+      padding: computedStyle.padding,
+      tagName: tagName,  // Store original semantic tag (div, section, etc.)
+      className: el.className,
+      inlineStyle: el.getAttribute('style') || '',
+      positioningMode,
+      isStyledContainer: true,
+      computedStyles: extractCompleteStyles(el)
+    };
+  }
+
+  // PHASE 2: Check for SVG elements (high priority)
+  const svgElement = parseSVGElement(el, position, size);
+  if (svgElement) {
+    svgElement.positioningMode = positioningMode;
+    return svgElement;
+  }
+
+  // PHASE 2: Check for table elements
+  const tableElement = parseTableElement(el, position, size);
+  if (tableElement) {
+    tableElement.positioningMode = positioningMode;
+    return tableElement;
+  }
+
+  // PHASE 2: Check for code blocks
+  const codeElement = parseCodeBlock(el, position, size);
+  if (codeElement) {
+    codeElement.positioningMode = positioningMode;
+    return codeElement;
+  }
+
+  // PHASE 2: Check for lists (ul/ol)
+  const listElement = parseListElement(el, position, size);
+  if (listElement) {
+    listElement.positioningMode = positioningMode;
+    return listElement;
+  }
+
   // Check for images
   if (tagName === 'img') {
+    const gradient = extractBackgroundGradient(computedStyle);
     return {
       id: crypto.randomUUID(),
       type: 'image',
@@ -332,8 +1291,13 @@ function parseElementWithStyles(el, index) {
       ...size,
       rotation: 0,
       src: el.src,
+      alt: el.alt || '',
       className: el.className,
-      style: el.getAttribute('style') || ''
+      style: el.getAttribute('style') || '',
+      positioningMode,
+      // PHASE 2: Complete styles
+      computedStyles: extractCompleteStyles(el),
+      gradient: gradient
     };
   }
 
@@ -347,23 +1311,30 @@ function parseElementWithStyles(el, index) {
       rotation: 0,
       htmlContent: el.getAttribute('srcdoc') || el.src || '',
       className: el.className,
-      style: el.getAttribute('style') || ''
+      style: el.getAttribute('style') || '',
+      positioningMode,
+      // PHASE 2: Complete styles
+      computedStyles: extractCompleteStyles(el)
     };
   }
 
-  // Check for text elements (headings, paragraphs, divs with text, lists, blockquotes, etc.)
+  // Check for text elements (headings, paragraphs, divs with text, blockquotes, etc.)
   if (isTextElement(el)) {
     // Extract key styling properties from computed styles
-    const fontSize = parseInt(computedStyle.fontSize) || 24;
+    const rawFontSize = parseInt(computedStyle.fontSize) || 24;
+
+    // IMPORTANT: Keep original font sizes - don't scale them!
+    // Reveal.js and SlideWinder both use similar base font sizes (~32px)
+    // Only positions/dimensions are scaled, not font sizes
+    const fontSize = Math.round(rawFontSize);
+
     const color = rgbToHex(computedStyle.color) || '#000000';
-    const fontFamily = computedStyle.fontFamily;
-    const fontWeight = computedStyle.fontWeight;
-    const fontStyle = computedStyle.fontStyle;
-    const textAlign = computedStyle.textAlign;
-    const lineHeight = computedStyle.lineHeight;
-    const textTransform = computedStyle.textTransform;
-    const letterSpacing = computedStyle.letterSpacing;
-    const textShadow = computedStyle.textShadow;
+
+    // PHASE 2: Extract background gradient if present
+    const gradient = extractBackgroundGradient(computedStyle);
+
+    // PHASE 2: Use complete style extraction
+    const completeStyles = extractCompleteStyles(el);
 
     return {
       id: crypto.randomUUID(),
@@ -372,21 +1343,15 @@ function parseElementWithStyles(el, index) {
       ...size,
       rotation: 0,
       content: el.innerHTML,
-      fontSize: fontSize,
+      fontSize: fontSize, // Now properly scaled
       color: color,
-      className: el.className, // Preserve CSS classes
-      inlineStyle: el.getAttribute('style') || '', // Preserve inline styles
-      // Store computed styles for accurate rendering
-      computedStyles: {
-        fontFamily,
-        fontWeight,
-        fontStyle,
-        textAlign,
-        lineHeight,
-        textTransform,
-        letterSpacing,
-        textShadow
-      }
+      tagName: tagName, // Store original tag for semantic preservation
+      className: el.className,
+      inlineStyle: el.getAttribute('style') || '',
+      positioningMode,
+      gradient: gradient,
+      // PHASE 2: Store complete computed styles (100+ properties)
+      computedStyles: completeStyles
     };
   }
 
@@ -460,8 +1425,8 @@ function getElementSizeFromStyle(el, computedStyle) {
   const scaledHeight = Math.round(computedHeight * SCALE_FACTOR);
 
   return {
-    width: Math.min(scaledWidth, 800), // Max width for slide (960 - margins)
-    height: Math.min(scaledHeight, 200) // Reasonable max height
+    width: Math.min(scaledWidth, 900), // Max width for slide (960 - margins)
+    height: Math.min(scaledHeight, 400) // Increased from 200 to 400 for large headings
   };
 }
 

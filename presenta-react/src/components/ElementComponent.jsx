@@ -37,6 +37,10 @@ const ElementComponent = ({ element, onMouseDown, onResizeMouseDown, onRotateMou
                     width: '100%',
                     height: '100%',
                     pointerEvents: 'none',
+                    // Apply background and container styles (for imported styled containers)
+                    ...(element.backgroundColor && { backgroundColor: element.backgroundColor }),
+                    ...(element.borderRadius && { borderRadius: `${element.borderRadius}px` }),
+                    ...(element.padding && { padding: element.padding }),
                     // Apply computed styles if available (from reveal.js import)
                     ...(element.computedStyles && {
                         fontFamily: element.computedStyles.fontFamily,
@@ -46,7 +50,9 @@ const ElementComponent = ({ element, onMouseDown, onResizeMouseDown, onRotateMou
                         lineHeight: element.computedStyles.lineHeight,
                         textTransform: element.computedStyles.textTransform,
                         letterSpacing: element.computedStyles.letterSpacing,
-                        textShadow: element.computedStyles.textShadow
+                        textShadow: element.computedStyles.textShadow,
+                        boxShadow: element.computedStyles.boxShadow,
+                        border: element.computedStyles.border
                     })
                 };
 

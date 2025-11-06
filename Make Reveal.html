@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="description" content="Learn how reveal.js transforms presentations into interactive web experiences">
+
+    <title>Stop Making Slides. Start Telling Interactive Stories.</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/reveal.js@4.6.1/dist/reveal.css">
+    <link rel="stylesheet" href="https://unpkg.com/reveal.js@4.6.1/dist/theme/white.css" id="theme-link">
+    <link rel="stylesheet" href="https://unpkg.com/reveal.js@4.6.1/plugin/highlight/monokai.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js-plugins@latest/chalkboard/style.css">
+
+    <style>
+        /* Don't override theme background colors */
+        
+        /* Helper class for 3-column layout */
+        .flex-container {
+            display: flex;
+            gap: 20px;
+            align-items: start;
+            text-align: center;
+        }
+        .flex-container figure {
+            flex: 1;
+        }
+        .flex-container figure img {
+            width: 100%;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        /* Helper class for Markdown vs. Rendered slide */
+        .side-by-side {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+        .side-by-side > div {
+            flex: 1;
+            text-align: left;
+        }
+        .side-by-side .markdown-example {
+            font-family: 'Courier New', monospace;
+            background: #2d2d2d;
+            padding: 15px;
+            border-radius: 5px;
+            color: #f8f8f2;
+        }
+        .side-by-side .markdown-example h4 {
+            margin-top: 0;
+            font-size: 0.9em;
+            color: #f8f8f2;
+        }
+        .side-by-side .rendered-example {
+            border: 2px dashed #ccc;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .side-by-side .rendered-example h4 {
+            margin-top: 0;
+            font-size: 0.9em;
+        }
+        
+        /* Responsive iframe container */
+        .responsive-iframe {
+            position: relative;
+            width: 80%;
+            margin: 0 auto;
+            padding-bottom: 45%; /* Adjust ratio as needed */
+        }
+        .responsive-iframe iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+        
+        /* Keyboard shortcuts styling */
+        kbd {
+            background: #f4f4f4;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            padding: 2px 8px;
+            font-family: monospace;
+            box-shadow: 0 2px 0 rgba(0,0,0,0.2);
+        }
+        
+        /* Consistent section spacing - don't override colors */
+        .reveal h2, .reveal h3 {
+            margin-bottom: 20px;
+        }
+        
+        /* Better text sizing for readability */
+        .reveal {
+            font-size: 32px;
+        }
+        
+        /* Responsive font sizing */
+        @media (max-width: 1200px) {
+            .reveal { font-size: 28px; }
+        }
+        
+        @media (max-width: 900px) {
+            .reveal { font-size: 24px; }
+        }
+        
+        @media (max-width: 600px) {
+            .reveal { font-size: 20px; }
+        }
+        
+        /* Ensure headings scale proportionally but don't use clamp that might break centering */
+        .reveal h1 {
+            font-size: 2.5em;
+            line-height: 1.2;
+        }
+        
+        .reveal h2 {
+            font-size: 1.8em;
+            line-height: 1.3;
+        }
+        
+        .reveal h3 {
+            font-size: 1.4em;
+            line-height: 1.3;
+        }
+        
+        /* Make sure content doesn't overflow */
+        .reveal .slides section {
+            height: auto !important;
+        }
+        
+        /* Video background overlay */
+        .video-overlay {
+            background: rgba(0,0,0,0.6);
+            color: #fff;
+            padding: 40px;
+            border-radius: 10px;
+            backdrop-filter: blur(5px);
+        }
+        
+        /* Placeholder for missing images */
+        .placeholder-img {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            border-radius: 8px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .theme-selector:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+        }
+        
+        .theme-selector:active {
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+            
+            <section>
+                <h1>Stop Making Slides.</h1>
+                <h2>Start Telling Interactive Stories.</h2>
+                <p><small>A look at reveal.js for creatives, marketers, and educators</small></p>
+            </section>
+
+            <section>
+                <h2>The "Template Trap"</h2>
+                <ul>
+                    <li class="fragment" data-fragment-index="1">Trapped in the "Title + 3 Bullets" box.</li>
+                    <li class="fragment" data-fragment-index="2">Or... the dreaded "Wall of Text" slide.</li>
+                    <li class="fragment" data-fragment-index="3">Your graphs and charts look flat and dated.</li>
+                    <li class="fragment" data-fragment-index="4">And embedding live content? Forget it.</li>
+                </ul>
+            </section>
+
+            <section data-background-color="#2c3e50">
+                <div class="video-overlay">
+                    <h2 style="font-size: 1.3em;">What if your presentation was just...</h2>
+                    <h1 style="font-size: 2em; margin: 20px 0;">A beautiful, interactive webpage?</h1>
+                    <p style="font-size: 0.9em;">That's reveal.js. It's a modern tool for building presentations that <em>engage</em>.</p>
+                    <p style="font-size: 0.7em;"><small>Note: Add your background video with data-background-video attribute</small></p>
+                </div>
+            </section>
+
+            <section>
+                <h2>Your Brand. Your Rules.</h2>
+                <p style="font-size: 0.8em; margin-bottom: 30px;">Click any theme below to instantly transform this presentation:</p>
+                <div class="flex-container">
+                    <figure>
+                        <div class="placeholder-img theme-selector" 
+                             style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); cursor: pointer;"
+                             onclick="changeTheme('night')"
+                             role="button"
+                             tabindex="0">
+                            Dark & Techy
+                        </div>
+                        <figcaption><small>Dark & Techy</small></figcaption>
+                    </figure>
+                    <figure>
+                        <div class="placeholder-img theme-selector" 
+                             style="background: linear-gradient(135deg, #f5f5f5 0%, #e0e0e0 100%); color: #333; cursor: pointer;"
+                             onclick="changeTheme('simple')"
+                             role="button"
+                             tabindex="0">
+                            Clean Minimal
+                        </div>
+                        <figcaption><small>Clean, "FAANG-style"</small></figcaption>
+                    </figure>
+                    <figure>
+                        <div class="placeholder-img theme-selector" 
+                             style="background: linear-gradient(135deg, #4a90e2 0%, #50c9e9 100%); cursor: pointer;"
+                             onclick="changeTheme('sky')"
+                             role="button"
+                             tabindex="0">
+                            Sky Blue
+                        </div>
+                        <figcaption><small>Playful & Branded</small></figcaption>
+                    </figure>
+                </div>
+                <div style="margin-top: 40px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                    <button onclick="changeTheme('moon')" style="padding: 10px 20px; cursor: pointer; border-radius: 5px; border: 2px solid #ccc; background: #2b2b2b; color: white;">Moon</button>
+                    <button onclick="changeTheme('solarized')" style="padding: 10px 20px; cursor: pointer; border-radius: 5px; border: 2px solid #ccc; background: #fdf6e3; color: #586e75;">Solarized</button>
+                    <button onclick="changeTheme('serif')" style="padding: 10px 20px; cursor: pointer; border-radius: 5px; border: 2px solid #ccc; background: #f0f1eb; color: #000;">Serif</button>
+                    <button onclick="changeTheme('white')" style="padding: 10px 20px; cursor: pointer; border-radius: 5px; border: 2px solid #333; background: white; color: #222;">Reset</button>
+                </div>
+                <p style="font-size: 0.7em; margin-top: 30px; color: #666;">
+                    <em>Try it now! Click any theme to see instant transformation.</em>
+                </p>
+            </section>
+
+            <section>
+                <h3>Beyond the "Right-Click"</h3>
+                <p>Reveal.js gives you presentation superpowers:</p>
+                <ul>
+                    <li class="fragment"><strong>Cinematic transitions:</strong> Fade, slide, zoom, and custom effects</li>
+                    <li class="fragment"><strong>Parallax backgrounds:</strong> Create depth with moving images</li>
+                    <li class="fragment"><strong>2D Navigation:</strong> Organize content horizontally AND vertically</li>
+                    <li class="fragment"><strong>Custom animations:</strong> Make elements appear with style</li>
+                </ul>
+            </section>
+            
+            <section>
+                <h3>Example: Cinematic Transitions</h3>
+                <p>Watch how smoothly slides transition</p>
+                <p class="fragment fade-up">This text fades up</p>
+                <p class="fragment fade-right">This text slides from the left</p>
+                <p class="fragment zoom-in">This text zooms in</p>
+                <p><small>Try changing slides to see the slide transition effect</small></p>
+            </section>
+            
+            <section data-background-gradient="linear-gradient(135deg, #667eea 0%, #764ba2 100%)">
+                <h2 style="color: white;">Example: Custom Backgrounds</h2>
+                <p style="color: white;">This slide has a beautiful gradient background</p>
+                <p style="color: white;"><small>You can use colors, gradients, images, or even videos!</small></p>
+            </section>
+            
+            <section>
+                <section>
+                    <h3>Example: 2D Navigation</h3>
+                    <p>Press the <kbd>↓</kbd> down arrow to explore this vertical stack</p>
+                    <p><small>Then use <kbd>→</kbd> to move to the next horizontal section</small></p>
+                </section>
+                
+                <section>
+                    <h4>Vertical Slide 1</h4>
+                    <p>This is the first slide in a vertical stack</p>
+                    <p>Press <kbd>↓</kbd> to continue down</p>
+                </section>
+                
+                <section>
+                    <h4>Vertical Slide 2</h4>
+                    <p>You can organize related content vertically</p>
+                    <p>And separate different topics horizontally</p>
+                    <p>Press <kbd>→</kbd> to move to the next topic</p>
+                </section>
+            </section>
+
+            <section>
+                <h2>Advantage 2: Unmatched Interactivity</h2>
+                <p>If it works in a browser, it works in your presentation.</p>
+            </section>
+
+            <section>
+                <h2>Embed <em>Anything</em> (Live!)</h2>
+                
+                <div style="width: 90%; margin: 0 auto; height: 60vh; max-height: 600px; position: relative;">
+                    <iframe 
+                        title="Volunteller - Interactive name picker demo"
+                        src="volunteller.html" 
+                        style="width: 100%; height: 100%; border: 2px solid #00ff41; border-radius: 8px; background: #0d0d0d;"
+                        loading="lazy">
+                    </iframe>
+                </div>
+                
+                <p style="margin-top: 1rem;"><small>Live demo: Upload a CSV and pick random names!</small></p>
+                <p><small>Also works with: YouTube/Vimeo, Dashboards, Games, Forms...</small></p>
+            </section>
+
+            <section data-markdown>
+                <textarea data-template>
+                    ## Plugins for Engagement
+                    * **Chalkboard:** Draw on your slides live (Press 'B')
+                    * **Speaker Notes:** Private notes for presenters (Press 'S')
+                    * **Custom Menus:** Let your audience jump to any section
+                    * **Zoom:** Focus on details (Alt+Click)
+                </textarea>
+            </section>
+
+            <section>
+                <h2>Keyboard Shortcuts</h2>
+                <p>Master these shortcuts to present like a pro:</p>
+                <ul>
+                    <li><kbd>B</kbd> or <kbd>C</kbd> - Toggle chalkboard/drawing mode</li>
+                    <li><kbd>S</kbd> - Open speaker notes view</li>
+                    <li><kbd>F</kbd> - Enter fullscreen mode</li>
+                    <li><kbd>ESC</kbd> - Slide overview mode</li>
+                    <li><kbd>?</kbd> - Show all keyboard shortcuts</li>
+                    <li>Arrow keys - Navigate slides</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2>Advantage 3: A Simple, Focused Workflow</h2>
+                <h3 class="fragment">"But isn't this... <em>technical</em>?"</h3>
+                <h4 class="fragment"><strong>No. You don't have to write code.</strong></h4>
+                <p class="fragment">You can write your entire presentation in a simple text file.</p>
+            </section>
+
+            <section>
+                <h3>Meet Markdown: Focus on Content</h3>
+                <div class="side-by-side">
+                    <div class="markdown-example">
+                        <h4>Your Text:</h4>
+<pre style="font-size: 0.5em; margin: 10px 0;"><code class="language-markdown">## This is a Headline
+
+* This is a bullet point
+* This is another one
+
+**Bold text** and *italic text*
+</code></pre>
+                    </div>
+                    <div class="rendered-example">
+                        <h4>Your Slide:</h4>
+                        <h2 style="font-size: 1.3em; margin: 10px 0;">This is a Headline</h2>
+                        <ul style="font-size: 0.7em;">
+                            <li>This is a bullet point</li>
+                            <li>This is another one</li>
+                        </ul>
+                        <p style="font-size: 0.7em;"><strong>Bold text</strong> and <em>italic text</em></p>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <h2>How You <em>Actually</em> Get Started</h2>
+                <h3>You have three great options.</h3>
+            </section>
+
+            <section data-markdown>
+                <textarea data-template>
+                    ## Option 1: Start with a Template
+                    1.  Download a simple template from GitHub
+                    2.  Open the **slides.md** file in any text editor
+                    3.  Edit the text and save
+                    4.  Open index.html in your browser
+                    5.  You're done!
+                    
+                    **No installation required!**
+                </textarea>
+            </section>
+            
+            <section>
+                <h2>Option 2: Use a Visual Editor</h2>
+                
+                <div style="background: #4285f4; color: white; padding: 20px; border-radius: 10px; margin: 20px auto; max-width: 300px;">
+                    <h3 style="margin: 0; color: white;">Slides.com</h3>
+                    <p style="margin: 10px 0 0 0; font-size: 0.8em;">Visual Editor for reveal.js</p>
+                </div>
+                
+                <p>Tools like <strong>Slides.com</strong> are built on reveal.js!</p>
+                <ul>
+                    <li>Get a "PowerPoint-like" drag-and-drop interface</li>
+                    <li>Get the power of reveal.js with a familiar workflow</li>
+                    <li>Export to HTML for full customization later</li>
+                </ul>
+            </section>
+            
+            <section>
+                <h2>Option 3: Use an LLM to Code It</h2>
+                
+                <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 10px; margin: 20px auto; max-width: 600px;">
+                    <h3 style="margin: 0 0 10px 0; color: white; font-size: 1.3em;">🤖 AI-Powered Presentations</h3>
+                    <p style="margin: 0; font-size: 0.85em; line-height: 1.5;">
+                        Use ChatGPT, Claude, or other LLMs to generate your entire presentation in HTML!
+                    </p>
+                </div>
+                
+                <ul style="text-align: left; max-width: 700px; margin: 15px auto; font-size: 0.85em;">
+                    <li style="margin-bottom: 10px;"><strong>Just describe what you want:</strong> "Create a reveal.js presentation about climate change"</li>
+                    <li style="margin-bottom: 10px;"><strong>Get instant HTML:</strong> Copy, paste, and present in minutes</li>
+                    <li style="margin-bottom: 10px;"><strong>Easy iterations:</strong> "Make that slide more visual" or "Add a chart here"</li>
+                    <li style="margin-bottom: 10px;"><strong>No coding required:</strong> The AI handles all the technical details</li>
+                </ul>
+                
+                <p style="margin-top: 20px; font-style: italic; opacity: 0.8; font-size: 0.8em;">
+                    <small>💡 Pro tip: This entire presentation was built with an LLM!</small>
+                </p>
+            </section>
+            
+            <section>
+                <h1>Stop fighting your tools.</h1>
+                <h1>Start telling interactive stories.</h1>
+                <br>
+                <h3><a href="https://revealjs.com" target="_blank">revealjs.com</a></h3>
+                <br>
+                <h2>Questions?</h2>
+            </section>
+
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/reveal.js@4.6.1/dist/reveal.js"></script>
+    <script src="https://unpkg.com/reveal.js@4.6.1/plugin/markdown/markdown.js"></script>
+    <script src="https://unpkg.com/reveal.js@4.6.1/plugin/notes/notes.js"></script>
+    <script src="https://unpkg.com/reveal.js@4.6.1/plugin/highlight/highlight.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/reveal.js-plugins@latest/chalkboard/plugin.js"></script>
+
+    <script>
+        // Function to change the theme dynamically
+        function changeTheme(themeName) {
+            // Get the theme link element by ID
+            const themeLink = document.getElementById('theme-link');
+            
+            if (themeLink) {
+                // Update the href to the new theme
+                themeLink.href = `https://unpkg.com/reveal.js@4.6.1/dist/theme/${themeName}.css`;
+                
+                // Force a reflow to ensure the theme is applied
+                void themeLink.offsetWidth;
+                
+                // Show notification
+                showThemeNotification(themeName);
+            }
+        }
+        
+        function showThemeNotification(themeName) {
+            const themeNames = {
+                'night': 'Dark & Techy',
+                'simple': 'Clean Minimal',
+                'sky': 'Sky Blue',
+                'moon': 'Moon',
+                'solarized': 'Solarized',
+                'serif': 'Serif',
+                'white': 'Default White',
+                'black': 'Black',
+                'league': 'League',
+                'beige': 'Beige',
+                'blood': 'Blood'
+            };
+            
+            // Remove any existing notification
+            const existingNotification = document.querySelector('.theme-notification');
+            if (existingNotification) {
+                existingNotification.remove();
+            }
+            
+            const notification = document.createElement('div');
+            notification.className = 'theme-notification';
+            notification.textContent = `Theme: ${themeNames[themeName] || themeName}`;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: rgba(0,0,0,0.9);
+                color: white;
+                padding: 15px 25px;
+                border-radius: 8px;
+                z-index: 10000;
+                font-size: 16px;
+                font-weight: bold;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                animation: slideInRight 0.3s ease;
+            `;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transition = 'opacity 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 1500);
+        }
+        
+        // Wait for scripts to load
+        window.addEventListener('load', function() {
+            Reveal.initialize({
+                // Display controls in the bottom right corner
+                controls: true,
+
+                // Display a presentation progress bar
+                progress: true,
+
+                // Push each slide change to the browser history
+                hash: true,
+
+                // Center slides vertically
+                center: true,
+
+                // Enable fragments
+                fragments: true,
+
+                // Transition style
+                transition: 'slide', // none/fade/slide/convex/concave/zoom
+
+                // Register plugins
+                plugins: [ RevealMarkdown, RevealNotes, RevealHighlight, RevealChalkboard ],
+
+                // Chalkboard configuration
+                chalkboard: {
+                    toggleChalkboardButton: { key: 'B' },
+                    toggleNotesButton: { key: 'C' },
+                }
+            });
+        });
+    </script>
+</body>
+</html>
