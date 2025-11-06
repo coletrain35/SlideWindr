@@ -21,6 +21,10 @@ const ElementComponent = ({ element, onMouseDown, onResizeMouseDown, onRotateMou
         width: `${element.width}px`,
         height: `${element.height}px`,
         transform: `rotate(${element.rotation || 0}deg)`,
+        // Visual indicator for flow mode elements
+        ...(element.layoutMode === 'flow' && {
+            outline: isSelected ? '2px dashed rgba(59, 130, 246, 0.5)' : 'none',
+        })
     };
 
     const handleContentChange = (e) => {

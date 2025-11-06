@@ -19,7 +19,9 @@ export function generateRevealHTML(presentation) {
         let bgAttrs = '';
 
         // Set background attributes for reveal.js
-        if (bg.type === 'color' && !bg.reactComponent) {
+        if (bg.type === 'gradient' && !bg.reactComponent) {
+            bgAttrs = `data-background-gradient="${bg.value}"`;
+        } else if (bg.type === 'color' && !bg.reactComponent) {
             bgAttrs = `data-background-color="${bg.value}"`;
         } else if (bg.type === 'image' && !bg.reactComponent) {
             bgAttrs = `data-background-image="${bg.value}"`;
@@ -42,6 +44,22 @@ export function generateRevealHTML(presentation) {
             bgReactContainer = `<div class='absolute inset-0' style='width: 100%; height: 100%;' data-react-code='${code}' data-react-props='${props}'></div>`;
         }
 
+        // ARCHITECTURAL CHANGE: Handle flow mode differently
+        if (slide.layoutMode === 'flow') {
+            // Flow mode: Output elements directly without absolute positioning
+            const elementsHtml = slide.elements.map(el => {
+                if (el.layoutMode === 'flow') {
+                    // Return semantic HTML directly, no wrapper div
+                    return el.content;
+                }
+                // Fallback: if individual element needs absolute positioning
+                return generateAbsoluteElement(el);
+            }).join('\n');
+
+            return `<section ${bgAttrs}>${bgReactContainer}${elementsHtml}</section>`;
+        }
+
+        // ABSOLUTE MODE: Existing logic below
         // Generate HTML for each element
         const elementsHtml = slide.elements.map(el => {
             // Map animation types to custom CSS animation classes
@@ -292,9 +310,9 @@ export function generateRevealHTML(presentation) {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>${presentation.title}</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reset.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/theme/${presentation.theme}.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/reveal.js@4.6.1/dist/reset.css">
+    <link rel="stylesheet" href="https://unpkg.com/reveal.js@4.6.1/dist/reveal.css">
+    <link rel="stylesheet" href="https://unpkg.com/reveal.js@4.6.1/dist/theme/${presentation.theme}.css" id="theme-link">
     <style>
     /* Set explicit slide dimensions (16:9 aspect ratio) */
     .reveal .slides section {
@@ -459,7 +477,7 @@ export function generateRevealHTML(presentation) {
             ${slidesHtml}
         </div>
     </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.3.1/reveal.min.js"></script>
+    <script src="https://unpkg.com/reveal.js@4.6.1/dist/reveal.js"></script>
     <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -467,7 +485,7 @@ export function generateRevealHTML(presentation) {
     <script src="https://unpkg.com/postprocessing@6.23.5/build/postprocessing.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script>
-        Reveal.initialize(${JSON.stringify(settingsForReveal, null, 2)});
+        ${presentation.customJS ? `// Custom JavaScript from imported presentation\n        ${presentation.customJS}\n\n        ` : ''}Reveal.initialize(${JSON.stringify(settingsForReveal, null, 2)});
 
         const dependencyResolver = (dep) => {
             if (dep === 'react') return React;

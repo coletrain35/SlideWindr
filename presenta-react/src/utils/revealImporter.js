@@ -98,6 +98,140 @@ function detectSlideLayout(slideEl) {
 }
 
 /**
+ * Parse basic markdown to HTML
+ * Handles common markdown syntax for reveal.js slides
+ * @param {string} markdown - Markdown content
+ * @returns {string} - HTML content
+ */
+function parseBasicMarkdown(markdown) {
+  let html = markdown;
+
+  // Headers
+  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>');
+  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>');
+  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>');
+
+  // Bold and Italic (do these before lists to preserve formatting in list items)
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+  // Process lists line by line to handle numbered and bulleted separately
+  const lines = html.split('\n');
+  const processed = [];
+  let inNumberedList = false;
+  let inBulletedList = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    // Check if this is a numbered list item
+    const numberedMatch = trimmed.match(/^\d+\.\s+(.+)$/);
+    if (numberedMatch) {
+      if (!inNumberedList) {
+        processed.push('<ol>');
+        inNumberedList = true;
+      }
+      if (inBulletedList) {
+        processed.push('</ul>');
+        inBulletedList = false;
+      }
+      processed.push(`<li>${numberedMatch[1]}</li>`);
+      continue;
+    }
+
+    // Check if this is a bulleted list item
+    const bulletedMatch = trimmed.match(/^[\*\-]\s+(.+)$/);
+    if (bulletedMatch) {
+      if (!inBulletedList) {
+        processed.push('<ul>');
+        inBulletedList = true;
+      }
+      if (inNumberedList) {
+        processed.push('</ol>');
+        inNumberedList = false;
+      }
+      processed.push(`<li>${bulletedMatch[1]}</li>`);
+      continue;
+    }
+
+    // Not a list item - close any open lists
+    if (inNumberedList) {
+      processed.push('</ol>');
+      inNumberedList = false;
+    }
+    if (inBulletedList) {
+      processed.push('</ul>');
+      inBulletedList = false;
+    }
+
+    // Process as regular line
+    if (trimmed && !trimmed.startsWith('<')) {
+      processed.push(`<p>${trimmed}</p>`);
+    } else if (trimmed) {
+      processed.push(line);
+    }
+  }
+
+  // Close any remaining open lists
+  if (inNumberedList) processed.push('</ol>');
+  if (inBulletedList) processed.push('</ul>');
+
+  return processed.join('\n');
+}
+
+/**
+ * Detect whether a slide should use flow layout or absolute positioning
+ * Flow layout: Natural document flow with reveal.js centering (most reveal.js slides)
+ * Absolute layout: Explicit positioning with x/y coordinates
+ * @param {HTMLElement} slideEl - The slide section element
+ * @param {Array<HTMLElement>} children - Child elements
+ * @returns {string} - 'flow' or 'absolute'
+ */
+function detectSlideLayoutMode(slideEl, children) {
+  // Check if ANY child has explicit absolute positioning
+  const hasAbsolutePositioned = children.some(child => {
+    const computed = window.getComputedStyle(child);
+    const style = child.style;
+
+    // Check for explicit positioning
+    if (computed.position === 'absolute' || computed.position === 'fixed') {
+      return true;
+    }
+
+    // Check for inline left/top/right/bottom
+    if (style.left || style.top || style.right || style.bottom) {
+      return true;
+    }
+
+    // Check for transform translate (manual positioning)
+    const transform = computed.transform || style.transform;
+    if (transform && transform.includes('translate') && !transform.includes('translateX(0') && !transform.includes('translateY(0')) {
+      return true;
+    }
+
+    return false;
+  });
+
+  // Check for complex layouts that might need absolute positioning
+  const slideComputed = window.getComputedStyle(slideEl);
+  const hasComplexLayout =
+    slideComputed.display === 'grid' ||
+    children.some(child => {
+      const computed = window.getComputedStyle(child);
+      // Flex containers with specific positioning might need absolute
+      return computed.display === 'grid';
+    });
+
+  if (hasAbsolutePositioned || hasComplexLayout) {
+    return 'absolute';
+  }
+
+  // Default: Use flow layout (reveal.js natural centering)
+  return 'flow';
+}
+
+/**
  * Calculate element position using multi-pass algorithm
  * Priority: absolute → transform → flex → grid → flow
  * @param {HTMLElement} el - The element to position
@@ -1102,6 +1236,51 @@ export async function parseRevealHTML(htmlContent) {
   // Extract settings from Reveal.initialize call if present
   const settings = extractRevealSettings(doc);
 
+  // Extract custom JavaScript (exclude library scripts and Reveal.initialize)
+  let customJS = '';
+  const scriptElements = doc.querySelectorAll('script');
+  scriptElements.forEach(script => {
+    // Skip external scripts (those with src attribute)
+    if (script.src) return;
+
+    const content = script.textContent.trim();
+    // Skip empty scripts
+    if (!content) return;
+
+    // Simple approach: Keep everything before Reveal.initialize or window.addEventListener('load'
+    // These are the patterns that typically wrap Reveal.initialize
+    const lines = content.split('\n');
+    let customCode = [];
+
+    for (const line of lines) {
+      // Stop when we hit Reveal.initialize or the load event listener that contains it
+      if (line.includes('Reveal.initialize') ||
+          line.includes("window.addEventListener('load'") ||
+          line.includes('window.addEventListener("load"')) {
+        break;
+      }
+
+      // Skip SlideWinder-specific code that shouldn't be re-exported
+      if (line.includes('dependencyResolver') ||
+          line.includes('renderedContainers') ||
+          line.includes('Babel.transform') ||
+          line.includes('ReactDOM.render') ||
+          line.includes('webglcontext') ||
+          line.includes('Reveal.on(')) {
+        continue;
+      }
+
+      // Keep the line (including comments and empty lines for formatting)
+      customCode.push(line);
+    }
+
+    // Only add if we found custom code (not just whitespace)
+    const codeText = customCode.join('\n').trim();
+    if (codeText) {
+      customJS += codeText + '\n\n';
+    }
+  });
+
   return {
     title,
     theme,
@@ -1109,7 +1288,8 @@ export async function parseRevealHTML(htmlContent) {
     settings: settings || createDefaultSettings(),
     warnings,
     customCSS: cssData.inlineCSS,
-    linkedStylesheets: cssData.linkedStylesheets
+    linkedStylesheets: cssData.linkedStylesheets,
+    customJS: customJS.trim()
   };
 }
 
@@ -1154,23 +1334,27 @@ function parseSlidePreserveHTML(slideEl) {
   // Special handling for data-markdown sections
   const textarea = slideEl.querySelector('textarea[data-template]');
   if (slideEl.hasAttribute('data-markdown') && textarea) {
-    // For markdown sections, create a single text element with the rendered content
-    // Note: Reveal.js normally parses markdown, but we'll preserve the plain text for now
+    // For markdown sections, parse markdown to HTML (basic parsing)
     const markdownContent = textarea.textContent.trim();
+    const htmlContent = parseBasicMarkdown(markdownContent);
 
     slide.elements.push({
       id: crypto.randomUUID(),
       type: 'text',
+      layoutMode: 'flow',  // Use flow mode for markdown content
       x: 20,
       y: 100,
       width: 920,
       height: 440,
       rotation: 0,
-      content: `<pre style="white-space: pre-wrap; font-family: inherit;">${markdownContent}</pre>`,
+      content: htmlContent,
       fontSize: 32,
       color: '#000000',
       tagName: 'div'
     });
+
+    // IMPORTANT: Set slide layoutMode to 'flow' so export outputs semantic HTML
+    slide.layoutMode = 'flow';
 
     return slide;
   }
@@ -1183,15 +1367,26 @@ function parseSlidePreserveHTML(slideEl) {
     !child.classList.contains('notes') && child.tagName !== 'ASIDE'
   );
 
+  // ARCHITECTURAL CHANGE: Detect if slide should use flow or absolute positioning
+  const layoutMode = detectSlideLayoutMode(slideEl, children);
+  slide.layoutMode = layoutMode;
+
+  // For flow mode, also store the raw HTML for potential use
+  if (layoutMode === 'flow') {
+    slide.flowContent = slideEl.innerHTML;
+  }
+
   let elementIndex = 0;
 
   children.forEach((child, index) => {
-    const element = parseElementWithStyles(child, elementIndex, children, layout);
+    const element = parseElementWithStyles(child, elementIndex, children, layout, layoutMode);
     if (element) {
-      // PHASE 1: Apply boundary detection and auto-fix
-      const adjustment = ensureWithinBounds(element);
-      if (adjustment.adjusted) {
-        console.log(`Auto-fixed element overflow: ${adjustment.method}`, element);
+      // PHASE 1: Apply boundary detection and auto-fix (only for absolute mode)
+      if (layoutMode === 'absolute') {
+        const adjustment = ensureWithinBounds(element);
+        if (adjustment.adjusted) {
+          console.log(`Auto-fixed element overflow: ${adjustment.method}`, element);
+        }
       }
 
       slide.elements.push(element);
@@ -1206,15 +1401,54 @@ function parseSlidePreserveHTML(slideEl) {
  * Parse an element while preserving all its styling information
  * PHASE 1: Now uses smart position calculation
  * PHASE 2: Enhanced element type detection and complete style extraction
+ * ARCHITECTURAL: Now supports flow mode for natural reveal.js layout
  * @param {HTMLElement} el - The HTML element to parse
  * @param {number} index - Element index for default positioning
  * @param {Array} siblings - All sibling elements
  * @param {Object} layout - Detected slide layout
+ * @param {string} slideLayoutMode - 'flow' or 'absolute'
  * @returns {Object|null} - Element object with preserved styles
  */
-function parseElementWithStyles(el, index, siblings = [], layout = { type: 'generic' }) {
+function parseElementWithStyles(el, index, siblings = [], layout = { type: 'generic' }, slideLayoutMode = 'absolute') {
   const computedStyle = window.getComputedStyle(el);
   const tagName = el.tagName.toLowerCase();
+
+  // ARCHITECTURAL CHANGE: Flow mode - preserve natural structure, no positioning
+  if (slideLayoutMode === 'flow') {
+    // For flow mode, we still calculate positions for EDITOR DISPLAY ONLY
+    // Export will ignore these and use natural flow instead
+    const positionResult = calculateSmartPosition(el, layout, index, siblings);
+    const size = getElementSizeFromStyle(el, computedStyle);
+
+    return {
+      id: crypto.randomUUID(),
+      type: 'text',
+      layoutMode: 'flow',
+      // Editor display positions (ignored on export)
+      x: positionResult.x,
+      y: positionResult.y,
+      width: size.width,
+      height: size.height,
+      rotation: 0,
+      // Flow mode data
+      content: el.outerHTML,
+      tagName: tagName,
+      fontSize: parseInt(computedStyle.fontSize) || 32,
+      color: rgbToHex(computedStyle.color) || '#000000',
+      className: el.className,
+      inlineStyle: el.getAttribute('style') || '',
+      // Store margin/padding for spacing in flow
+      flowStyles: {
+        margin: computedStyle.margin,
+        padding: computedStyle.padding,
+        textAlign: computedStyle.textAlign,
+        maxWidth: computedStyle.maxWidth
+      },
+      computedStyles: extractCompleteStyles(el)
+    };
+  }
+
+  // ABSOLUTE MODE: Existing logic below
 
   // PHASE 1: Use smart position calculation
   const positionResult = calculateSmartPosition(el, layout, index, siblings);
@@ -1398,35 +1632,60 @@ function getElementPositionFromStyle(el, computedStyle, index) {
 /**
  * Extract element size from styles or use content-based defaults
  * Scales from typical Reveal.js size (1920x1080) to SlideWinder size (960x540)
+ * ARCHITECTURAL CHANGE: Now handles vh/vw/% units properly
  */
 function getElementSizeFromStyle(el, computedStyle) {
   // Reveal.js typical size: 1920x1080, SlideWinder: 960x540 = 0.5 scale factor
-  const SCALE_FACTOR = 0.5;
+  const REVEAL_WIDTH = 1920;
+  const REVEAL_HEIGHT = 1080;
+  const CANVAS_WIDTH = 960;
+  const CANVAS_HEIGHT = 540;
+  const SCALE = 0.5;
 
+  let width = 0;
+  let height = 0;
+
+  // Parse width
   const inlineWidth = el.style.width;
-  const inlineHeight = el.style.height;
-
-  // Use inline styles if available
-  if (inlineWidth && inlineHeight) {
-    const width = parseInt(inlineWidth) || 800;
-    const height = parseInt(inlineHeight) || 80;
-    return {
-      width: Math.min(Math.round(width * SCALE_FACTOR), 800),
-      height: Math.min(Math.round(height * SCALE_FACTOR), 200)
-    };
+  if (inlineWidth) {
+    if (inlineWidth.endsWith('vw')) {
+      const vw = parseFloat(inlineWidth);
+      width = Math.round((REVEAL_WIDTH * vw / 100) * SCALE);
+    } else if (inlineWidth.endsWith('%')) {
+      const percent = parseFloat(inlineWidth);
+      width = Math.round((REVEAL_WIDTH * percent / 100) * SCALE);
+    } else if (inlineWidth.endsWith('px')) {
+      width = Math.round(parseFloat(inlineWidth) * SCALE);
+    } else {
+      width = Math.round(parseInt(inlineWidth) * SCALE);
+    }
+  } else {
+    const computedWidth = parseInt(computedStyle.width) || 800;
+    width = Math.round(computedWidth * SCALE);
   }
 
-  // Use computed size and scale down for SlideWinder's 960x540 canvas
-  const computedWidth = parseInt(computedStyle.width) || 800;
-  const computedHeight = parseInt(computedStyle.height) || 80;
-
-  // Scale from Reveal.js dimensions to SlideWinder dimensions
-  const scaledWidth = Math.round(computedWidth * SCALE_FACTOR);
-  const scaledHeight = Math.round(computedHeight * SCALE_FACTOR);
+  // Parse height
+  const inlineHeight = el.style.height;
+  if (inlineHeight) {
+    if (inlineHeight.endsWith('vh')) {
+      const vh = parseFloat(inlineHeight);
+      height = Math.round((REVEAL_HEIGHT * vh / 100) * SCALE);
+    } else if (inlineHeight.endsWith('%')) {
+      const percent = parseFloat(inlineHeight);
+      height = Math.round((REVEAL_HEIGHT * percent / 100) * SCALE);
+    } else if (inlineHeight.endsWith('px')) {
+      height = Math.round(parseFloat(inlineHeight) * SCALE);
+    } else {
+      height = Math.round(parseInt(inlineHeight) * SCALE);
+    }
+  } else {
+    const computedHeight = parseInt(computedStyle.height) || 80;
+    height = Math.round(computedHeight * SCALE);
+  }
 
   return {
-    width: Math.min(scaledWidth, 900), // Max width for slide (960 - margins)
-    height: Math.min(scaledHeight, 400) // Increased from 200 to 400 for large headings
+    width: Math.min(width, 900), // Max width for slide (960 - margins)
+    height: Math.min(height, 500) // Increased max height
   };
 }
 
