@@ -49,7 +49,15 @@ export function generateRevealHTML(presentation) {
             // Flow mode: Output elements directly without absolute positioning
             const elementsHtml = slide.elements.map(el => {
                 if (el.layoutMode === 'flow') {
-                    // Return semantic HTML directly, no wrapper div
+                    // Check if this is a simple element (has tagName but not isFlowContainer)
+                    // Simple elements need to be wrapped with their tag
+                    if (el.tagName && !el.isFlowContainer && !el.isComplexElement) {
+                        // Wrap content with original tag
+                        // Get class attribute if exists
+                        const classAttr = el.className ? ` class="${el.className}"` : '';
+                        return `<${el.tagName}${classAttr}>${el.content}</${el.tagName}>`;
+                    }
+                    // Complex containers and other flow elements: return content as-is
                     return el.content;
                 }
                 // Fallback: if individual element needs absolute positioning

@@ -55,7 +55,7 @@ const SlideProperties = ({ currentSlide, updateSlideSettings }) => {
                             <input
                                 id="bg-color"
                                 type="color"
-                                value={background.value}
+                                value={background.value === 'transparent' ? '#ffffff' : background.value}
                                 onChange={e => handleBgChange('value', e.target.value)}
                                 className="w-full h-12 rounded-lg border border-gray-300 dark:border-gray-600 cursor-pointer"
                             />

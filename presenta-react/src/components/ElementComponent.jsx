@@ -60,9 +60,13 @@ const ElementComponent = ({ element, onMouseDown, onResizeMouseDown, onRotateMou
                     })
                 };
 
-                return isSelected && !element.reactComponent ? (
+                // Use editorContent if available (sanitized version for editor)
+                // Otherwise use content (for export and normal elements)
+                const displayContent = element.editorContent || element.content;
+
+                return isSelected && !element.reactComponent && !element.isFlowContainer ? (
                     <RichTextEditor
-                        content={element.content}
+                        content={displayContent}
                         onChange={(html) => updateElement(element.id, { content: html })}
                         fontSize={element.fontSize}
                         color={element.color}
@@ -70,7 +74,7 @@ const ElementComponent = ({ element, onMouseDown, onResizeMouseDown, onRotateMou
                     />
                 ) : (
                     <div
-                        dangerouslySetInnerHTML={{ __html: element.content }}
+                        dangerouslySetInnerHTML={{ __html: displayContent }}
                         style={textStyle}
                         className={`prose reveal ${element.className || ''}`}
                     />

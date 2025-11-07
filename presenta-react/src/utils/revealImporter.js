@@ -98,6 +98,197 @@ function detectSlideLayout(slideEl) {
 }
 
 /**
+ * Sanitize iframes for editor display to prevent loading issues
+ * Replaces iframe src with a placeholder while preserving structure
+ * @param {string} html - HTML content with potential iframes
+ * @returns {string} - Sanitized HTML safe for editor
+ */
+function sanitizeIframesForEditor(html) {
+  if (!html) return html;
+
+  console.log('Sanitizing HTML (first 200 chars):', html.substring(0, 200));
+
+  // Replace iframe src to prevent loading in editor
+  // Use a single comprehensive regex that handles both quoted and unquoted src
+  let sanitized = html.replace(
+    /<iframe([^>]*?)src\s*=\s*(["']?)([^"'\s>]+)\2([^>]*?)>/gi,
+    (match, before, quote, src, after) => {
+      // Skip if already sanitized
+      if (before.includes('data-original-src') || after.includes('data-original-src') || src === 'about:blank') {
+        return match;
+      }
+
+      console.log(`Replacing iframe src: "${src}" with "about:blank"`);
+
+      // Remove any existing style attributes to prevent conflicts
+      const cleanBefore = before.replace(/\s*style\s*=\s*["'][^"']*["']/gi, '');
+      const cleanAfter = after.replace(/\s*style\s*=\s*["'][^"']*["']/gi, '');
+
+      return `<iframe${cleanBefore} data-original-src="${src}" src="about:blank"${cleanAfter} style="width: 100%; height: 100%; background: #f0f0f0; border: 2px dashed #999;">`;
+    }
+  );
+
+  console.log('Sanitized HTML (first 200 chars):', sanitized.substring(0, 200));
+
+  return sanitized;
+}
+
+/**
+ * Determine if an element is a simple text element that can be edited individually
+ * @param {HTMLElement} el - The element to check
+ * @returns {boolean} - True if element is simple and editable
+ */
+function isSimpleTextElement(el) {
+  const tagName = el.tagName.toLowerCase();
+  const computedStyle = window.getComputedStyle(el);
+
+  // Simple text elements (headings, paragraphs, lists, blockquotes)
+  const simpleTextTags = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'ul', 'ol', 'blockquote'];
+  if (simpleTextTags.includes(tagName)) {
+    // Check if it has complex styling (backgrounds, borders, etc.)
+    const hasBackground = hasStyledBackground(el, computedStyle);
+    const hasBorder = computedStyle.borderWidth !== '0px' && computedStyle.borderStyle !== 'none';
+
+    // Simple elements shouldn't have backgrounds or borders
+    return !hasBackground && !hasBorder;
+  }
+
+  return false;
+}
+
+/**
+ * Determine if an element is complex and should remain as a container
+ * @param {HTMLElement} el - The element to check
+ * @returns {boolean} - True if element should be a container
+ */
+function isComplexElement(el) {
+  const tagName = el.tagName.toLowerCase();
+  const computedStyle = window.getComputedStyle(el);
+
+  // Iframes are always complex
+  if (tagName === 'iframe') return true;
+
+  // CRITICAL: Check if element CONTAINS an iframe (even nested)
+  const containsIframe = el.querySelector('iframe') !== null;
+  if (containsIframe) {
+    console.log('Element contains iframe - treating as complex:', el);
+    return true;
+  }
+
+  // Divs with styling are complex
+  if (tagName === 'div' && hasStyledBackground(el, computedStyle)) return true;
+
+  // Elements with flex/grid layout are complex
+  const display = computedStyle.display;
+  if (display === 'flex' || display === 'grid' || display === 'inline-flex' || display === 'inline-grid') {
+    return true;
+  }
+
+  // Elements with multiple children might be complex layouts
+  if (el.children.length > 3) return true;
+
+  return false;
+}
+
+/**
+ * Parse a simple text element for flow mode (editable)
+ * @param {HTMLElement} el - The element to parse
+ * @param {number} currentY - Current Y position for stacking
+ * @returns {Object} - Element object
+ */
+function parseSimpleFlowElement(el, currentY) {
+  const computedStyle = window.getComputedStyle(el);
+  const tagName = el.tagName.toLowerCase();
+
+  // Get text content size with tag-specific minimums
+  const rect = el.getBoundingClientRect();
+  let minHeight = 40;
+
+  // Set minimum heights based on tag type
+  if (tagName === 'h1') minHeight = 80;
+  else if (tagName === 'h2') minHeight = 70;
+  else if (tagName === 'h3') minHeight = 60;
+  else if (tagName === 'p') minHeight = 50;
+  else if (tagName === 'ul' || tagName === 'ol') minHeight = 100;
+  else if (tagName === 'blockquote') minHeight = 80;
+
+  // Use rect height if valid, otherwise use minimum
+  const height = rect.height > 10 ? Math.max(rect.height, minHeight) : minHeight;
+
+  // Extract complete styles for proper rendering
+  const computedStyles = extractCompleteStyles(el);
+
+  return {
+    id: crypto.randomUUID(),
+    type: 'text',
+    layoutMode: 'flow',
+    x: 40,
+    y: currentY,
+    width: 880,
+    height: height,
+    rotation: 0,
+    content: el.innerHTML,
+    fontSize: parseInt(computedStyle.fontSize) || 32,
+    color: rgbToHex(computedStyle.color) || '#000000',
+    tagName: tagName,
+    className: el.className || '',
+    computedStyles: computedStyles
+  };
+}
+
+/**
+ * Create a container element for complex flow content
+ * @param {HTMLElement} el - The element to containerize
+ * @param {number} currentY - Current Y position for stacking
+ * @returns {Object} - Container element object
+ */
+function createComplexFlowContainer(el, currentY) {
+  const tagName = el.tagName.toLowerCase();
+  const rect = el.getBoundingClientRect();
+
+  // Set minimum height based on element type
+  let minHeight = 150;
+  if (tagName === 'iframe') minHeight = 400;
+  else if (tagName === 'div') minHeight = 200;
+
+  // Use actual height if larger than minimum
+  const height = rect.height > 10 ? Math.max(rect.height, minHeight) : minHeight;
+
+  // Get HTML content - use outerHTML to capture the element itself
+  const originalHTML = el.outerHTML;
+
+  // CRITICAL: Sanitize iframes to prevent loading and crashes
+  const sanitizedHTML = sanitizeIframesForEditor(originalHTML);
+
+  // Log for debugging iframe elements
+  if (tagName === 'iframe') {
+    console.log('Flow iframe detected - sanitizing:', {
+      original: originalHTML.substring(0, 100),
+      sanitized: sanitizedHTML.substring(0, 100)
+    });
+  }
+
+  return {
+    id: crypto.randomUUID(),
+    type: 'text',
+    layoutMode: 'flow',
+    x: 40,
+    y: currentY,
+    width: 880,
+    height: height,
+    rotation: 0,
+    content: originalHTML,
+    editorContent: sanitizedHTML,
+    fontSize: 32,
+    color: '#000000',
+    tagName: tagName,
+    className: el.className || '',
+    isFlowContainer: true,
+    isComplexElement: true
+  };
+}
+
+/**
  * Parse basic markdown to HTML
  * Handles common markdown syntax for reveal.js slides
  * @param {string} markdown - Markdown content
@@ -1343,14 +1534,15 @@ function parseSlidePreserveHTML(slideEl) {
       type: 'text',
       layoutMode: 'flow',  // Use flow mode for markdown content
       x: 20,
-      y: 100,
+      y: 20,
       width: 920,
-      height: 440,
+      height: 500,
       rotation: 0,
       content: htmlContent,
       fontSize: 32,
       color: '#000000',
-      tagName: 'div'
+      tagName: 'div',
+      isFlowContainer: true
     });
 
     // IMPORTANT: Set slide layoutMode to 'flow' so export outputs semantic HTML
@@ -1371,22 +1563,71 @@ function parseSlidePreserveHTML(slideEl) {
   const layoutMode = detectSlideLayoutMode(slideEl, children);
   slide.layoutMode = layoutMode;
 
-  // For flow mode, also store the raw HTML for potential use
+  // FLOW MODE: Hybrid approach - parse simple elements individually, keep complex as containers
   if (layoutMode === 'flow') {
     slide.flowContent = slideEl.innerHTML;
+
+    let currentY = 60; // Starting Y position
+    const simpleSpacing = 15; // Space between simple elements
+    const complexSpacing = 30; // Extra space for complex elements
+
+    // Classify elements into simple (editable) and complex (containers)
+    children.forEach((child) => {
+      if (isSimpleTextElement(child)) {
+        // Parse as individual editable element
+        const element = parseSimpleFlowElement(child, currentY);
+        slide.elements.push(element);
+        currentY += element.height + simpleSpacing;
+      } else if (isComplexElement(child)) {
+        // Keep as container (iframes, styled divs, etc.)
+        const container = createComplexFlowContainer(child, currentY);
+        slide.elements.push(container);
+        currentY += container.height + complexSpacing;
+      } else {
+        // Default: treat as simple element
+        // This handles small elements, spans, etc.
+        const element = parseSimpleFlowElement(child, currentY);
+        slide.elements.push(element);
+        currentY += element.height + simpleSpacing;
+      }
+    });
+
+    // If no elements were parsed (empty slide or all filtered out), add single container
+    if (slide.elements.length === 0) {
+      const originalHTML = slideEl.innerHTML;
+      const sanitizedHTML = sanitizeIframesForEditor(originalHTML);
+      slide.elements.push({
+        id: crypto.randomUUID(),
+        type: 'text',
+        layoutMode: 'flow',
+        x: 20,
+        y: 20,
+        width: 920,
+        height: 500,
+        rotation: 0,
+        content: originalHTML,
+        editorContent: sanitizedHTML,
+        fontSize: 32,
+        color: '#000000',
+        tagName: 'div',
+        className: '',
+        isFlowContainer: true
+      });
+    }
+
+    return slide;
   }
 
+  // ABSOLUTE MODE: Parse individual elements
   let elementIndex = 0;
 
   children.forEach((child, index) => {
     const element = parseElementWithStyles(child, elementIndex, children, layout, layoutMode);
     if (element) {
       // PHASE 1: Apply boundary detection and auto-fix (only for absolute mode)
-      if (layoutMode === 'absolute') {
-        const adjustment = ensureWithinBounds(element);
-        if (adjustment.adjusted) {
-          console.log(`Auto-fixed element overflow: ${adjustment.method}`, element);
-        }
+      const adjustment = ensureWithinBounds(element);
+      if (adjustment.adjusted) {
+        console.log(`Auto-fixed element overflow: ${adjustment.method}`, element);
       }
 
       slide.elements.push(element);
@@ -1413,42 +1654,10 @@ function parseElementWithStyles(el, index, siblings = [], layout = { type: 'gene
   const computedStyle = window.getComputedStyle(el);
   const tagName = el.tagName.toLowerCase();
 
-  // ARCHITECTURAL CHANGE: Flow mode - preserve natural structure, no positioning
-  if (slideLayoutMode === 'flow') {
-    // For flow mode, we still calculate positions for EDITOR DISPLAY ONLY
-    // Export will ignore these and use natural flow instead
-    const positionResult = calculateSmartPosition(el, layout, index, siblings);
-    const size = getElementSizeFromStyle(el, computedStyle);
+  // Note: Flow mode slides are handled at the slide level (single container)
+  // This function only processes absolute mode elements
 
-    return {
-      id: crypto.randomUUID(),
-      type: 'text',
-      layoutMode: 'flow',
-      // Editor display positions (ignored on export)
-      x: positionResult.x,
-      y: positionResult.y,
-      width: size.width,
-      height: size.height,
-      rotation: 0,
-      // Flow mode data
-      content: el.outerHTML,
-      tagName: tagName,
-      fontSize: parseInt(computedStyle.fontSize) || 32,
-      color: rgbToHex(computedStyle.color) || '#000000',
-      className: el.className,
-      inlineStyle: el.getAttribute('style') || '',
-      // Store margin/padding for spacing in flow
-      flowStyles: {
-        margin: computedStyle.margin,
-        padding: computedStyle.padding,
-        textAlign: computedStyle.textAlign,
-        maxWidth: computedStyle.maxWidth
-      },
-      computedStyles: extractCompleteStyles(el)
-    };
-  }
-
-  // ABSOLUTE MODE: Existing logic below
+  // ABSOLUTE MODE:
 
   // PHASE 1: Use smart position calculation
   const positionResult = calculateSmartPosition(el, layout, index, siblings);
@@ -1951,13 +2160,18 @@ function extractRevealSettings(doc) {
           // Remove plugins array
           configStr = configStr.replace(/plugins:\s*\[[^\]]*\]/g, '');
 
-          // Remove trailing commas before closing braces
-          configStr = configStr.replace(/,(\s*})/g, '$1');
-          configStr = configStr.replace(/,(\s*])/g, '$1');
-
-          // Remove comments (both // and /* */ style)
+          // Remove comments FIRST (before cleaning commas)
           configStr = configStr.replace(/\/\/.*$/gm, '');
           configStr = configStr.replace(/\/\*[\s\S]*?\*\//g, '');
+
+          // Remove trailing commas before closing braces/brackets
+          configStr = configStr.replace(/,(\s*[}\]])/g, '$1');
+
+          // Remove multiple consecutive commas
+          configStr = configStr.replace(/,\s*,+/g, ',');
+
+          // Remove leading commas
+          configStr = configStr.replace(/([{\[])\s*,/g, '$1');
 
           // Try to parse as JSON first (safest)
           let config;
