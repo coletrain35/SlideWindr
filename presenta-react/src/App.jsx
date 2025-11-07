@@ -148,6 +148,7 @@ export default function App() {
     const slideRefs = useRef([]);
     const hasCheckedRecovery = useRef(false);
     const isDraggingOrResizingRef = useRef(false);
+    const batchStartedRef = useRef(false); // Track if batch started for current operation
     const presentationRef = useRef(presentation);
 
     // Keep presentation ref in sync
@@ -819,9 +820,8 @@ export default function App() {
             offsets: offsets, // Store all element offsets for multi-move
         });
 
-        // Start batching history updates
-        startBatch();
-    }, [currentSlideId, selectedElementIds, startBatch]);
+        // Note: Batch will be started on first actual movement in handleCanvasMouseMove
+    }, [currentSlideId, selectedElementIds]);
 
     const handleResizeMouseDown = useCallback((e, elementId, handle) => {
         e.stopPropagation();
@@ -847,9 +847,8 @@ export default function App() {
             initialHeight: element.height,
         });
 
-        // Start batching history updates
-        startBatch();
-    }, [currentSlideId, startBatch]);
+        // Note: Batch will be started on first actual resize in handleCanvasMouseMove
+    }, [currentSlideId]);
 
     const handleRotateMouseDown = useCallback((e, elementId) => {
         e.stopPropagation();
@@ -877,9 +876,8 @@ export default function App() {
             initialRotation: element.rotation || 0,
         });
 
-        // Start batching history updates
-        startBatch();
-    }, [currentSlideId, startBatch]);
+        // Note: Batch will be started on first actual rotation in handleCanvasMouseMove
+    }, [currentSlideId]);
 
     const handleCanvasMouseMove = useCallback((e) => {
         if (interactingElementId) return;
@@ -894,6 +892,12 @@ export default function App() {
         }
 
         if (dragging) {
+            // Start batching on first actual drag movement
+            if (!batchStartedRef.current) {
+                startBatch();
+                batchStartedRef.current = true;
+            }
+
             // Get current slide for smart guides
             const slide = presentationRef.current.slides.find(s => s.id === currentSlideId);
             if (!slide) return;
@@ -930,6 +934,12 @@ export default function App() {
             });
         }
         if (resizing) {
+            // Start batching on first actual resize movement
+            if (!batchStartedRef.current) {
+                startBatch();
+                batchStartedRef.current = true;
+            }
+
             const dx = e.clientX - resizing.initialMouseX;
             const dy = e.clientY - resizing.initialMouseY;
             let { initialX, initialY, initialWidth, initialHeight } = resizing;
@@ -959,6 +969,12 @@ export default function App() {
             }
         }
         if (rotating) {
+            // Start batching on first actual rotation movement
+            if (!batchStartedRef.current) {
+                startBatch();
+                batchStartedRef.current = true;
+            }
+
             // Calculate angle between mouse position and element center
             const dx = e.clientX - rotating.centerX;
             const dy = e.clientY - rotating.centerY;
@@ -979,7 +995,7 @@ export default function App() {
 
             updateElement(rotating.elementId, { rotation: Math.round(angle) });
         }
-    }, [dragging, resizing, rotating, updateElement, interactingElementId, snapToGrid, gridSize, currentSlideId, selectedElementIds, marquee]);
+    }, [dragging, resizing, rotating, updateElement, interactingElementId, snapToGrid, gridSize, currentSlideId, selectedElementIds, marquee, startBatch]);
 
     const handleCanvasMouseDown = useCallback((e) => {
         // Only start marquee if clicking on canvas (not on an element)
@@ -1002,10 +1018,10 @@ export default function App() {
     const handleCanvasMouseUp = useCallback(() => {
         isDraggingOrResizingRef.current = false;
 
-        // End batching if any operation was in progress
-        if (dragging || resizing || rotating) {
-            endBatch();
-        }
+        // CRITICAL: Always end batching to prevent history corruption
+        // Even if no drag/resize/rotate occurred, startBatch() may have been called
+        endBatch();
+        batchStartedRef.current = false; // Reset for next operation
 
         setDragging(null);
         setResizing(null);
@@ -1049,17 +1065,17 @@ export default function App() {
     }, [marquee, currentSlideId, dragging, resizing, rotating, endBatch]);
 
     const handleCanvasMouseLeave = useCallback(() => {
-        // End batching if any operation was in progress
-        if (dragging || resizing || rotating) {
-            endBatch();
-        }
+        // CRITICAL: Always end batching to prevent history corruption
+        // Even if no drag/resize/rotate occurred, startBatch() may have been called
+        endBatch();
+        batchStartedRef.current = false; // Reset for next operation
 
         setDragging(null);
         setResizing(null);
         setRotating(null);
         setAlignmentGuides(null); // Clear guides when leaving canvas
         setMarquee(null); // Clear marquee when leaving canvas
-    }, [dragging, resizing, rotating, endBatch]);
+    }, [endBatch]);
 
     const getBackgroundStyle = useCallback((bg) => {
         if (!bg) return { backgroundColor: '#ffffff' };
@@ -1666,7 +1682,7 @@ export default function App() {
                         <div className={`flex ${showNotes ? 'flex-1' : ''} items-center justify-center`}>
                             <div
                                 ref={canvasRef}
-                                className="shadow-lg relative bg-cover bg-center"
+                                className="shadow-xl relative bg-cover bg-center border-2 border-gray-400 dark:border-gray-600"
                                 style={{ width: 960, height: 540, ...getBackgroundStyle(currentSlide?.background) }}
                                 onMouseDown={handleCanvasMouseDown}
                                 onMouseMove={handleCanvasMouseMove}

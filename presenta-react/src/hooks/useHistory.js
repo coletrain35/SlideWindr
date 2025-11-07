@@ -68,18 +68,22 @@ export const useHistory = (initialState, maxHistory = 50) => {
     const undo = useCallback(() => {
         if (canUndo) {
             isUpdatingRef.current = true;
-            setCurrentIndex(prev => prev - 1);
-            // Reset flag after state update
-            setTimeout(() => { isUpdatingRef.current = false; }, 0);
+            setCurrentIndex(prev => {
+                // Reset flag immediately after index update is queued
+                queueMicrotask(() => { isUpdatingRef.current = false; });
+                return prev - 1;
+            });
         }
     }, [canUndo]);
 
     const redo = useCallback(() => {
         if (canRedo) {
             isUpdatingRef.current = true;
-            setCurrentIndex(prev => prev + 1);
-            // Reset flag after state update
-            setTimeout(() => { isUpdatingRef.current = false; }, 0);
+            setCurrentIndex(prev => {
+                // Reset flag immediately after index update is queued
+                queueMicrotask(() => { isUpdatingRef.current = false; });
+                return prev + 1;
+            });
         }
     }, [canRedo]);
 
