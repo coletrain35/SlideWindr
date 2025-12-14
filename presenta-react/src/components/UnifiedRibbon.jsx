@@ -24,7 +24,9 @@ import {
     SendBackwardIcon,
     GridIcon,
     UndoIcon,
-    RedoIcon
+    RedoIcon,
+    GroupIcon,
+    UngroupIcon
 } from './Icons';
 
 /**
@@ -57,6 +59,8 @@ const UnifiedRibbon = ({
     onAlign,
     onDistribute,
     onReorder,
+    onGroup,
+    onUngroup,
     showGrid,
     onToggleGrid,
     snapToGrid,
@@ -127,6 +131,8 @@ const UnifiedRibbon = ({
                         onAlign={onAlign}
                         onDistribute={onDistribute}
                         onReorder={onReorder}
+                        onGroup={onGroup}
+                        onUngroup={onUngroup}
                         showGrid={showGrid}
                         onToggleGrid={onToggleGrid}
                         snapToGrid={snapToGrid}
@@ -163,7 +169,7 @@ const UnifiedRibbon = ({
 const HomeTab = ({
     undo, redo, canUndo, canRedo,
     addElement, selectedShapeType, setSelectedShapeType,
-    selectedElementIds, onAlign, onDistribute, onReorder,
+    selectedElementIds, onAlign, onDistribute, onReorder, onGroup, onUngroup,
     showGrid, onToggleGrid, snapToGrid, onToggleSnapToGrid,
     previewAnimations, onTogglePreviewAnimations,
     hasSelection, hasMultiple, hasMultipleForDistribute
@@ -334,6 +340,15 @@ const HomeTab = ({
                 <button onClick={() => onReorder('forward')} disabled={!hasSelection} className="p-1 rounded text-xs hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30" title="Bring Forward (up one layer)"><BringForwardIcon /></button>
                 <button onClick={() => onReorder('backward')} disabled={!hasSelection} className="p-1 rounded text-xs hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30" title="Send Backward (down one layer)"><SendBackwardIcon /></button>
                 <button onClick={() => onReorder('back')} disabled={!hasSelection} className="p-1 rounded text-xs hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30" title="Send to Back (bottom layer)"><SendToBackIcon /></button>
+            </div>
+
+            <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" />
+
+            {/* Group */}
+            <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Group:</span>
+                <button onClick={onGroup} disabled={!hasMultiple} className="p-1 rounded text-xs hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30" title="Group Elements (Ctrl+G / Cmd+G) - needs 2+ elements"><GroupIcon /></button>
+                <button onClick={onUngroup} disabled={!hasSelection} className="p-1 rounded text-xs hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-30" title="Ungroup Elements (Ctrl+Shift+G / Cmd+Shift+G)"><UngroupIcon /></button>
             </div>
 
             <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" />
@@ -666,6 +681,8 @@ UnifiedRibbon.propTypes = {
     onAlign: PropTypes.func.isRequired,
     onDistribute: PropTypes.func.isRequired,
     onReorder: PropTypes.func.isRequired,
+    onGroup: PropTypes.func.isRequired,
+    onUngroup: PropTypes.func.isRequired,
     showGrid: PropTypes.bool.isRequired,
     onToggleGrid: PropTypes.func.isRequired,
     snapToGrid: PropTypes.bool.isRequired,
@@ -687,6 +704,8 @@ HomeTab.propTypes = {
     onAlign: PropTypes.func.isRequired,
     onDistribute: PropTypes.func.isRequired,
     onReorder: PropTypes.func.isRequired,
+    onGroup: PropTypes.func.isRequired,
+    onUngroup: PropTypes.func.isRequired,
     showGrid: PropTypes.bool.isRequired,
     onToggleGrid: PropTypes.func.isRequired,
     snapToGrid: PropTypes.bool.isRequired,

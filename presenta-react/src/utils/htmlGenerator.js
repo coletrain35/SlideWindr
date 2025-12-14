@@ -93,41 +93,57 @@ export function generateRevealHTML(presentation) {
             let innerWrapperOpen = '';
             let innerWrapperClose = '';
 
-            if (el.animation?.type && el.animation.type !== 'none') {
-                const duration = el.animation.duration || 0.5;
-                const delay = el.animation.delay || 0;
-                const rawEasing = el.animation.easing || 'ease-out';
+            // Handle fragments (step-by-step reveal) and animations
+            const hasAnimation = el.animation?.type && el.animation.type !== 'none';
+            const hasFragmentOrder = el.fragmentOrder && el.fragmentOrder > 0;
 
-                // Map easing values to valid CSS timing functions
-                const easingMap = {
-                    'linear': 'linear',
-                    'easeIn': 'ease-in',
-                    'easeOut': 'ease-out',
-                    'easeInOut': 'ease-in-out',
-                    'spring': 'ease-out', // Spring doesn't exist in CSS, use ease-out
-                    'ease-in': 'ease-in',
-                    'ease-out': 'ease-out',
-                    'ease-in-out': 'ease-in-out'
-                };
-                const easing = easingMap[rawEasing] || 'ease-out';
+            if (hasAnimation || hasFragmentOrder) {
+                let fragmentClass = 'fragment';
+                let fragmentAttrs = '';
+                let animationStyle = 'width: 100%; height: 100%;';
 
-                const animationClass = animationClassMap[el.animation.type] || 'custom-fadeIn';
-
-                // Keyframe-based animations (bounceIn, pulse, shake, swing) use CSS custom properties
-                // Transition-based animations use inline transition styles
-                let animationStyle;
-                const keyframeAnimations = ['bounceIn', 'pulse', 'shake', 'swing'];
-
-                if (keyframeAnimations.includes(el.animation.type)) {
-                    // Use CSS custom properties for keyframe animations
-                    animationStyle = `width: 100%; height: 100%; --anim-duration: ${duration}s; --anim-delay: ${delay}s; --anim-easing: ${easing};`;
-                } else {
-                    // Build transition property with actual values for entrance animations
-                    const transitionValue = `opacity ${duration}s ${easing} ${delay}s, transform ${duration}s ${easing} ${delay}s`;
-                    animationStyle = `width: 100%; height: 100%; transition: ${transitionValue};`;
+                // Add fragment index if specified
+                if (hasFragmentOrder) {
+                    fragmentAttrs = ` data-fragment-index="${el.fragmentOrder}"`;
                 }
 
-                innerWrapperOpen = `<div class="fragment ${animationClass}" style="${animationStyle}">`;
+                // Add animation if specified
+                if (hasAnimation) {
+                    const duration = el.animation.duration || 0.5;
+                    const delay = el.animation.delay || 0;
+                    const rawEasing = el.animation.easing || 'ease-out';
+
+                    // Map easing values to valid CSS timing functions
+                    const easingMap = {
+                        'linear': 'linear',
+                        'easeIn': 'ease-in',
+                        'easeOut': 'ease-out',
+                        'easeInOut': 'ease-in-out',
+                        'spring': 'ease-out', // Spring doesn't exist in CSS, use ease-out
+                        'ease-in': 'ease-in',
+                        'ease-out': 'ease-out',
+                        'ease-in-out': 'ease-in-out'
+                    };
+                    const easing = easingMap[rawEasing] || 'ease-out';
+
+                    const animationClass = animationClassMap[el.animation.type] || 'custom-fadeIn';
+                    fragmentClass += ` ${animationClass}`;
+
+                    // Keyframe-based animations (bounceIn, pulse, shake, swing) use CSS custom properties
+                    // Transition-based animations use inline transition styles
+                    const keyframeAnimations = ['bounceIn', 'pulse', 'shake', 'swing'];
+
+                    if (keyframeAnimations.includes(el.animation.type)) {
+                        // Use CSS custom properties for keyframe animations
+                        animationStyle += ` --anim-duration: ${duration}s; --anim-delay: ${delay}s; --anim-easing: ${easing};`;
+                    } else {
+                        // Build transition property with actual values for entrance animations
+                        const transitionValue = `opacity ${duration}s ${easing} ${delay}s, transform ${duration}s ${easing} ${delay}s`;
+                        animationStyle += ` transition: ${transitionValue};`;
+                    }
+                }
+
+                innerWrapperOpen = `<div class="${fragmentClass}"${fragmentAttrs} style="${animationStyle}">`;
                 innerWrapperClose = `</div>`;
             }
 

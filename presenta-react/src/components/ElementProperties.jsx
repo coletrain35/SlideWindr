@@ -1177,6 +1177,31 @@ const ElementProperties = ({ selectedElement, updateElement, deleteElement, copy
                             </select>
                         </div>
 
+                        {/* Fragment Order */}
+                        <div className="pt-2 border-t border-purple-200 dark:border-purple-800">
+                            <label className="text-xs text-gray-600 dark:text-gray-400 block mb-1">
+                                Reveal Order:
+                                <span className="ml-2 text-purple-600 dark:text-purple-400 font-medium">
+                                    {selectedElement.fragmentOrder === 0
+                                        ? 'Always Visible'
+                                        : `Click ${selectedElement.fragmentOrder || 0}`}
+                                </span>
+                            </label>
+                            <input
+                                type="number"
+                                min="0"
+                                max="20"
+                                value={selectedElement.fragmentOrder || 0}
+                                onChange={(e) => updateElement(selectedElement.id, {
+                                    fragmentOrder: parseInt(e.target.value, 10)
+                                })}
+                                className="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                            />
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                0 = Always visible, 1+ = Appears on click in presentation mode
+                            </p>
+                        </div>
+
                         {(selectedElement.animation?.type && selectedElement.animation.type !== 'none') && (
                             <div className="bg-purple-100 dark:bg-purple-900/40 rounded p-2 border border-purple-300 dark:border-purple-700">
                                 <p className="text-xs text-purple-800 dark:text-purple-200">

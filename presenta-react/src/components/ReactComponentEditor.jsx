@@ -255,19 +255,35 @@ const ReactComponentEditor = ({ componentData, onChange, title }) => {
             );
         }
 
-        // Color picker for hex colors
-        if (type === 'string' && value.match(/^#[0-9A-Fa-f]{6}$/)) {
+        // Color picker for hex colors or props with "color" in the name
+        // Supports hex, rgba, names, etc. via hybrid control
+        if (type === 'string' && (value.match(/^#[0-9A-Fa-f]{6}$/) || key.toLowerCase().includes('color'))) {
             return (
                 <div key={key} className="mb-3">
                     <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block capitalize">
                         {key.replace(/([A-Z])/g, ' $1').trim()}:
                     </label>
-                    <input
-                        type="color"
-                        value={value}
-                        onChange={(e) => updatePropValue(key, e.target.value)}
-                        className="w-full h-10 rounded-lg border border-gray-300 dark:border-gray-600 cursor-pointer"
-                    />
+                    <div className="flex gap-2">
+                        <div className="relative flex-1">
+                            <input
+                                type="text"
+                                value={value}
+                                onChange={(e) => updatePropValue(key, e.target.value)}
+                                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg pl-3 pr-8 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 font-mono"
+                            />
+                            <div
+                                className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded border border-gray-300 shadow-sm"
+                                style={{ backgroundColor: value }}
+                            />
+                        </div>
+                        <input
+                            type="color"
+                            value={value.match(/^#[0-9A-Fa-f]{6}$/) ? value : '#000000'}
+                            onChange={(e) => updatePropValue(key, e.target.value)}
+                            className="w-10 h-10 rounded-lg border border-gray-300 dark:border-gray-600 cursor-pointer p-0"
+                            title="Pick color"
+                        />
+                    </div>
                 </div>
             );
         }
@@ -332,14 +348,12 @@ const ReactComponentEditor = ({ componentData, onChange, title }) => {
                     </label>
                     <button
                         onClick={() => updatePropValue(key, !value)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                            value ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
-                        }`}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${value ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'
+                            }`}
                     >
                         <span
-                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                value ? 'translate-x-6' : 'translate-x-1'
-                            }`}
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${value ? 'translate-x-6' : 'translate-x-1'
+                                }`}
                         />
                     </button>
                 </div>
@@ -500,6 +514,124 @@ export default function MyComponent({
                 </div>
             )}
 
+            {/* Container Styling Controls (No-Code) */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-3 border border-purple-200 dark:border-purple-800">
+                <h4 className="text-xs font-bold text-purple-600 dark:text-purple-400 mb-3 uppercase tracking-wide">Container Styling (No-Code)</h4>
+
+                {/* Text Color */}
+                <div className="mb-3">
+                    <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">Text Color:</label>
+                    <div className="flex gap-2">
+                        <div className="relative flex-1">
+                            <input
+                                type="text"
+                                value={parsedProps?._containerStyle?.color || ''}
+                                onChange={(e) => {
+                                    const style = { ...(parsedProps?._containerStyle || {}) };
+                                    if (e.target.value) style.color = e.target.value;
+                                    else delete style.color;
+                                    updatePropValue('_containerStyle', style);
+                                }}
+                                className="w-full border border-gray-300 dark:border-gray-600 rounded-lg pl-3 pr-8 py-2 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                                placeholder="inherit"
+                            />
+                            <div
+                                className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded border border-gray-300 shadow-sm"
+                                style={{ backgroundColor: parsedProps?._containerStyle?.color || 'transparent' }}
+                            />
+                        </div>
+                        <input
+                            type="color"
+                            value={
+                                (parsedProps?._containerStyle?.color && parsedProps._containerStyle.color.match(/^#[0-9A-Fa-f]{6}$/))
+                                    ? parsedProps._containerStyle.color
+                                    : '#000000'
+                            }
+                            onChange={(e) => {
+                                const style = { ...(parsedProps?._containerStyle || {}) };
+                                style.color = e.target.value;
+                                updatePropValue('_containerStyle', style);
+                            }}
+                            className="w-10 h-10 rounded-lg border border-gray-300 dark:border-gray-600 cursor-pointer p-0"
+                            title="Pick color"
+                        />
+                    </div>
+                </div>
+
+                {/* Font Size */}
+                <div className="mb-3">
+                    <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">Font Size (px):</label>
+                    <div className="flex gap-2 items-center">
+                        <input
+                            type="range"
+                            min="8"
+                            max="100"
+                            value={parseInt(parsedProps?._containerStyle?.fontSize) || 16}
+                            onChange={(e) => {
+                                const style = { ...(parsedProps?._containerStyle || {}) };
+                                style.fontSize = `${e.target.value}px`;
+                                updatePropValue('_containerStyle', style);
+                            }}
+                            className="flex-1"
+                        />
+                        <input
+                            type="text"
+                            value={parsedProps?._containerStyle?.fontSize || ''}
+                            onChange={(e) => {
+                                const style = { ...(parsedProps?._containerStyle || {}) };
+                                if (e.target.value) style.fontSize = e.target.value;
+                                else delete style.fontSize;
+                                updatePropValue('_containerStyle', style);
+                            }}
+                            className="w-20 border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-xs bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                            placeholder="inherit"
+                        />
+                    </div>
+                </div>
+
+                {/* Alignment */}
+                <div className="mb-3">
+                    <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 block">Alignment:</label>
+                    <div className="grid grid-cols-3 gap-1 bg-gray-100 dark:bg-gray-900 p-1 rounded-lg w-fit">
+                        {[
+                            { align: 'flex-start', justify: 'flex-start', label: 'Top Left' },
+                            { align: 'flex-start', justify: 'center', label: 'Top Center' },
+                            { align: 'flex-start', justify: 'flex-end', label: 'Top Right' },
+                            { align: 'center', justify: 'flex-start', label: 'Center Left' },
+                            { align: 'center', justify: 'center', label: 'Center' },
+                            { align: 'center', justify: 'flex-end', label: 'Center Right' },
+                            { align: 'flex-end', justify: 'flex-start', label: 'Bottom Left' },
+                            { align: 'flex-end', justify: 'center', label: 'Bottom Center' },
+                            { align: 'flex-end', justify: 'flex-end', label: 'Bottom Right' },
+                        ].map((pos, idx) => {
+                            const currentStyle = parsedProps?._containerStyle || {};
+                            const isActive = currentStyle.alignItems === pos.align && currentStyle.justifyContent === pos.justify;
+
+                            return (
+                                <button
+                                    key={idx}
+                                    onClick={() => {
+                                        const style = { ...(parsedProps?._containerStyle || {}) };
+                                        style.display = 'flex';
+                                        style.flexDirection = 'column';
+                                        style.alignItems = pos.align;
+                                        style.justifyContent = pos.justify;
+                                        updatePropValue('_containerStyle', style);
+                                    }}
+                                    className={`w-8 h-8 rounded text-xs flex items-center justify-center transition-colors ${isActive
+                                            ? 'bg-purple-500 text-white shadow-sm'
+                                            : 'bg-white dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500'
+                                        }`}
+                                    title={pos.label}
+                                >
+                                    <div className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-white' : 'bg-gray-400'}`} />
+                                </button>
+                            );
+                        })}
+                    </div>
+                </div>
+            </div>
+
             {/* Advanced Code Editor Toggle */}
             <button
                 onClick={() => setShowAdvanced(!showAdvanced)}
@@ -535,7 +667,70 @@ export default function MyComponent({
                                 className="text-xs px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded transition-colors"
                                 title="Extract default props from component code"
                             >
-                                Auto-extract Props
+                                Auto-extract from JSX
+                            </button>
+                            <button
+                                onClick={() => {
+                                    if (!localCss) return;
+
+                                    // 1. Find defined variables: --var-name: value;
+                                    const definedVars = [...localCss.matchAll(/--([a-zA-Z0-9-]+)\s*:\s*([^;]+)(?:;|$)/g)];
+
+                                    // 2. Find used variables: var(--var-name, optional-fallback)
+                                    // Relaxed regex to catch the name even if there's a fallback
+                                    const usedVars = [...localCss.matchAll(/var\(--([a-zA-Z0-9-]+)(?:,\s*[^)]*)?\)/g)];
+
+                                    const newProps = { ...(parsedProps || {}) };
+                                    let addedCount = 0;
+
+                                    // Helper: kebab-case to camelCase
+                                    const toCamelCase = (s) => s.replace(/-./g, x => x[1].toUpperCase());
+
+                                    // Process defined variables first (they have default values)
+                                    definedVars.forEach(match => {
+                                        const varName = match[1];
+                                        const value = match[2].trim();
+                                        const propName = toCamelCase(varName);
+
+                                        if (newProps[propName] === undefined) {
+                                            // Try to parse numbers/colors
+                                            if (!isNaN(parseFloat(value)) && isFinite(value)) {
+                                                newProps[propName] = parseFloat(value);
+                                            } else {
+                                                newProps[propName] = value;
+                                            }
+                                            addedCount++;
+                                        }
+                                    });
+
+                                    // Process used variables (default to empty string if not found)
+                                    usedVars.forEach(match => {
+                                        const varName = match[1];
+                                        const propName = toCamelCase(varName);
+
+                                        if (newProps[propName] === undefined) {
+                                            newProps[propName] = "";
+                                            addedCount++;
+                                        }
+                                    });
+
+                                    if (addedCount > 0) {
+                                        const jsonString = JSON.stringify(newProps, null, 2);
+                                        setLocalProps(jsonString);
+                                        debouncedPropsChange(jsonString);
+                                        alert(`Extracted ${addedCount} props from CSS!`);
+                                    } else {
+                                        if (definedVars.length === 0 && usedVars.length === 0) {
+                                            alert('No new CSS variables found to extract. Make sure you are using format var(--var-name) or --var-name: value');
+                                        } else {
+                                            alert('CSS variables found but they are already in your props!');
+                                        }
+                                    }
+                                }}
+                                className="text-xs px-2 py-1 bg-purple-500 hover:bg-purple-600 text-white rounded transition-colors ml-2"
+                                title="Extract props from CSS variables"
+                            >
+                                Auto-extract from CSS
                             </button>
                         </div>
                         <div className="mb-2 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded text-xs text-blue-700 dark:text-blue-300">

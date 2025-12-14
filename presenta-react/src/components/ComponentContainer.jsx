@@ -25,6 +25,7 @@ import * as PP from '@react-three/postprocessing';
 import * as Postprocessing from 'postprocessing';
 import * as Babel from '@babel/standalone';
 import gsap from 'gsap';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const ComponentContainer = React.memo(({ code, propsString }) => {
     const [Renderable, setRenderable] = useState(null);
@@ -46,6 +47,7 @@ const ComponentContainer = React.memo(({ code, propsString }) => {
             if (dep === '@react-three/postprocessing') return PP;
             if (dep === 'postprocessing') return Postprocessing;
             if (dep === 'gsap') return gsap;
+            if (dep === 'framer-motion' || dep === 'motion/react') return { motion, AnimatePresence };
             // Allow relative path imports for CSS by ignoring them
             if (dep.startsWith('./') && dep.endsWith('.css')) return {};
             console.warn(`Unknown dependency: ${dep}`);
@@ -126,6 +128,8 @@ const ComponentContainer = React.memo(({ code, propsString }) => {
                     'THREE',
                     'OGL',
                     'gsap',
+                    'motion',
+                    'AnimatePresence',
                     'Effect',
                     'EffectComposer',
                     'EffectPass',
@@ -154,6 +158,8 @@ const ComponentContainer = React.memo(({ code, propsString }) => {
                     THREE,
                     OGL,
                     gsap,
+                    motion,
+                    AnimatePresence,
                     Postprocessing.Effect,
                     Postprocessing.EffectComposer,
                     Postprocessing.EffectPass,
@@ -183,10 +189,20 @@ const ComponentContainer = React.memo(({ code, propsString }) => {
         } catch (e) {
             setRenderable(null);
             setError(prevError => {
-                if (prevError && prevError.message === e.message) {
+                let errorToReturn = e;
+
+                // Enhance error message if it looks like CSS was pasted into the JS editor
+                if (e.message && e.message.includes("Unexpected token")) {
+                    const trimmedCode = code.trim();
+                    if (trimmedCode.match(/^([.#][\w-]+\s*\{|@media|@import|:root|body\s*\{)/)) {
+                        errorToReturn = new Error("It looks like you pasted CSS code into the Component Code editor. Please move styles to the CSS tab to fix this error.");
+                    }
+                }
+
+                if (prevError && prevError.message === errorToReturn.message) {
                     return prevError;
                 }
-                return e;
+                return errorToReturn;
             });
         }
 
@@ -204,7 +220,42 @@ const ComponentContainer = React.memo(({ code, propsString }) => {
         );
     }
 
-    return Renderable ? <>{Renderable}</> : null;
+    // Convert props to CSS variables and extract container style
+    const cssVars = {};
+    let containerStyle = {};
+
+    if (propsString) {
+        try {
+            const props = JSON.parse(propsString);
+            Object.entries(props).forEach(([key, value]) => {
+                if (typeof value === 'string' || typeof value === 'number') {
+                    // Convert camelCase to kebab-case for CSS vars
+                    const cssVarName = `--${key.replace(/([A-Z])/g, '-$1').toLowerCase()}`;
+                    cssVars[cssVarName] = value;
+                }
+            });
+
+            // Extract special containerStyle prop if present
+            if (props._containerStyle) {
+                containerStyle = props._containerStyle;
+            }
+        } catch (e) {
+            // Ignore parsing errors here as they are handled above
+        }
+    }
+
+    return Renderable ? (
+        <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            width: '100%',
+            height: '100%',
+            ...containerStyle,
+            ...cssVars
+        }}>
+            {Renderable}
+        </div>
+    ) : null;
 });
 
 ComponentContainer.displayName = 'ComponentContainer';

@@ -149,6 +149,7 @@ export default function App() {
     const hasCheckedRecovery = useRef(false);
     const isDraggingOrResizingRef = useRef(false);
     const batchStartedRef = useRef(false); // Track if batch started for current operation
+    const lastGuidesRef = useRef(null); // Track last guide state to prevent unnecessary updates
     const presentationRef = useRef(presentation);
 
     // Keep presentation ref in sync
@@ -770,19 +771,21 @@ export default function App() {
         const slide = presentationRef.current.slides.find(s => s.id === currentSlideId);
         if (!slide) return;
 
-        // Check if this element is part of a group and auto-select the group
         const clickedElement = slide.elements.find(el => el.id === elementId);
-        if (clickedElement && clickedElement.groupId && !e.ctrlKey && !e.metaKey) {
+        if (!clickedElement) return;
+
+        let selectedIds = [elementId];
+
+        // Check if this element is part of a group and auto-select the group
+        if (clickedElement.groupId && !e.ctrlKey && !e.metaKey) {
             // Select all elements in the same group
-            const groupElementIds = slide.elements
+            selectedIds = slide.elements
                 .filter(el => el.groupId === clickedElement.groupId)
                 .map(el => el.id);
-            setSelectedElementIds(groupElementIds);
-            return;
-        }
-
-        // Handle multi-selection with Ctrl/Cmd key
-        if (e.ctrlKey || e.metaKey) {
+            setSelectedElementIds(selectedIds);
+            // Continue to dragging setup (don't return early)
+        } else if (e.ctrlKey || e.metaKey) {
+            // Handle multi-selection with Ctrl/Cmd key
             setSelectedElementIds(prev => {
                 if (prev.includes(elementId)) {
                     // Remove from selection if already selected
@@ -798,16 +801,13 @@ export default function App() {
             setSelectedElementIds([elementId]);
         }
 
-        const element = slide.elements.find(el => el.id === elementId);
-        if (!element) return;
-
         const canvasRect = canvasRef.current.getBoundingClientRect();
         isDraggingOrResizingRef.current = true;
 
-        // For multi-selection, store offsets for all selected elements
-        const elementsToMove = selectedElementIds.length > 1 ?
-            slide.elements.filter(el => selectedElementIds.includes(el.id)) :
-            [element];
+        // For multi-selection or groups, store offsets for all selected elements
+        const elementsToMove = selectedIds.length > 1 ?
+            slide.elements.filter(el => selectedIds.includes(el.id)) :
+            [clickedElement];
 
         const offsets = elementsToMove.map(el => ({
             id: el.id,
@@ -816,7 +816,7 @@ export default function App() {
         }));
 
         setDragging({
-            elementId: element.id,
+            elementId: clickedElement.id,
             offsets: offsets, // Store all element offsets for multi-move
         });
 
@@ -826,7 +826,6 @@ export default function App() {
     const handleResizeMouseDown = useCallback((e, elementId, handle) => {
         e.stopPropagation();
         setInteractingElementId(null);
-        setSelectedElementIds([elementId]);
 
         // Get fresh element data from current presentation state
         const slide = presentationRef.current.slides.find(s => s.id === currentSlideId);
@@ -835,9 +834,32 @@ export default function App() {
         const element = slide.elements.find(el => el.id === elementId);
         if (!element) return;
 
+        // Check if element is part of a group and select all group members
+        let selectedIds = [elementId];
+        let elementsToResize = [element];
+
+        if (element.groupId) {
+            selectedIds = slide.elements
+                .filter(el => el.groupId === element.groupId)
+                .map(el => el.id);
+            elementsToResize = slide.elements.filter(el => el.groupId === element.groupId);
+            setSelectedElementIds(selectedIds);
+        } else {
+            setSelectedElementIds([elementId]);
+        }
+
         isDraggingOrResizingRef.current = true;
+
+        // Calculate group bounds for proportional resizing
+        const minX = Math.min(...elementsToResize.map(el => el.x));
+        const minY = Math.min(...elementsToResize.map(el => el.y));
+        const maxX = Math.max(...elementsToResize.map(el => el.x + el.width));
+        const maxY = Math.max(...elementsToResize.map(el => el.y + el.height));
+        const groupWidth = maxX - minX;
+        const groupHeight = maxY - minY;
+
         setResizing({
-            elementId: element.id, // Store ID instead of whole element
+            elementId: element.id,
             handle,
             initialMouseX: e.clientX,
             initialMouseY: e.clientY,
@@ -845,6 +867,16 @@ export default function App() {
             initialY: element.y,
             initialWidth: element.width,
             initialHeight: element.height,
+            // Group resize data
+            isGroup: elementsToResize.length > 1,
+            groupBounds: { minX, minY, maxX, maxY, groupWidth, groupHeight },
+            groupElements: elementsToResize.map(el => ({
+                id: el.id,
+                initialX: el.x,
+                initialY: el.y,
+                initialWidth: el.width,
+                initialHeight: el.height,
+            })),
         });
 
         // Note: Batch will be started on first actual resize in handleCanvasMouseMove
@@ -853,7 +885,6 @@ export default function App() {
     const handleRotateMouseDown = useCallback((e, elementId) => {
         e.stopPropagation();
         setInteractingElementId(null);
-        setSelectedElementIds([elementId]);
 
         // Get fresh element data from current presentation state
         const slide = presentationRef.current.slides.find(s => s.id === currentSlideId);
@@ -862,18 +893,54 @@ export default function App() {
         const element = slide.elements.find(el => el.id === elementId);
         if (!element) return;
 
+        // Check if element is part of a group and select all group members
+        let selectedIds = [elementId];
+        let elementsToRotate = [element];
+
+        if (element.groupId) {
+            selectedIds = slide.elements
+                .filter(el => el.groupId === element.groupId)
+                .map(el => el.id);
+            elementsToRotate = slide.elements.filter(el => el.groupId === element.groupId);
+            setSelectedElementIds(selectedIds);
+        } else {
+            setSelectedElementIds([elementId]);
+        }
+
         isDraggingOrResizingRef.current = true;
 
-        // Calculate center of element for rotation
+        // Calculate center of element or group for rotation
         const canvasRect = canvasRef.current.getBoundingClientRect();
-        const centerX = canvasRect.left + element.x + element.width / 2;
-        const centerY = canvasRect.top + element.y + element.height / 2;
+        let centerX, centerY;
+
+        if (elementsToRotate.length > 1) {
+            // Calculate group center
+            const minX = Math.min(...elementsToRotate.map(el => el.x));
+            const minY = Math.min(...elementsToRotate.map(el => el.y));
+            const maxX = Math.max(...elementsToRotate.map(el => el.x + el.width));
+            const maxY = Math.max(...elementsToRotate.map(el => el.y + el.height));
+            centerX = canvasRect.left + (minX + maxX) / 2;
+            centerY = canvasRect.top + (minY + maxY) / 2;
+        } else {
+            centerX = canvasRect.left + element.x + element.width / 2;
+            centerY = canvasRect.top + element.y + element.height / 2;
+        }
 
         setRotating({
             elementId: element.id,
             centerX,
             centerY,
             initialRotation: element.rotation || 0,
+            // Group rotate data
+            isGroup: elementsToRotate.length > 1,
+            groupElements: elementsToRotate.map(el => ({
+                id: el.id,
+                initialX: el.x,
+                initialY: el.y,
+                initialWidth: el.width,
+                initialHeight: el.height,
+                initialRotation: el.rotation || 0,
+            })),
         });
 
         // Note: Batch will be started on first actual rotation in handleCanvasMouseMove
@@ -925,8 +992,19 @@ export default function App() {
                         if (guides.snapX !== null) newX = guides.snapX;
                         if (guides.snapY !== null) newY = guides.snapY;
 
-                        // Update alignment guides for visual display
-                        setAlignmentGuides(guides.vertical.length > 0 || guides.horizontal.length > 0 ? guides : null);
+                        // Update alignment guides for visual display (only if they actually changed)
+                        const hasGuides = guides.vertical.length > 0 || guides.horizontal.length > 0;
+                        const guidesChanged = !lastGuidesRef.current ||
+                            (lastGuidesRef.current.hasGuides !== hasGuides) ||
+                            (hasGuides && (
+                                JSON.stringify(lastGuidesRef.current.guides.vertical) !== JSON.stringify(guides.vertical) ||
+                                JSON.stringify(lastGuidesRef.current.guides.horizontal) !== JSON.stringify(guides.horizontal)
+                            ));
+
+                        if (guidesChanged) {
+                            lastGuidesRef.current = { hasGuides, guides };
+                            setAlignmentGuides(hasGuides ? guides : null);
+                        }
                     }
                 }
 
@@ -942,30 +1020,82 @@ export default function App() {
 
             const dx = e.clientX - resizing.initialMouseX;
             const dy = e.clientY - resizing.initialMouseY;
-            let { initialX, initialY, initialWidth, initialHeight } = resizing;
-            let newX = initialX, newY = initialY, newWidth = initialWidth, newHeight = initialHeight;
 
-            if (resizing.handle.includes('right')) newWidth = initialWidth + dx;
-            if (resizing.handle.includes('left')) {
-                newWidth = initialWidth - dx;
-                newX = initialX + dx;
-            }
-            if (resizing.handle.includes('bottom')) newHeight = initialHeight + dy;
-            if (resizing.handle.includes('top')) {
-                newHeight = initialHeight - dy;
-                newY = initialY + dy;
-            }
+            if (resizing.isGroup && resizing.groupElements && resizing.groupBounds) {
+                // Group resize - scale all elements proportionally
+                const { minX, minY, groupWidth, groupHeight } = resizing.groupBounds;
+                let newGroupWidth = groupWidth;
+                let newGroupHeight = groupHeight;
+                let newMinX = minX;
+                let newMinY = minY;
 
-            // Apply snap-to-grid if enabled
-            if (snapToGrid) {
-                newX = snapPositionToGrid(newX, gridSize);
-                newY = snapPositionToGrid(newY, gridSize);
-                newWidth = snapPositionToGrid(newWidth, gridSize);
-                newHeight = snapPositionToGrid(newHeight, gridSize);
-            }
+                // Calculate new group bounds based on resize handle
+                if (resizing.handle.includes('right')) newGroupWidth = groupWidth + dx;
+                if (resizing.handle.includes('left')) {
+                    newGroupWidth = groupWidth - dx;
+                    newMinX = minX + dx;
+                }
+                if (resizing.handle.includes('bottom')) newGroupHeight = groupHeight + dy;
+                if (resizing.handle.includes('top')) {
+                    newGroupHeight = groupHeight - dy;
+                    newMinY = minY + dy;
+                }
 
-            if (newWidth > 20 && newHeight > 20) {
-                updateElement(resizing.elementId, { x: newX, y: newY, width: newWidth, height: newHeight });
+                // Calculate scale factors
+                const scaleX = newGroupWidth / groupWidth;
+                const scaleY = newGroupHeight / groupHeight;
+
+                if (newGroupWidth > 20 && newGroupHeight > 20 && scaleX > 0 && scaleY > 0) {
+                    // Apply transformation to all group elements
+                    resizing.groupElements.forEach(el => {
+                        const relX = el.initialX - minX;
+                        const relY = el.initialY - minY;
+
+                        let newX = newMinX + (relX * scaleX);
+                        let newY = newMinY + (relY * scaleY);
+                        let newWidth = el.initialWidth * scaleX;
+                        let newHeight = el.initialHeight * scaleY;
+
+                        // Apply snap-to-grid if enabled
+                        if (snapToGrid) {
+                            newX = snapPositionToGrid(newX, gridSize);
+                            newY = snapPositionToGrid(newY, gridSize);
+                            newWidth = snapPositionToGrid(newWidth, gridSize);
+                            newHeight = snapPositionToGrid(newHeight, gridSize);
+                        }
+
+                        if (newWidth > 20 && newHeight > 20) {
+                            updateElement(el.id, { x: newX, y: newY, width: newWidth, height: newHeight });
+                        }
+                    });
+                }
+            } else {
+                // Single element resize
+                let { initialX, initialY, initialWidth, initialHeight } = resizing;
+                let newX = initialX, newY = initialY, newWidth = initialWidth, newHeight = initialHeight;
+
+                if (resizing.handle.includes('right')) newWidth = initialWidth + dx;
+                if (resizing.handle.includes('left')) {
+                    newWidth = initialWidth - dx;
+                    newX = initialX + dx;
+                }
+                if (resizing.handle.includes('bottom')) newHeight = initialHeight + dy;
+                if (resizing.handle.includes('top')) {
+                    newHeight = initialHeight - dy;
+                    newY = initialY + dy;
+                }
+
+                // Apply snap-to-grid if enabled
+                if (snapToGrid) {
+                    newX = snapPositionToGrid(newX, gridSize);
+                    newY = snapPositionToGrid(newY, gridSize);
+                    newWidth = snapPositionToGrid(newWidth, gridSize);
+                    newHeight = snapPositionToGrid(newHeight, gridSize);
+                }
+
+                if (newWidth > 20 && newHeight > 20) {
+                    updateElement(resizing.elementId, { x: newX, y: newY, width: newWidth, height: newHeight });
+                }
             }
         }
         if (rotating) {
@@ -975,7 +1105,7 @@ export default function App() {
                 batchStartedRef.current = true;
             }
 
-            // Calculate angle between mouse position and element center
+            // Calculate angle between mouse position and rotation center
             const dx = e.clientX - rotating.centerX;
             const dy = e.clientY - rotating.centerY;
 
@@ -993,7 +1123,46 @@ export default function App() {
                 angle = Math.round(angle / 15) * 15;
             }
 
-            updateElement(rotating.elementId, { rotation: Math.round(angle) });
+            if (rotating.isGroup && rotating.groupElements) {
+                // Group rotate - rotate all elements around group center
+                const rotationDelta = angle - rotating.initialRotation;
+                const canvasRect = canvasRef.current.getBoundingClientRect();
+                const groupCenterX = (rotating.centerX - canvasRect.left);
+                const groupCenterY = (rotating.centerY - canvasRect.top);
+
+                rotating.groupElements.forEach(el => {
+                    // Calculate element's center relative to group center
+                    const elementCenterX = el.initialX + (el.initialWidth || 100) / 2;
+                    const elementCenterY = el.initialY + (el.initialHeight || 100) / 2;
+                    const relX = elementCenterX - groupCenterX;
+                    const relY = elementCenterY - groupCenterY;
+
+                    // Rotate the element's position around group center
+                    const radians = (rotationDelta * Math.PI) / 180;
+                    const cos = Math.cos(radians);
+                    const sin = Math.sin(radians);
+                    const newRelX = relX * cos - relY * sin;
+                    const newRelY = relX * sin + relY * cos;
+
+                    // Calculate new position (top-left corner)
+                    const newCenterX = groupCenterX + newRelX;
+                    const newCenterY = groupCenterY + newRelY;
+                    const newX = newCenterX - (el.initialWidth || 100) / 2;
+                    const newY = newCenterY - (el.initialHeight || 100) / 2;
+
+                    // Update element's rotation
+                    const newRotation = ((el.initialRotation || 0) + rotationDelta) % 360;
+
+                    updateElement(el.id, {
+                        x: newX,
+                        y: newY,
+                        rotation: Math.round(newRotation < 0 ? newRotation + 360 : newRotation)
+                    });
+                });
+            } else {
+                // Single element rotate
+                updateElement(rotating.elementId, { rotation: Math.round(angle) });
+            }
         }
     }, [dragging, resizing, rotating, updateElement, interactingElementId, snapToGrid, gridSize, currentSlideId, selectedElementIds, marquee, startBatch]);
 
@@ -1027,6 +1196,7 @@ export default function App() {
         setResizing(null);
         setRotating(null);
         setAlignmentGuides(null); // Clear guides when done dragging
+        lastGuidesRef.current = null; // Reset guide tracking
 
         // Handle marquee selection
         if (marquee) {
@@ -1074,6 +1244,7 @@ export default function App() {
         setResizing(null);
         setRotating(null);
         setAlignmentGuides(null); // Clear guides when leaving canvas
+        lastGuidesRef.current = null; // Reset guide tracking
         setMarquee(null); // Clear marquee when leaving canvas
     }, [endBatch]);
 
@@ -1666,6 +1837,8 @@ export default function App() {
                         onAlign={handleAlign}
                         onDistribute={handleDistribute}
                         onReorder={handleReorder}
+                        onGroup={groupElements}
+                        onUngroup={ungroupElements}
                         showGrid={showGrid}
                         onToggleGrid={() => setShowGrid(!showGrid)}
                         snapToGrid={snapToGrid}

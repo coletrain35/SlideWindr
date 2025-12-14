@@ -880,3 +880,51 @@ export const AudioIcon = ({ label, className }) => (
 );
 AudioIcon.propTypes = { label: PropTypes.string, className: PropTypes.string };
 
+export const GroupIcon = ({ label, className }) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden={!label}
+        role={label ? "img" : undefined}
+        aria-label={label}
+        className={className}
+    >
+        <rect x="3" y="3" width="7" height="7" rx="1"/>
+        <rect x="14" y="3" width="7" height="7" rx="1"/>
+        <rect x="14" y="14" width="7" height="7" rx="1"/>
+        <rect x="3" y="14" width="7" height="7" rx="1"/>
+    </svg>
+);
+GroupIcon.propTypes = { label: PropTypes.string, className: PropTypes.string };
+
+export const UngroupIcon = ({ label, className }) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden={!label}
+        role={label ? "img" : undefined}
+        aria-label={label}
+        className={className}
+    >
+        <rect x="3" y="3" width="7" height="7" rx="1" strokeDasharray="2 2"/>
+        <rect x="14" y="3" width="7" height="7" rx="1" strokeDasharray="2 2"/>
+        <rect x="14" y="14" width="7" height="7" rx="1" strokeDasharray="2 2"/>
+        <rect x="3" y="14" width="7" height="7" rx="1" strokeDasharray="2 2"/>
+    </svg>
+);
+UngroupIcon.propTypes = { label: PropTypes.string, className: PropTypes.string };
+
