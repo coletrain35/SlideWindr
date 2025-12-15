@@ -101,6 +101,24 @@ const ComponentContainer = React.memo(({ code, propsString }) => {
                 .replace(/export\s*{\s*default\s*}/g, '')  // Remove export { default }
                 .replace(/export\s*{[^}]+}/g, ''); // Remove other named exports like export { Foo, Bar }
 
+            // Inject a mock IntersectionObserver that always reports in-view
+            // This ensures components that animate on scroll are visible in the editor
+            const ioShim = `
+            const IntersectionObserver = class {
+                constructor(cb) { this.cb = cb; }
+                observe(el) { 
+                    // Delay slightly to ensure mount
+                    setTimeout(() => {
+                        this.cb([{ isIntersecting: true, target: el, intersectionRatio: 1 }]);
+                    }, 100); 
+                }
+                unobserve() {}
+                disconnect() {}
+            };
+            `;
+
+            transformed = ioShim + transformed;
+
             console.log('Transformed code after processing:', transformed);
 
             const exports = {};

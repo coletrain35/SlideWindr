@@ -35,13 +35,9 @@ export function generateRevealHTML(presentation) {
         // Generate React component container for background
         let bgReactContainer = '';
         if (slide.background?.reactComponent) {
-            const code = (slide.background.reactComponent.code || '')
-                .replace(/\\/g, '\\\\')
-                .replace(/'/g, '&#39;')
-                .replace(/\n/g, '\\n');
-            const props = (slide.background.reactComponent.props || '{}')
-                .replace(/'/g, '&#39;');
-            bgReactContainer = `<div class='absolute inset-0' style='width: 100%; height: 100%;' data-react-code='${code}' data-react-props='${props}'></div>`;
+            const code = encodeURIComponent(slide.background.reactComponent.code || '');
+            const props = encodeURIComponent(slide.background.reactComponent.props || '{}');
+            bgReactContainer = `<div class='absolute inset-0' style='width: 100%; height: 100%;' data-react-code="${code}" data-react-props="${props}"></div>`;
         }
 
         // ARCHITECTURAL CHANGE: Handle flow mode differently
@@ -152,13 +148,9 @@ export function generateRevealHTML(presentation) {
             // Generate React component container for element
             let reactContainer = '';
             if (el.reactComponent) {
-                const code = (el.reactComponent.code || '')
-                    .replace(/\\/g, '\\\\')
-                    .replace(/'/g, '&#39;')
-                    .replace(/\n/g, '\\n');
-                const props = (el.reactComponent.props || '{}')
-                    .replace(/'/g, '&#39;');
-                reactContainer = `<div class='absolute inset-0 pointer-events-none' style='width: 100%; height: 100%; max-width: ${el.width}px; max-height: ${el.height}px; overflow: hidden;' data-react-code='${code}' data-react-props='${props}'></div>`;
+                const code = encodeURIComponent(el.reactComponent.code || '');
+                const props = encodeURIComponent(el.reactComponent.props || '{}');
+                reactContainer = `<div class='absolute inset-0 pointer-events-none' style='width: 100%; height: 100%; max-width: ${el.width}px; max-height: ${el.height}px; overflow: hidden;' data-react-code="${code}" data-react-props="${props}"></div>`;
             }
 
             // Generate base element HTML based on type
@@ -336,7 +328,7 @@ export function generateRevealHTML(presentation) {
     <title>${presentation.title}</title>
     <link rel="stylesheet" href="https://unpkg.com/reveal.js@4.6.1/dist/reset.css">
     <link rel="stylesheet" href="https://unpkg.com/reveal.js@4.6.1/dist/reveal.css">
-    <link rel="stylesheet" href="https://unpkg.com/reveal.js@4.6.1/dist/theme/${presentation.theme}.css" id="theme-link">
+    <link rel="stylesheet" href="https://unpkg.com/reveal.js@4.6.1/dist/theme/${presentation.theme || 'white'}.css" id="theme-link">
     <style>
     /* Set explicit slide dimensions (16:9 aspect ratio) */
     .reveal .slides section {
@@ -502,20 +494,55 @@ export function generateRevealHTML(presentation) {
         </div>
     </div>
     <script src="https://unpkg.com/reveal.js@4.6.1/dist/reveal.js"></script>
-    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/react@18.2.0/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://unpkg.com/postprocessing@6.23.5/build/postprocessing.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://unpkg.com/ogl@0.0.76/dist/ogl.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/framer-motion@10.16.4/dist/framer-motion.js"></script>
     <script>
         ${presentation.customJS ? `// Custom JavaScript from imported presentation\n        ${presentation.customJS}\n\n        ` : ''}Reveal.initialize(${JSON.stringify(settingsForReveal, null, 2)});
+
+        // Add custom method to handle Reveal.js scaling transparency
+        window._getUnscaledRect = function(element) {
+            if (!element || typeof element.getBoundingClientRect !== 'function') {
+                return { top: 0, left: 0, width: 0, height: 0, bottom: 0, right: 0, x: 0, y: 0 };
+            }
+            const rect = element.getBoundingClientRect();
+            // Calculate scale based on the element's own dimensions (most robust)
+            // This handles nested transforms, zoom, and Reveal.js scaling accurately
+            let scaleX = 1;
+            let scaleY = 1;
+            
+            if (element.offsetWidth > 0 && element.offsetHeight > 0) {
+                 scaleX = rect.width / element.offsetWidth;
+                 scaleY = rect.height / element.offsetHeight;
+            } else if (window.Reveal && Reveal.getScale) {
+                 scaleX = Reveal.getScale();
+                 scaleY = Reveal.getScale();
+            }
+
+            return {
+                top: rect.top / scaleY,
+                left: rect.left / scaleX,
+                width: rect.width / scaleX,
+                height: rect.height / scaleY,
+                bottom: rect.bottom / scaleY,
+                right: rect.right / scaleX,
+                x: rect.x / scaleX,
+                y: rect.y / scaleY
+            };
+        };
 
         const dependencyResolver = (dep) => {
             if (dep === 'react') return React;
             if (dep === 'three') return THREE;
             if (dep === 'postprocessing') return POSTPROCESSING;
             if (dep === 'gsap') return gsap;
+            if (dep === 'ogl') return ogl;
+            if (dep === 'framer-motion' || dep === 'motion/react') return { motion: Motion.motion, AnimatePresence: Motion.AnimatePresence };
             // Allow relative path imports for CSS by ignoring them
             if (dep.startsWith('./') && dep.endsWith('.css')) return {};
             console.warn('Unknown dependency:', dep);
@@ -537,13 +564,18 @@ export function generateRevealHTML(presentation) {
                     return;
                 }
 
-                const code = container.dataset.reactCode.replace(/\\\\\\\\/g, '\\\\').replace(/&#39;/g, "'").replace(/\\\\n/g, '\\n');
-                const propsString = container.dataset.reactProps.replace(/&#39;/g, "'");
+                const code = decodeURIComponent(container.dataset.reactCode);
+                const propsString = decodeURIComponent(container.dataset.reactProps);
 
                 console.log('Rendering React component', index);
 
                 try {
-                    const transformed = Babel.transform(code, {
+                    // AUTO-PATCH: Handle Reveal.js scaling for getBoundingClientRect
+                    // We replace the standard call with our global unscaled version
+                    // Regex find "object.getBoundingClientRect()" and turns it into "window._getUnscaledRect(object)"
+                    const codeToRun = code.replace(/([\\w\\.$[\\]"']+)\\.getBoundingClientRect\\(\\)/g, 'window._getUnscaledRect($1)');
+
+                    const transformed = Babel.transform(codeToRun, {
                         presets: ['react'],
                         plugins: [ ["transform-modules-commonjs", { "loose": true }] ]
                     }).code;
@@ -571,6 +603,9 @@ export function generateRevealHTML(presentation) {
                         'THREE',
                         'POSTPROCESSING',
                         'gsap',
+                        'ogl',
+                        'motion',
+                        'AnimatePresence',
                         transformed
                     )(
                         exports,
@@ -593,7 +628,10 @@ export function generateRevealHTML(presentation) {
                         React.useSyncExternalStore,
                         typeof THREE !== 'undefined' ? THREE : {},
                         typeof POSTPROCESSING !== 'undefined' ? POSTPROCESSING : {},
-                        typeof gsap !== 'undefined' ? gsap : {}
+                        typeof gsap !== 'undefined' ? gsap : {},
+                        typeof ogl !== 'undefined' ? ogl : {},
+                        (typeof Motion !== 'undefined' && Motion.motion) ? Motion.motion : {},
+                        (typeof Motion !== 'undefined' && Motion.AnimatePresence) ? Motion.AnimatePresence : {}
                     );
 
                     const Component = exports.default;
@@ -601,7 +639,41 @@ export function generateRevealHTML(presentation) {
 
                     const props = JSON.parse(propsString);
 
-                    ReactDOM.render(React.createElement(Component, props), container);
+                    // Replicate ComponentContainer logic for styling and alignment
+                    const cssVars = {};
+                    let containerStyle = {};
+
+                    // Extract CSS variables and container styles from props
+                    Object.entries(props).forEach(([key, value]) => {
+                        if (typeof value === 'string' || typeof value === 'number') {
+                            // Convert camelCase to kebab-case for CSS vars
+                            const cssVarName = '--' + key.replace(/([A-Z])/g, '-$1').toLowerCase();
+                            cssVars[cssVarName] = value;
+                        }
+                    });
+
+                    if (props._containerStyle) {
+                        containerStyle = props._containerStyle;
+                    }
+
+                    // Create a wrapper component to apply styles
+                    const Wrapper = () => {
+                        return React.createElement('div', {
+                            style: {
+                                display: 'flex',
+                                flexDirection: 'column',
+                                width: '100%',
+                                height: '100%',
+                                boxSizing: 'border-box',
+                                margin: 0,
+                                ...containerStyle,
+                                ...cssVars
+                            }
+                        }, React.createElement(Component, props));
+                    };
+
+                    const root = ReactDOM.createRoot(container);
+                    root.render(React.createElement(Wrapper));
                     renderedContainers.add(container);
                     console.log('Successfully rendered React component', index);
                 } catch (e) {
