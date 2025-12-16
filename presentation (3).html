@@ -1,0 +1,512 @@
+
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>My Presentation</title>
+    <link rel="stylesheet" href="https://unpkg.com/reveal.js@4.6.1/dist/reset.css">
+    <link rel="stylesheet" href="https://unpkg.com/reveal.js@4.6.1/dist/reveal.css">
+    <link rel="stylesheet" href="https://unpkg.com/reveal.js@4.6.1/dist/theme/black.css" id="theme-link">
+    <style>
+    /* Set explicit slide dimensions (16:9 aspect ratio) */
+    .reveal .slides section {
+        width: 960px !important;
+        height: 540px !important;
+    }
+    /* Ensure React component containers have proper dimensions */
+    [data-react-code] {
+        position: absolute;
+        inset: 0;
+        width: 960px;
+        height: 540px;
+    }
+    .pixel-blast-container {
+        width: 100%;
+        height: 100%;
+    }
+    .my-component-style {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.focus-container {
+  position: relative;
+  display: flex;
+  gap: 1em;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  outline: none;
+  user-select: none;
+}
+
+.focus-word {
+  position: relative;
+  font-size: 3rem;
+  font-weight: 900;
+  cursor: pointer;
+  transition:
+    filter 0.3s ease,
+    color 0.3s ease;
+  outline: none;
+  user-select: none;
+}
+
+.focus-word.active {
+  filter: blur(0);
+}
+
+.focus-frame {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  box-sizing: content-box;
+  border: none;
+}
+
+.corner {
+  position: absolute;
+  width: 1rem;
+  height: 1rem;
+  border: 3px solid var(--border-color, #fff);
+  filter: drop-shadow(0px 0px 4px var(--border-color, #fff));
+  border-radius: 3px;
+  transition: none;
+}
+
+.top-left {
+  top: -10px;
+  left: -10px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.top-right {
+  top: -10px;
+  right: -10px;
+  border-left: none;
+  border-bottom: none;
+}
+
+.bottom-left {
+  bottom: -10px;
+  left: -10px;
+  border-right: none;
+  border-top: none;
+}
+
+.bottom-right {
+  bottom: -10px;
+  right: -10px;
+  border-left: none;
+  border-top: none;
+}
+
+
+.my-component-style {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.my-component-style {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+    /* Custom CSS from imported reveal.js presentations */
+    
+
+    /* Custom animations for elements - Initial hidden states */
+    /* Transition timing is set via inline styles on each element */
+    .fragment.custom-fadeIn {
+        opacity: 0;
+    }
+    .fragment.custom-slideInLeft {
+        opacity: 0;
+        transform: translateX(-100px);
+    }
+    .fragment.custom-slideInRight {
+        opacity: 0;
+        transform: translateX(100px);
+    }
+    .fragment.custom-slideInUp {
+        opacity: 0;
+        transform: translateY(100px);
+    }
+    .fragment.custom-slideInDown {
+        opacity: 0;
+        transform: translateY(-100px);
+    }
+    .fragment.custom-zoomIn {
+        opacity: 0;
+        transform: scale(0);
+    }
+    .fragment.custom-bounceIn {
+        opacity: 0;
+        transform: scale(0);
+    }
+    .fragment.custom-rotateIn {
+        opacity: 0;
+        transform: rotate(-180deg) scale(0);
+    }
+    .fragment.custom-flipIn {
+        opacity: 0;
+        transform: perspective(400px) rotateY(-90deg);
+    }
+
+    /* Visible states - when Reveal.js makes the fragment visible */
+    .fragment.visible.custom-fadeIn,
+    .fragment.visible.custom-slideInLeft,
+    .fragment.visible.custom-slideInRight,
+    .fragment.visible.custom-slideInUp,
+    .fragment.visible.custom-slideInDown,
+    .fragment.visible.custom-zoomIn,
+    .fragment.visible.custom-rotateIn,
+    .fragment.visible.custom-flipIn {
+        opacity: 1;
+        transform: translateX(0) translateY(0) scale(1) rotate(0deg);
+    }
+
+    /* BounceIn needs keyframe animation for the bounce effect */
+    @keyframes bounceIn {
+        0% {
+            transform: scale(0);
+            opacity: 0;
+        }
+        60% {
+            transform: scale(1.2);
+            opacity: 1;
+        }
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+    .fragment.visible.custom-bounceIn {
+        animation: bounceIn var(--anim-duration, 0.6s) var(--anim-easing, ease-out) var(--anim-delay, 0s) both;
+        opacity: 1;
+    }
+
+    /* Emphasis animations - pulse, shake, swing */
+    @keyframes pulse {
+        0%, 100% {
+            transform: scale(1);
+        }
+        50% {
+            transform: scale(1.05);
+        }
+    }
+    @keyframes shake {
+        0%, 100% {
+            transform: translateX(0);
+        }
+        20% {
+            transform: translateX(-10px);
+        }
+        40% {
+            transform: translateX(10px);
+        }
+        60% {
+            transform: translateX(-10px);
+        }
+        80% {
+            transform: translateX(10px);
+        }
+    }
+    @keyframes swing {
+        0%, 100% {
+            transform: rotate(0deg);
+        }
+        20% {
+            transform: rotate(15deg);
+        }
+        40% {
+            transform: rotate(-15deg);
+        }
+        60% {
+            transform: rotate(10deg);
+        }
+        80% {
+            transform: rotate(-10deg);
+        }
+    }
+
+    /* Emphasis animation classes - visible from start */
+    .fragment.custom-pulse {
+        opacity: 1;
+    }
+    .fragment.visible.custom-pulse {
+        animation: pulse var(--anim-duration, 0.5s) var(--anim-easing, ease-out) var(--anim-delay, 0s) infinite;
+    }
+    .fragment.custom-shake {
+        opacity: 1;
+    }
+    .fragment.visible.custom-shake {
+        animation: shake var(--anim-duration, 0.5s) var(--anim-easing, ease-out) var(--anim-delay, 0s) both;
+    }
+    .fragment.custom-swing {
+        opacity: 1;
+    }
+    .fragment.visible.custom-swing {
+        animation: swing var(--anim-duration, 0.8s) var(--anim-easing, ease-out) var(--anim-delay, 0s) both;
+    }
+    </style>
+</head>
+<body>
+    <div class="reveal">
+        <div class="slides">
+            <section ><div class='absolute inset-0' style='width: 100%; height: 100%;' data-react-code="import%20%7B%20motion%20%7D%20from%20'motion%2Freact'%3B%0Aimport%20%7B%20useEffect%2C%20useRef%2C%20useState%2C%20useMemo%20%7D%20from%20'react'%3B%0A%0Aconst%20buildKeyframes%20%3D%20(from%2C%20steps)%20%3D%3E%20%7B%0A%20%20const%20keys%20%3D%20new%20Set(%5B...Object.keys(from)%2C%20...steps.flatMap(s%20%3D%3E%20Object.keys(s))%5D)%3B%0A%0A%20%20const%20keyframes%20%3D%20%7B%7D%3B%0A%20%20keys.forEach(k%20%3D%3E%20%7B%0A%20%20%20%20keyframes%5Bk%5D%20%3D%20%5Bfrom%5Bk%5D%2C%20...steps.map(s%20%3D%3E%20s%5Bk%5D)%5D%3B%0A%20%20%7D)%3B%0A%20%20return%20keyframes%3B%0A%7D%3B%0A%0Aconst%20BlurText%20%3D%20(%7B%0A%20%20text%20%3D%20''%2C%0A%20%20delay%20%3D%20200%2C%0A%20%20className%20%3D%20''%2C%0A%20%20animateBy%20%3D%20'words'%2C%0A%20%20direction%20%3D%20'top'%2C%0A%20%20threshold%20%3D%200.1%2C%0A%20%20rootMargin%20%3D%20'0px'%2C%0A%20%20animationFrom%2C%0A%20%20animationTo%2C%0A%20%20easing%20%3D%20t%20%3D%3E%20t%2C%0A%20%20onAnimationComplete%2C%0A%20%20stepDuration%20%3D%200.35%0A%7D)%20%3D%3E%20%7B%0A%20%20const%20elements%20%3D%20animateBy%20%3D%3D%3D%20'words'%20%3F%20text.split('%20')%20%3A%20text.split('')%3B%0A%20%20const%20%5BinView%2C%20setInView%5D%20%3D%20useState(false)%3B%0A%20%20const%20ref%20%3D%20useRef(null)%3B%0A%0A%20%20useEffect(()%20%3D%3E%20%7B%0A%20%20%20%20if%20(!ref.current)%20return%3B%0A%20%20%20%20const%20observer%20%3D%20new%20IntersectionObserver(%0A%20%20%20%20%20%20(%5Bentry%5D)%20%3D%3E%20%7B%0A%20%20%20%20%20%20%20%20if%20(entry.isIntersecting)%20%7B%0A%20%20%20%20%20%20%20%20%20%20setInView(true)%3B%0A%20%20%20%20%20%20%20%20%20%20observer.unobserve(ref.current)%3B%0A%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%7B%20threshold%2C%20rootMargin%20%7D%0A%20%20%20%20)%3B%0A%20%20%20%20observer.observe(ref.current)%3B%0A%20%20%20%20return%20()%20%3D%3E%20observer.disconnect()%3B%0A%20%20%20%20%2F%2F%20eslint-disable-next-line%20react-hooks%2Fexhaustive-deps%0A%20%20%7D%2C%20%5Bthreshold%2C%20rootMargin%5D)%3B%0A%0A%20%20const%20defaultFrom%20%3D%20useMemo(%0A%20%20%20%20()%20%3D%3E%0A%20%20%20%20%20%20direction%20%3D%3D%3D%20'top'%20%3F%20%7B%20filter%3A%20'blur(10px)'%2C%20opacity%3A%200%2C%20y%3A%20-50%20%7D%20%3A%20%7B%20filter%3A%20'blur(10px)'%2C%20opacity%3A%200%2C%20y%3A%2050%20%7D%2C%0A%20%20%20%20%5Bdirection%5D%0A%20%20)%3B%0A%0A%20%20const%20defaultTo%20%3D%20useMemo(%0A%20%20%20%20()%20%3D%3E%20%5B%0A%20%20%20%20%20%20%7B%0A%20%20%20%20%20%20%20%20filter%3A%20'blur(5px)'%2C%0A%20%20%20%20%20%20%20%20opacity%3A%200.5%2C%0A%20%20%20%20%20%20%20%20y%3A%20direction%20%3D%3D%3D%20'top'%20%3F%205%20%3A%20-5%0A%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%7B%20filter%3A%20'blur(0px)'%2C%20opacity%3A%201%2C%20y%3A%200%20%7D%0A%20%20%20%20%5D%2C%0A%20%20%20%20%5Bdirection%5D%0A%20%20)%3B%0A%0A%20%20const%20fromSnapshot%20%3D%20animationFrom%20%3F%3F%20defaultFrom%3B%0A%20%20const%20toSnapshots%20%3D%20animationTo%20%3F%3F%20defaultTo%3B%0A%0A%20%20const%20stepCount%20%3D%20toSnapshots.length%20%2B%201%3B%0A%20%20const%20totalDuration%20%3D%20stepDuration%20*%20(stepCount%20-%201)%3B%0A%20%20const%20times%20%3D%20Array.from(%7B%20length%3A%20stepCount%20%7D%2C%20(_%2C%20i)%20%3D%3E%20(stepCount%20%3D%3D%3D%201%20%3F%200%20%3A%20i%20%2F%20(stepCount%20-%201)))%3B%0A%0A%20%20return%20(%0A%20%20%20%20%3Cp%20ref%3D%7Bref%7D%20className%3D%7BclassName%7D%20style%3D%7B%7B%20display%3A%20'flex'%2C%20flexWrap%3A%20'wrap'%20%7D%7D%3E%0A%20%20%20%20%20%20%7Belements.map((segment%2C%20index)%20%3D%3E%20%7B%0A%20%20%20%20%20%20%20%20const%20animateKeyframes%20%3D%20buildKeyframes(fromSnapshot%2C%20toSnapshots)%3B%0A%0A%20%20%20%20%20%20%20%20const%20spanTransition%20%3D%20%7B%0A%20%20%20%20%20%20%20%20%20%20duration%3A%20totalDuration%2C%0A%20%20%20%20%20%20%20%20%20%20times%2C%0A%20%20%20%20%20%20%20%20%20%20delay%3A%20(index%20*%20delay)%20%2F%201000%0A%20%20%20%20%20%20%20%20%7D%3B%0A%20%20%20%20%20%20%20%20spanTransition.ease%20%3D%20easing%3B%0A%0A%20%20%20%20%20%20%20%20return%20(%0A%20%20%20%20%20%20%20%20%20%20%3Cmotion.span%0A%20%20%20%20%20%20%20%20%20%20%20%20className%3D%22inline-block%20will-change-%5Btransform%2Cfilter%2Copacity%5D%22%0A%20%20%20%20%20%20%20%20%20%20%20%20key%3D%7Bindex%7D%0A%20%20%20%20%20%20%20%20%20%20%20%20initial%3D%7BfromSnapshot%7D%0A%20%20%20%20%20%20%20%20%20%20%20%20animate%3D%7BinView%20%3F%20animateKeyframes%20%3A%20fromSnapshot%7D%0A%20%20%20%20%20%20%20%20%20%20%20%20transition%3D%7BspanTransition%7D%0A%20%20%20%20%20%20%20%20%20%20%20%20onAnimationComplete%3D%7Bindex%20%3D%3D%3D%20elements.length%20-%201%20%3F%20onAnimationComplete%20%3A%20undefined%7D%0A%20%20%20%20%20%20%20%20%20%20%3E%0A%20%20%20%20%20%20%20%20%20%20%20%20%7Bsegment%20%3D%3D%3D%20'%20'%20%3F%20'%5Cu00A0'%20%3A%20segment%7D%0A%20%20%20%20%20%20%20%20%20%20%20%20%7BanimateBy%20%3D%3D%3D%20'words'%20%26%26%20index%20%3C%20elements.length%20-%201%20%26%26%20'%5Cu00A0'%7D%0A%20%20%20%20%20%20%20%20%20%20%3C%2Fmotion.span%3E%0A%20%20%20%20%20%20%20%20)%3B%0A%20%20%20%20%20%20%7D)%7D%0A%20%20%20%20%3C%2Fp%3E%0A%20%20)%3B%0A%7D%3B%0A%0Aexport%20default%20BlurText%3B%0A" data-react-props="%7B%0A%20%20%22text%22%3A%20%22Do%20you%20hate%20boring%20slide%20decks%3F%22%2C%0A%20%20%22textColor%22%3A%20%22%23ffffff%22%2C%0A%20%20%22bgColor%22%3A%20%22%234f46e5%22%2C%0A%20%20%22fontSize%22%3A%2032%2C%0A%20%20%22borderRadius%22%3A%208%2C%0A%20%20%22showBorder%22%3A%20true%2C%0A%20%20%22_containerStyle%22%3A%20%7B%0A%20%20%20%20%22display%22%3A%20%22flex%22%2C%0A%20%20%20%20%22flexDirection%22%3A%20%22column%22%2C%0A%20%20%20%20%22alignItems%22%3A%20%22center%22%2C%0A%20%20%20%20%22justifyContent%22%3A%20%22center%22%2C%0A%20%20%20%20%22color%22%3A%20%22%23ffffff%22%0A%20%20%7D%0A%7D"></div></section>
+<section ><div class='absolute inset-0' style='width: 100%; height: 100%;' data-react-code="import%20%7B%20useEffect%2C%20useRef%2C%20useState%20%7D%20from%20'react'%3B%0Aimport%20%7B%20motion%20%7D%20from%20'motion%2Freact'%3B%0Aimport%20'.%2FTrueFocus.css'%3B%0A%0Aconst%20TrueFocus%20%3D%20(%7B%0A%20%20sentence%20%3D%20'True%20Focus'%2C%0A%20%20separator%20%3D%20'%20'%2C%0A%20%20manualMode%20%3D%20false%2C%0A%20%20blurAmount%20%3D%205%2C%0A%20%20borderColor%20%3D%20'green'%2C%0A%20%20glowColor%20%3D%20'rgba(0%2C%20255%2C%200%2C%200.6)'%2C%0A%20%20animationDuration%20%3D%200.5%2C%0A%20%20pauseBetweenAnimations%20%3D%201%0A%7D)%20%3D%3E%20%7B%0A%20%20const%20words%20%3D%20sentence.split(separator)%3B%0A%20%20const%20%5BcurrentIndex%2C%20setCurrentIndex%5D%20%3D%20useState(0)%3B%0A%20%20const%20%5BlastActiveIndex%2C%20setLastActiveIndex%5D%20%3D%20useState(null)%3B%0A%20%20const%20containerRef%20%3D%20useRef(null)%3B%0A%20%20const%20wordRefs%20%3D%20useRef(%5B%5D)%3B%0A%20%20const%20%5BfocusRect%2C%20setFocusRect%5D%20%3D%20useState(%7B%20x%3A%200%2C%20y%3A%200%2C%20width%3A%200%2C%20height%3A%200%20%7D)%3B%0A%0A%20%20useEffect(()%20%3D%3E%20%7B%0A%20%20%20%20if%20(!manualMode)%20%7B%0A%20%20%20%20%20%20const%20interval%20%3D%20setInterval(%0A%20%20%20%20%20%20%20%20()%20%3D%3E%20%7B%0A%20%20%20%20%20%20%20%20%20%20setCurrentIndex(prev%20%3D%3E%20(prev%20%2B%201)%20%25%20words.length)%3B%0A%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20(animationDuration%20%2B%20pauseBetweenAnimations)%20*%201000%0A%20%20%20%20%20%20)%3B%0A%0A%20%20%20%20%20%20return%20()%20%3D%3E%20clearInterval(interval)%3B%0A%20%20%20%20%7D%0A%20%20%7D%2C%20%5BmanualMode%2C%20animationDuration%2C%20pauseBetweenAnimations%2C%20words.length%5D)%3B%0A%0A%20%20useEffect(()%20%3D%3E%20%7B%0A%20%20%20%20if%20(currentIndex%20%3D%3D%3D%20null%20%7C%7C%20currentIndex%20%3D%3D%3D%20-1)%20return%3B%0A%0A%20%20%20%20if%20(!wordRefs.current%5BcurrentIndex%5D%20%7C%7C%20!containerRef.current)%20return%3B%0A%0A%20%20%20%20const%20parentRect%20%3D%20containerRef.current.getBoundingClientRect()%3B%0A%20%20%20%20const%20activeRect%20%3D%20wordRefs.current%5BcurrentIndex%5D.getBoundingClientRect()%3B%0A%0A%20%20%20%20setFocusRect(%7B%0A%20%20%20%20%20%20x%3A%20activeRect.left%20-%20parentRect.left%2C%0A%20%20%20%20%20%20y%3A%20activeRect.top%20-%20parentRect.top%2C%0A%20%20%20%20%20%20width%3A%20activeRect.width%2C%0A%20%20%20%20%20%20height%3A%20activeRect.height%0A%20%20%20%20%7D)%3B%0A%20%20%7D%2C%20%5BcurrentIndex%2C%20words.length%5D)%3B%0A%0A%20%20const%20handleMouseEnter%20%3D%20index%20%3D%3E%20%7B%0A%20%20%20%20if%20(manualMode)%20%7B%0A%20%20%20%20%20%20setLastActiveIndex(index)%3B%0A%20%20%20%20%20%20setCurrentIndex(index)%3B%0A%20%20%20%20%7D%0A%20%20%7D%3B%0A%0A%20%20const%20handleMouseLeave%20%3D%20()%20%3D%3E%20%7B%0A%20%20%20%20if%20(manualMode)%20%7B%0A%20%20%20%20%20%20setCurrentIndex(lastActiveIndex)%3B%0A%20%20%20%20%7D%0A%20%20%7D%3B%0A%0A%20%20return%20(%0A%20%20%20%20%3Cdiv%20className%3D%22focus-container%22%20ref%3D%7BcontainerRef%7D%3E%0A%20%20%20%20%20%20%7Bwords.map((word%2C%20index)%20%3D%3E%20%7B%0A%20%20%20%20%20%20%20%20const%20isActive%20%3D%20index%20%3D%3D%3D%20currentIndex%3B%0A%20%20%20%20%20%20%20%20return%20(%0A%20%20%20%20%20%20%20%20%20%20%3Cspan%0A%20%20%20%20%20%20%20%20%20%20%20%20key%3D%7Bindex%7D%0A%20%20%20%20%20%20%20%20%20%20%20%20ref%3D%7Bel%20%3D%3E%20(wordRefs.current%5Bindex%5D%20%3D%20el)%7D%0A%20%20%20%20%20%20%20%20%20%20%20%20className%3D%7B%60focus-word%20%24%7BmanualMode%20%3F%20'manual'%20%3A%20''%7D%20%24%7BisActive%20%26%26%20!manualMode%20%3F%20'active'%20%3A%20''%7D%60%7D%0A%20%20%20%20%20%20%20%20%20%20%20%20style%3D%7B%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20filter%3A%20manualMode%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%3F%20isActive%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%3F%20%60blur(0px)%60%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%3A%20%60blur(%24%7BblurAmount%7Dpx)%60%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%3A%20isActive%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%3F%20%60blur(0px)%60%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%3A%20%60blur(%24%7BblurAmount%7Dpx)%60%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20'--border-color'%3A%20borderColor%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20'--glow-color'%3A%20glowColor%2C%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20transition%3A%20%60filter%20%24%7BanimationDuration%7Ds%20ease%60%0A%20%20%20%20%20%20%20%20%20%20%20%20%7D%7D%0A%20%20%20%20%20%20%20%20%20%20%20%20onMouseEnter%3D%7B()%20%3D%3E%20handleMouseEnter(index)%7D%0A%20%20%20%20%20%20%20%20%20%20%20%20onMouseLeave%3D%7BhandleMouseLeave%7D%0A%20%20%20%20%20%20%20%20%20%20%3E%0A%20%20%20%20%20%20%20%20%20%20%20%20%7Bword%7D%0A%20%20%20%20%20%20%20%20%20%20%3C%2Fspan%3E%0A%20%20%20%20%20%20%20%20)%3B%0A%20%20%20%20%20%20%7D)%7D%0A%0A%20%20%20%20%20%20%3Cmotion.div%0A%20%20%20%20%20%20%20%20className%3D%22focus-frame%22%0A%20%20%20%20%20%20%20%20animate%3D%7B%7B%0A%20%20%20%20%20%20%20%20%20%20x%3A%20focusRect.x%2C%0A%20%20%20%20%20%20%20%20%20%20y%3A%20focusRect.y%2C%0A%20%20%20%20%20%20%20%20%20%20width%3A%20focusRect.width%2C%0A%20%20%20%20%20%20%20%20%20%20height%3A%20focusRect.height%2C%0A%20%20%20%20%20%20%20%20%20%20opacity%3A%20currentIndex%20%3E%3D%200%20%3F%201%20%3A%200%0A%20%20%20%20%20%20%20%20%7D%7D%0A%20%20%20%20%20%20%20%20transition%3D%7B%7B%0A%20%20%20%20%20%20%20%20%20%20duration%3A%20animationDuration%0A%20%20%20%20%20%20%20%20%7D%7D%0A%20%20%20%20%20%20%20%20style%3D%7B%7B%0A%20%20%20%20%20%20%20%20%20%20'--border-color'%3A%20borderColor%2C%0A%20%20%20%20%20%20%20%20%20%20'--glow-color'%3A%20glowColor%0A%20%20%20%20%20%20%20%20%7D%7D%0A%20%20%20%20%20%20%3E%0A%20%20%20%20%20%20%20%20%3Cspan%20className%3D%22corner%20top-left%22%3E%3C%2Fspan%3E%0A%20%20%20%20%20%20%20%20%3Cspan%20className%3D%22corner%20top-right%22%3E%3C%2Fspan%3E%0A%20%20%20%20%20%20%20%20%3Cspan%20className%3D%22corner%20bottom-left%22%3E%3C%2Fspan%3E%0A%20%20%20%20%20%20%20%20%3Cspan%20className%3D%22corner%20bottom-right%22%3E%3C%2Fspan%3E%0A%20%20%20%20%20%20%3C%2Fmotion.div%3E%0A%20%20%20%20%3C%2Fdiv%3E%0A%20%20)%3B%0A%7D%3B%0A%0Aexport%20default%20TrueFocus%3B%0A" data-react-props="%7B%0A%20%20%22sentence%22%3A%20%22Add%20some%20style%22%2C%0A%20%20%22separator%22%3A%20%22%20%22%2C%0A%20%20%22manualMode%22%3A%20true%2C%0A%20%20%22blurAmount%22%3A%205%2C%0A%20%20%22borderColor%22%3A%20%22green%22%2C%0A%20%20%22glowColor%22%3A%20%22rgba(0%2C%20255%2C%200%2C%200.6)%22%2C%0A%20%20%22animationDuration%22%3A%200.5%2C%0A%20%20%22pauseBetweenAnimations%22%3A%201%2C%0A%20%20%22_containerStyle%22%3A%20%7B%0A%20%20%20%20%22display%22%3A%20%22flex%22%2C%0A%20%20%20%20%22flexDirection%22%3A%20%22column%22%2C%0A%20%20%20%20%22alignItems%22%3A%20%22center%22%2C%0A%20%20%20%20%22justifyContent%22%3A%20%22center%22%0A%20%20%7D%0A%7D"></div></section>
+<section ><div class='absolute inset-0' style='width: 100%; height: 100%;' data-react-code="'use%20client'%3B%0Aimport%20%7B%20useEffect%2C%20useRef%20%7D%20from%20'react'%3B%0A%0Afunction%20SplashCursor(%7B%0A%20%20SIM_RESOLUTION%20%3D%20128%2C%0A%20%20DYE_RESOLUTION%20%3D%201440%2C%0A%20%20CAPTURE_RESOLUTION%20%3D%20512%2C%0A%20%20DENSITY_DISSIPATION%20%3D%203.5%2C%0A%20%20VELOCITY_DISSIPATION%20%3D%202%2C%0A%20%20PRESSURE%20%3D%200.1%2C%0A%20%20PRESSURE_ITERATIONS%20%3D%2020%2C%0A%20%20CURL%20%3D%203%2C%0A%20%20SPLAT_RADIUS%20%3D%200.2%2C%0A%20%20SPLAT_FORCE%20%3D%206000%2C%0A%20%20SHADING%20%3D%20true%2C%0A%20%20COLOR_UPDATE_SPEED%20%3D%2010%2C%0A%20%20BACK_COLOR%20%3D%20%7B%20r%3A%200.5%2C%20g%3A%200%2C%20b%3A%200%20%7D%2C%0A%20%20TRANSPARENT%20%3D%20true%0A%7D)%20%7B%0A%20%20const%20canvasRef%20%3D%20useRef(null)%3B%0A%0A%20%20useEffect(()%20%3D%3E%20%7B%0A%20%20%20%20const%20canvas%20%3D%20canvasRef.current%3B%0A%20%20%20%20if%20(!canvas)%20return%3B%0A%0A%20%20%20%20function%20pointerPrototype()%20%7B%0A%20%20%20%20%20%20this.id%20%3D%20-1%3B%0A%20%20%20%20%20%20this.texcoordX%20%3D%200%3B%0A%20%20%20%20%20%20this.texcoordY%20%3D%200%3B%0A%20%20%20%20%20%20this.prevTexcoordX%20%3D%200%3B%0A%20%20%20%20%20%20this.prevTexcoordY%20%3D%200%3B%0A%20%20%20%20%20%20this.deltaX%20%3D%200%3B%0A%20%20%20%20%20%20this.deltaY%20%3D%200%3B%0A%20%20%20%20%20%20this.down%20%3D%20false%3B%0A%20%20%20%20%20%20this.moved%20%3D%20false%3B%0A%20%20%20%20%20%20this.color%20%3D%20%5B0%2C%200%2C%200%5D%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20let%20config%20%3D%20%7B%0A%20%20%20%20%20%20SIM_RESOLUTION%2C%0A%20%20%20%20%20%20DYE_RESOLUTION%2C%0A%20%20%20%20%20%20CAPTURE_RESOLUTION%2C%0A%20%20%20%20%20%20DENSITY_DISSIPATION%2C%0A%20%20%20%20%20%20VELOCITY_DISSIPATION%2C%0A%20%20%20%20%20%20PRESSURE%2C%0A%20%20%20%20%20%20PRESSURE_ITERATIONS%2C%0A%20%20%20%20%20%20CURL%2C%0A%20%20%20%20%20%20SPLAT_RADIUS%2C%0A%20%20%20%20%20%20SPLAT_FORCE%2C%0A%20%20%20%20%20%20SHADING%2C%0A%20%20%20%20%20%20COLOR_UPDATE_SPEED%2C%0A%20%20%20%20%20%20PAUSED%3A%20false%2C%0A%20%20%20%20%20%20BACK_COLOR%2C%0A%20%20%20%20%20%20TRANSPARENT%0A%20%20%20%20%7D%3B%0A%0A%20%20%20%20let%20pointers%20%3D%20%5Bnew%20pointerPrototype()%5D%3B%0A%0A%20%20%20%20const%20%7B%20gl%2C%20ext%20%7D%20%3D%20getWebGLContext(canvas)%3B%0A%20%20%20%20if%20(!ext.supportLinearFiltering)%20%7B%0A%20%20%20%20%20%20config.DYE_RESOLUTION%20%3D%20256%3B%0A%20%20%20%20%20%20config.SHADING%20%3D%20false%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20function%20getWebGLContext(canvas)%20%7B%0A%20%20%20%20%20%20const%20params%20%3D%20%7B%0A%20%20%20%20%20%20%20%20alpha%3A%20true%2C%0A%20%20%20%20%20%20%20%20depth%3A%20false%2C%0A%20%20%20%20%20%20%20%20stencil%3A%20false%2C%0A%20%20%20%20%20%20%20%20antialias%3A%20false%2C%0A%20%20%20%20%20%20%20%20preserveDrawingBuffer%3A%20false%0A%20%20%20%20%20%20%7D%3B%0A%20%20%20%20%20%20let%20gl%20%3D%20canvas.getContext('webgl2'%2C%20params)%3B%0A%20%20%20%20%20%20const%20isWebGL2%20%3D%20!!gl%3B%0A%20%20%20%20%20%20if%20(!isWebGL2)%20gl%20%3D%20canvas.getContext('webgl'%2C%20params)%20%7C%7C%20canvas.getContext('experimental-webgl'%2C%20params)%3B%0A%0A%20%20%20%20%20%20let%20halfFloat%3B%0A%20%20%20%20%20%20let%20supportLinearFiltering%3B%0A%20%20%20%20%20%20if%20(isWebGL2)%20%7B%0A%20%20%20%20%20%20%20%20gl.getExtension('EXT_color_buffer_float')%3B%0A%20%20%20%20%20%20%20%20supportLinearFiltering%20%3D%20gl.getExtension('OES_texture_float_linear')%3B%0A%20%20%20%20%20%20%7D%20else%20%7B%0A%20%20%20%20%20%20%20%20halfFloat%20%3D%20gl.getExtension('OES_texture_half_float')%3B%0A%20%20%20%20%20%20%20%20supportLinearFiltering%20%3D%20gl.getExtension('OES_texture_half_float_linear')%3B%0A%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20gl.clearColor(0.0%2C%200.0%2C%200.0%2C%201.0)%3B%0A%0A%20%20%20%20%20%20const%20halfFloatTexType%20%3D%20isWebGL2%20%3F%20gl.HALF_FLOAT%20%3A%20halfFloat%20%26%26%20halfFloat.HALF_FLOAT_OES%3B%0A%20%20%20%20%20%20let%20formatRGBA%3B%0A%20%20%20%20%20%20let%20formatRG%3B%0A%20%20%20%20%20%20let%20formatR%3B%0A%0A%20%20%20%20%20%20if%20(isWebGL2)%20%7B%0A%20%20%20%20%20%20%20%20formatRGBA%20%3D%20getSupportedFormat(gl%2C%20gl.RGBA16F%2C%20gl.RGBA%2C%20halfFloatTexType)%3B%0A%20%20%20%20%20%20%20%20formatRG%20%3D%20getSupportedFormat(gl%2C%20gl.RG16F%2C%20gl.RG%2C%20halfFloatTexType)%3B%0A%20%20%20%20%20%20%20%20formatR%20%3D%20getSupportedFormat(gl%2C%20gl.R16F%2C%20gl.RED%2C%20halfFloatTexType)%3B%0A%20%20%20%20%20%20%7D%20else%20%7B%0A%20%20%20%20%20%20%20%20formatRGBA%20%3D%20getSupportedFormat(gl%2C%20gl.RGBA%2C%20gl.RGBA%2C%20halfFloatTexType)%3B%0A%20%20%20%20%20%20%20%20formatRG%20%3D%20getSupportedFormat(gl%2C%20gl.RGBA%2C%20gl.RGBA%2C%20halfFloatTexType)%3B%0A%20%20%20%20%20%20%20%20formatR%20%3D%20getSupportedFormat(gl%2C%20gl.RGBA%2C%20gl.RGBA%2C%20halfFloatTexType)%3B%0A%20%20%20%20%20%20%7D%0A%0A%20%20%20%20%20%20return%20%7B%0A%20%20%20%20%20%20%20%20gl%2C%0A%20%20%20%20%20%20%20%20ext%3A%20%7B%0A%20%20%20%20%20%20%20%20%20%20formatRGBA%2C%0A%20%20%20%20%20%20%20%20%20%20formatRG%2C%0A%20%20%20%20%20%20%20%20%20%20formatR%2C%0A%20%20%20%20%20%20%20%20%20%20halfFloatTexType%2C%0A%20%20%20%20%20%20%20%20%20%20supportLinearFiltering%0A%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%7D%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20function%20getSupportedFormat(gl%2C%20internalFormat%2C%20format%2C%20type)%20%7B%0A%20%20%20%20%20%20if%20(!supportRenderTextureFormat(gl%2C%20internalFormat%2C%20format%2C%20type))%20%7B%0A%20%20%20%20%20%20%20%20switch%20(internalFormat)%20%7B%0A%20%20%20%20%20%20%20%20%20%20case%20gl.R16F%3A%0A%20%20%20%20%20%20%20%20%20%20%20%20return%20getSupportedFormat(gl%2C%20gl.RG16F%2C%20gl.RG%2C%20type)%3B%0A%20%20%20%20%20%20%20%20%20%20case%20gl.RG16F%3A%0A%20%20%20%20%20%20%20%20%20%20%20%20return%20getSupportedFormat(gl%2C%20gl.RGBA16F%2C%20gl.RGBA%2C%20type)%3B%0A%20%20%20%20%20%20%20%20%20%20default%3A%0A%20%20%20%20%20%20%20%20%20%20%20%20return%20null%3B%0A%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20return%20%7B%20internalFormat%2C%20format%20%7D%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20function%20supportRenderTextureFormat(gl%2C%20internalFormat%2C%20format%2C%20type)%20%7B%0A%20%20%20%20%20%20const%20texture%20%3D%20gl.createTexture()%3B%0A%20%20%20%20%20%20gl.bindTexture(gl.TEXTURE_2D%2C%20texture)%3B%0A%20%20%20%20%20%20gl.texParameteri(gl.TEXTURE_2D%2C%20gl.TEXTURE_MIN_FILTER%2C%20gl.NEAREST)%3B%0A%20%20%20%20%20%20gl.texParameteri(gl.TEXTURE_2D%2C%20gl.TEXTURE_MAG_FILTER%2C%20gl.NEAREST)%3B%0A%20%20%20%20%20%20gl.texParameteri(gl.TEXTURE_2D%2C%20gl.TEXTURE_WRAP_S%2C%20gl.CLAMP_TO_EDGE)%3B%0A%20%20%20%20%20%20gl.texParameteri(gl.TEXTURE_2D%2C%20gl.TEXTURE_WRAP_T%2C%20gl.CLAMP_TO_EDGE)%3B%0A%20%20%20%20%20%20gl.texImage2D(gl.TEXTURE_2D%2C%200%2C%20internalFormat%2C%204%2C%204%2C%200%2C%20format%2C%20type%2C%20null)%3B%0A%20%20%20%20%20%20const%20fbo%20%3D%20gl.createFramebuffer()%3B%0A%20%20%20%20%20%20gl.bindFramebuffer(gl.FRAMEBUFFER%2C%20fbo)%3B%0A%20%20%20%20%20%20gl.framebufferTexture2D(gl.FRAMEBUFFER%2C%20gl.COLOR_ATTACHMENT0%2C%20gl.TEXTURE_2D%2C%20texture%2C%200)%3B%0A%20%20%20%20%20%20const%20status%20%3D%20gl.checkFramebufferStatus(gl.FRAMEBUFFER)%3B%0A%20%20%20%20%20%20return%20status%20%3D%3D%3D%20gl.FRAMEBUFFER_COMPLETE%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20class%20Material%20%7B%0A%20%20%20%20%20%20constructor(vertexShader%2C%20fragmentShaderSource)%20%7B%0A%20%20%20%20%20%20%20%20this.vertexShader%20%3D%20vertexShader%3B%0A%20%20%20%20%20%20%20%20this.fragmentShaderSource%20%3D%20fragmentShaderSource%3B%0A%20%20%20%20%20%20%20%20this.programs%20%3D%20%5B%5D%3B%0A%20%20%20%20%20%20%20%20this.activeProgram%20%3D%20null%3B%0A%20%20%20%20%20%20%20%20this.uniforms%20%3D%20%5B%5D%3B%0A%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20setKeywords(keywords)%20%7B%0A%20%20%20%20%20%20%20%20let%20hash%20%3D%200%3B%0A%20%20%20%20%20%20%20%20for%20(let%20i%20%3D%200%3B%20i%20%3C%20keywords.length%3B%20i%2B%2B)%20hash%20%2B%3D%20hashCode(keywords%5Bi%5D)%3B%0A%20%20%20%20%20%20%20%20let%20program%20%3D%20this.programs%5Bhash%5D%3B%0A%20%20%20%20%20%20%20%20if%20(program%20%3D%3D%20null)%20%7B%0A%20%20%20%20%20%20%20%20%20%20let%20fragmentShader%20%3D%20compileShader(gl.FRAGMENT_SHADER%2C%20this.fragmentShaderSource%2C%20keywords)%3B%0A%20%20%20%20%20%20%20%20%20%20program%20%3D%20createProgram(this.vertexShader%2C%20fragmentShader)%3B%0A%20%20%20%20%20%20%20%20%20%20this.programs%5Bhash%5D%20%3D%20program%3B%0A%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%20%20if%20(program%20%3D%3D%3D%20this.activeProgram)%20return%3B%0A%20%20%20%20%20%20%20%20this.uniforms%20%3D%20getUniforms(program)%3B%0A%20%20%20%20%20%20%20%20this.activeProgram%20%3D%20program%3B%0A%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20bind()%20%7B%0A%20%20%20%20%20%20%20%20gl.useProgram(this.activeProgram)%3B%0A%20%20%20%20%20%20%7D%0A%20%20%20%20%7D%0A%0A%20%20%20%20class%20Program%20%7B%0A%20%20%20%20%20%20constructor(vertexShader%2C%20fragmentShader)%20%7B%0A%20%20%20%20%20%20%20%20this.uniforms%20%3D%20%7B%7D%3B%0A%20%20%20%20%20%20%20%20this.program%20%3D%20createProgram(vertexShader%2C%20fragmentShader)%3B%0A%20%20%20%20%20%20%20%20this.uniforms%20%3D%20getUniforms(this.program)%3B%0A%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20bind()%20%7B%0A%20%20%20%20%20%20%20%20gl.useProgram(this.program)%3B%0A%20%20%20%20%20%20%7D%0A%20%20%20%20%7D%0A%0A%20%20%20%20function%20createProgram(vertexShader%2C%20fragmentShader)%20%7B%0A%20%20%20%20%20%20let%20program%20%3D%20gl.createProgram()%3B%0A%20%20%20%20%20%20gl.attachShader(program%2C%20vertexShader)%3B%0A%20%20%20%20%20%20gl.attachShader(program%2C%20fragmentShader)%3B%0A%20%20%20%20%20%20gl.linkProgram(program)%3B%0A%20%20%20%20%20%20if%20(!gl.getProgramParameter(program%2C%20gl.LINK_STATUS))%20console.trace(gl.getProgramInfoLog(program))%3B%0A%20%20%20%20%20%20return%20program%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20function%20getUniforms(program)%20%7B%0A%20%20%20%20%20%20let%20uniforms%20%3D%20%5B%5D%3B%0A%20%20%20%20%20%20let%20uniformCount%20%3D%20gl.getProgramParameter(program%2C%20gl.ACTIVE_UNIFORMS)%3B%0A%20%20%20%20%20%20for%20(let%20i%20%3D%200%3B%20i%20%3C%20uniformCount%3B%20i%2B%2B)%20%7B%0A%20%20%20%20%20%20%20%20let%20uniformName%20%3D%20gl.getActiveUniform(program%2C%20i).name%3B%0A%20%20%20%20%20%20%20%20uniforms%5BuniformName%5D%20%3D%20gl.getUniformLocation(program%2C%20uniformName)%3B%0A%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20return%20uniforms%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20function%20compileShader(type%2C%20source%2C%20keywords)%20%7B%0A%20%20%20%20%20%20source%20%3D%20addKeywords(source%2C%20keywords)%3B%0A%20%20%20%20%20%20const%20shader%20%3D%20gl.createShader(type)%3B%0A%20%20%20%20%20%20gl.shaderSource(shader%2C%20source)%3B%0A%20%20%20%20%20%20gl.compileShader(shader)%3B%0A%20%20%20%20%20%20if%20(!gl.getShaderParameter(shader%2C%20gl.COMPILE_STATUS))%20console.trace(gl.getShaderInfoLog(shader))%3B%0A%20%20%20%20%20%20return%20shader%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20function%20addKeywords(source%2C%20keywords)%20%7B%0A%20%20%20%20%20%20if%20(!keywords)%20return%20source%3B%0A%20%20%20%20%20%20let%20keywordsString%20%3D%20''%3B%0A%20%20%20%20%20%20keywords.forEach(keyword%20%3D%3E%20%7B%0A%20%20%20%20%20%20%20%20keywordsString%20%2B%3D%20'%23define%20'%20%2B%20keyword%20%2B%20'%5Cn'%3B%0A%20%20%20%20%20%20%7D)%3B%0A%20%20%20%20%20%20return%20keywordsString%20%2B%20source%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20const%20baseVertexShader%20%3D%20compileShader(%0A%20%20%20%20%20%20gl.VERTEX_SHADER%2C%0A%20%20%20%20%20%20%60%0A%20%20%20%20%20%20%20%20precision%20highp%20float%3B%0A%20%20%20%20%20%20%20%20attribute%20vec2%20aPosition%3B%0A%20%20%20%20%20%20%20%20varying%20vec2%20vUv%3B%0A%20%20%20%20%20%20%20%20varying%20vec2%20vL%3B%0A%20%20%20%20%20%20%20%20varying%20vec2%20vR%3B%0A%20%20%20%20%20%20%20%20varying%20vec2%20vT%3B%0A%20%20%20%20%20%20%20%20varying%20vec2%20vB%3B%0A%20%20%20%20%20%20%20%20uniform%20vec2%20texelSize%3B%0A%0A%20%20%20%20%20%20%20%20void%20main%20()%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20vUv%20%3D%20aPosition%20*%200.5%20%2B%200.5%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20vL%20%3D%20vUv%20-%20vec2(texelSize.x%2C%200.0)%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20vR%20%3D%20vUv%20%2B%20vec2(texelSize.x%2C%200.0)%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20vT%20%3D%20vUv%20%2B%20vec2(0.0%2C%20texelSize.y)%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20vB%20%3D%20vUv%20-%20vec2(0.0%2C%20texelSize.y)%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20gl_Position%20%3D%20vec4(aPosition%2C%200.0%2C%201.0)%3B%0A%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%60%0A%20%20%20%20)%3B%0A%0A%20%20%20%20const%20copyShader%20%3D%20compileShader(%0A%20%20%20%20%20%20gl.FRAGMENT_SHADER%2C%0A%20%20%20%20%20%20%60%0A%20%20%20%20%20%20%20%20precision%20mediump%20float%3B%0A%20%20%20%20%20%20%20%20precision%20mediump%20sampler2D%3B%0A%20%20%20%20%20%20%20%20varying%20highp%20vec2%20vUv%3B%0A%20%20%20%20%20%20%20%20uniform%20sampler2D%20uTexture%3B%0A%0A%20%20%20%20%20%20%20%20void%20main%20()%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20gl_FragColor%20%3D%20texture2D(uTexture%2C%20vUv)%3B%0A%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%60%0A%20%20%20%20)%3B%0A%0A%20%20%20%20const%20clearShader%20%3D%20compileShader(%0A%20%20%20%20%20%20gl.FRAGMENT_SHADER%2C%0A%20%20%20%20%20%20%60%0A%20%20%20%20%20%20%20%20precision%20mediump%20float%3B%0A%20%20%20%20%20%20%20%20precision%20mediump%20sampler2D%3B%0A%20%20%20%20%20%20%20%20varying%20highp%20vec2%20vUv%3B%0A%20%20%20%20%20%20%20%20uniform%20sampler2D%20uTexture%3B%0A%20%20%20%20%20%20%20%20uniform%20float%20value%3B%0A%0A%20%20%20%20%20%20%20%20void%20main%20()%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20gl_FragColor%20%3D%20value%20*%20texture2D(uTexture%2C%20vUv)%3B%0A%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%60%0A%20%20%20%20)%3B%0A%0A%20%20%20%20const%20displayShaderSource%20%3D%20%60%0A%20%20%20%20%20%20precision%20highp%20float%3B%0A%20%20%20%20%20%20precision%20highp%20sampler2D%3B%0A%20%20%20%20%20%20varying%20vec2%20vUv%3B%0A%20%20%20%20%20%20varying%20vec2%20vL%3B%0A%20%20%20%20%20%20varying%20vec2%20vR%3B%0A%20%20%20%20%20%20varying%20vec2%20vT%3B%0A%20%20%20%20%20%20varying%20vec2%20vB%3B%0A%20%20%20%20%20%20uniform%20sampler2D%20uTexture%3B%0A%20%20%20%20%20%20uniform%20sampler2D%20uDithering%3B%0A%20%20%20%20%20%20uniform%20vec2%20ditherScale%3B%0A%20%20%20%20%20%20uniform%20vec2%20texelSize%3B%0A%0A%20%20%20%20%20%20vec3%20linearToGamma%20(vec3%20color)%20%7B%0A%20%20%20%20%20%20%20%20%20%20color%20%3D%20max(color%2C%20vec3(0))%3B%0A%20%20%20%20%20%20%20%20%20%20return%20max(1.055%20*%20pow(color%2C%20vec3(0.416666667))%20-%200.055%2C%20vec3(0))%3B%0A%20%20%20%20%20%20%7D%0A%0A%20%20%20%20%20%20void%20main%20()%20%7B%0A%20%20%20%20%20%20%20%20%20%20vec3%20c%20%3D%20texture2D(uTexture%2C%20vUv).rgb%3B%0A%20%20%20%20%20%20%20%20%20%20%23ifdef%20SHADING%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20vec3%20lc%20%3D%20texture2D(uTexture%2C%20vL).rgb%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20vec3%20rc%20%3D%20texture2D(uTexture%2C%20vR).rgb%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20vec3%20tc%20%3D%20texture2D(uTexture%2C%20vT).rgb%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20vec3%20bc%20%3D%20texture2D(uTexture%2C%20vB).rgb%3B%0A%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20float%20dx%20%3D%20length(rc)%20-%20length(lc)%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20float%20dy%20%3D%20length(tc)%20-%20length(bc)%3B%0A%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20vec3%20n%20%3D%20normalize(vec3(dx%2C%20dy%2C%20length(texelSize)))%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20vec3%20l%20%3D%20vec3(0.0%2C%200.0%2C%201.0)%3B%0A%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20float%20diffuse%20%3D%20clamp(dot(n%2C%20l)%20%2B%200.7%2C%200.7%2C%201.0)%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20c%20*%3D%20diffuse%3B%0A%20%20%20%20%20%20%20%20%20%20%23endif%0A%0A%20%20%20%20%20%20%20%20%20%20float%20a%20%3D%20max(c.r%2C%20max(c.g%2C%20c.b))%3B%0A%20%20%20%20%20%20%20%20%20%20gl_FragColor%20%3D%20vec4(c%2C%20a)%3B%0A%20%20%20%20%20%20%7D%0A%20%20%20%20%60%3B%0A%0A%20%20%20%20const%20splatShader%20%3D%20compileShader(%0A%20%20%20%20%20%20gl.FRAGMENT_SHADER%2C%0A%20%20%20%20%20%20%60%0A%20%20%20%20%20%20%20%20precision%20highp%20float%3B%0A%20%20%20%20%20%20%20%20precision%20highp%20sampler2D%3B%0A%20%20%20%20%20%20%20%20varying%20vec2%20vUv%3B%0A%20%20%20%20%20%20%20%20uniform%20sampler2D%20uTarget%3B%0A%20%20%20%20%20%20%20%20uniform%20float%20aspectRatio%3B%0A%20%20%20%20%20%20%20%20uniform%20vec3%20color%3B%0A%20%20%20%20%20%20%20%20uniform%20vec2%20point%3B%0A%20%20%20%20%20%20%20%20uniform%20float%20radius%3B%0A%0A%20%20%20%20%20%20%20%20void%20main%20()%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20vec2%20p%20%3D%20vUv%20-%20point.xy%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20p.x%20*%3D%20aspectRatio%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20vec3%20splat%20%3D%20exp(-dot(p%2C%20p)%20%2F%20radius)%20*%20color%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20vec3%20base%20%3D%20texture2D(uTarget%2C%20vUv).xyz%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20gl_FragColor%20%3D%20vec4(base%20%2B%20splat%2C%201.0)%3B%0A%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%60%0A%20%20%20%20)%3B%0A%0A%20%20%20%20const%20advectionShader%20%3D%20compileShader(%0A%20%20%20%20%20%20gl.FRAGMENT_SHADER%2C%0A%20%20%20%20%20%20%60%0A%20%20%20%20%20%20%20%20precision%20highp%20float%3B%0A%20%20%20%20%20%20%20%20precision%20highp%20sampler2D%3B%0A%20%20%20%20%20%20%20%20varying%20vec2%20vUv%3B%0A%20%20%20%20%20%20%20%20uniform%20sampler2D%20uVelocity%3B%0A%20%20%20%20%20%20%20%20uniform%20sampler2D%20uSource%3B%0A%20%20%20%20%20%20%20%20uniform%20vec2%20texelSize%3B%0A%20%20%20%20%20%20%20%20uniform%20vec2%20dyeTexelSize%3B%0A%20%20%20%20%20%20%20%20uniform%20float%20dt%3B%0A%20%20%20%20%20%20%20%20uniform%20float%20dissipation%3B%0A%0A%20%20%20%20%20%20%20%20vec4%20bilerp%20(sampler2D%20sam%2C%20vec2%20uv%2C%20vec2%20tsize)%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20vec2%20st%20%3D%20uv%20%2F%20tsize%20-%200.5%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20vec2%20iuv%20%3D%20floor(st)%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20vec2%20fuv%20%3D%20fract(st)%3B%0A%0A%20%20%20%20%20%20%20%20%20%20%20%20vec4%20a%20%3D%20texture2D(sam%2C%20(iuv%20%2B%20vec2(0.5%2C%200.5))%20*%20tsize)%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20vec4%20b%20%3D%20texture2D(sam%2C%20(iuv%20%2B%20vec2(1.5%2C%200.5))%20*%20tsize)%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20vec4%20c%20%3D%20texture2D(sam%2C%20(iuv%20%2B%20vec2(0.5%2C%201.5))%20*%20tsize)%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20vec4%20d%20%3D%20texture2D(sam%2C%20(iuv%20%2B%20vec2(1.5%2C%201.5))%20*%20tsize)%3B%0A%0A%20%20%20%20%20%20%20%20%20%20%20%20return%20mix(mix(a%2C%20b%2C%20fuv.x)%2C%20mix(c%2C%20d%2C%20fuv.x)%2C%20fuv.y)%3B%0A%20%20%20%20%20%20%20%20%7D%0A%0A%20%20%20%20%20%20%20%20void%20main%20()%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%23ifdef%20MANUAL_FILTERING%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20vec2%20coord%20%3D%20vUv%20-%20dt%20*%20bilerp(uVelocity%2C%20vUv%2C%20texelSize).xy%20*%20texelSize%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20vec4%20result%20%3D%20bilerp(uSource%2C%20coord%2C%20dyeTexelSize)%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%23else%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20vec2%20coord%20%3D%20vUv%20-%20dt%20*%20texture2D(uVelocity%2C%20vUv).xy%20*%20texelSize%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20vec4%20result%20%3D%20texture2D(uSource%2C%20coord)%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%23endif%0A%20%20%20%20%20%20%20%20%20%20%20%20float%20decay%20%3D%201.0%20%2B%20dissipation%20*%20dt%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20gl_FragColor%20%3D%20result%20%2F%20decay%3B%0A%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%60%2C%0A%20%20%20%20%20%20ext.supportLinearFiltering%20%3F%20null%20%3A%20%5B'MANUAL_FILTERING'%5D%0A%20%20%20%20)%3B%0A%0A%20%20%20%20const%20divergenceShader%20%3D%20compileShader(%0A%20%20%20%20%20%20gl.FRAGMENT_SHADER%2C%0A%20%20%20%20%20%20%60%0A%20%20%20%20%20%20%20%20precision%20mediump%20float%3B%0A%20%20%20%20%20%20%20%20precision%20mediump%20sampler2D%3B%0A%20%20%20%20%20%20%20%20varying%20highp%20vec2%20vUv%3B%0A%20%20%20%20%20%20%20%20varying%20highp%20vec2%20vL%3B%0A%20%20%20%20%20%20%20%20varying%20highp%20vec2%20vR%3B%0A%20%20%20%20%20%20%20%20varying%20highp%20vec2%20vT%3B%0A%20%20%20%20%20%20%20%20varying%20highp%20vec2%20vB%3B%0A%20%20%20%20%20%20%20%20uniform%20sampler2D%20uVelocity%3B%0A%0A%20%20%20%20%20%20%20%20void%20main%20()%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20float%20L%20%3D%20texture2D(uVelocity%2C%20vL).x%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20float%20R%20%3D%20texture2D(uVelocity%2C%20vR).x%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20float%20T%20%3D%20texture2D(uVelocity%2C%20vT).y%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20float%20B%20%3D%20texture2D(uVelocity%2C%20vB).y%3B%0A%0A%20%20%20%20%20%20%20%20%20%20%20%20vec2%20C%20%3D%20texture2D(uVelocity%2C%20vUv).xy%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20if%20(vL.x%20%3C%200.0)%20%7B%20L%20%3D%20-C.x%3B%20%7D%0A%20%20%20%20%20%20%20%20%20%20%20%20if%20(vR.x%20%3E%201.0)%20%7B%20R%20%3D%20-C.x%3B%20%7D%0A%20%20%20%20%20%20%20%20%20%20%20%20if%20(vT.y%20%3E%201.0)%20%7B%20T%20%3D%20-C.y%3B%20%7D%0A%20%20%20%20%20%20%20%20%20%20%20%20if%20(vB.y%20%3C%200.0)%20%7B%20B%20%3D%20-C.y%3B%20%7D%0A%0A%20%20%20%20%20%20%20%20%20%20%20%20float%20div%20%3D%200.5%20*%20(R%20-%20L%20%2B%20T%20-%20B)%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20gl_FragColor%20%3D%20vec4(div%2C%200.0%2C%200.0%2C%201.0)%3B%0A%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%60%0A%20%20%20%20)%3B%0A%0A%20%20%20%20const%20curlShader%20%3D%20compileShader(%0A%20%20%20%20%20%20gl.FRAGMENT_SHADER%2C%0A%20%20%20%20%20%20%60%0A%20%20%20%20%20%20%20%20precision%20mediump%20float%3B%0A%20%20%20%20%20%20%20%20precision%20mediump%20sampler2D%3B%0A%20%20%20%20%20%20%20%20varying%20highp%20vec2%20vUv%3B%0A%20%20%20%20%20%20%20%20varying%20highp%20vec2%20vL%3B%0A%20%20%20%20%20%20%20%20varying%20highp%20vec2%20vR%3B%0A%20%20%20%20%20%20%20%20varying%20highp%20vec2%20vT%3B%0A%20%20%20%20%20%20%20%20varying%20highp%20vec2%20vB%3B%0A%20%20%20%20%20%20%20%20uniform%20sampler2D%20uVelocity%3B%0A%0A%20%20%20%20%20%20%20%20void%20main%20()%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20float%20L%20%3D%20texture2D(uVelocity%2C%20vL).y%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20float%20R%20%3D%20texture2D(uVelocity%2C%20vR).y%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20float%20T%20%3D%20texture2D(uVelocity%2C%20vT).x%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20float%20B%20%3D%20texture2D(uVelocity%2C%20vB).x%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20float%20vorticity%20%3D%20R%20-%20L%20-%20T%20%2B%20B%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20gl_FragColor%20%3D%20vec4(0.5%20*%20vorticity%2C%200.0%2C%200.0%2C%201.0)%3B%0A%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%60%0A%20%20%20%20)%3B%0A%0A%20%20%20%20const%20vorticityShader%20%3D%20compileShader(%0A%20%20%20%20%20%20gl.FRAGMENT_SHADER%2C%0A%20%20%20%20%20%20%60%0A%20%20%20%20%20%20%20%20precision%20highp%20float%3B%0A%20%20%20%20%20%20%20%20precision%20highp%20sampler2D%3B%0A%20%20%20%20%20%20%20%20varying%20vec2%20vUv%3B%0A%20%20%20%20%20%20%20%20varying%20vec2%20vL%3B%0A%20%20%20%20%20%20%20%20varying%20vec2%20vR%3B%0A%20%20%20%20%20%20%20%20varying%20vec2%20vT%3B%0A%20%20%20%20%20%20%20%20varying%20vec2%20vB%3B%0A%20%20%20%20%20%20%20%20uniform%20sampler2D%20uVelocity%3B%0A%20%20%20%20%20%20%20%20uniform%20sampler2D%20uCurl%3B%0A%20%20%20%20%20%20%20%20uniform%20float%20curl%3B%0A%20%20%20%20%20%20%20%20uniform%20float%20dt%3B%0A%0A%20%20%20%20%20%20%20%20void%20main%20()%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20float%20L%20%3D%20texture2D(uCurl%2C%20vL).x%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20float%20R%20%3D%20texture2D(uCurl%2C%20vR).x%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20float%20T%20%3D%20texture2D(uCurl%2C%20vT).x%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20float%20B%20%3D%20texture2D(uCurl%2C%20vB).x%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20float%20C%20%3D%20texture2D(uCurl%2C%20vUv).x%3B%0A%0A%20%20%20%20%20%20%20%20%20%20%20%20vec2%20force%20%3D%200.5%20*%20vec2(abs(T)%20-%20abs(B)%2C%20abs(R)%20-%20abs(L))%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20force%20%2F%3D%20length(force)%20%2B%200.0001%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20force%20*%3D%20curl%20*%20C%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20force.y%20*%3D%20-1.0%3B%0A%0A%20%20%20%20%20%20%20%20%20%20%20%20vec2%20velocity%20%3D%20texture2D(uVelocity%2C%20vUv).xy%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20velocity%20%2B%3D%20force%20*%20dt%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20velocity%20%3D%20min(max(velocity%2C%20-1000.0)%2C%201000.0)%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20gl_FragColor%20%3D%20vec4(velocity%2C%200.0%2C%201.0)%3B%0A%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%60%0A%20%20%20%20)%3B%0A%0A%20%20%20%20const%20pressureShader%20%3D%20compileShader(%0A%20%20%20%20%20%20gl.FRAGMENT_SHADER%2C%0A%20%20%20%20%20%20%60%0A%20%20%20%20%20%20%20%20precision%20mediump%20float%3B%0A%20%20%20%20%20%20%20%20precision%20mediump%20sampler2D%3B%0A%20%20%20%20%20%20%20%20varying%20highp%20vec2%20vUv%3B%0A%20%20%20%20%20%20%20%20varying%20highp%20vec2%20vL%3B%0A%20%20%20%20%20%20%20%20varying%20highp%20vec2%20vR%3B%0A%20%20%20%20%20%20%20%20varying%20highp%20vec2%20vT%3B%0A%20%20%20%20%20%20%20%20varying%20highp%20vec2%20vB%3B%0A%20%20%20%20%20%20%20%20uniform%20sampler2D%20uPressure%3B%0A%20%20%20%20%20%20%20%20uniform%20sampler2D%20uDivergence%3B%0A%0A%20%20%20%20%20%20%20%20void%20main%20()%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20float%20L%20%3D%20texture2D(uPressure%2C%20vL).x%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20float%20R%20%3D%20texture2D(uPressure%2C%20vR).x%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20float%20T%20%3D%20texture2D(uPressure%2C%20vT).x%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20float%20B%20%3D%20texture2D(uPressure%2C%20vB).x%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20float%20C%20%3D%20texture2D(uPressure%2C%20vUv).x%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20float%20divergence%20%3D%20texture2D(uDivergence%2C%20vUv).x%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20float%20pressure%20%3D%20(L%20%2B%20R%20%2B%20B%20%2B%20T%20-%20divergence)%20*%200.25%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20gl_FragColor%20%3D%20vec4(pressure%2C%200.0%2C%200.0%2C%201.0)%3B%0A%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%60%0A%20%20%20%20)%3B%0A%0A%20%20%20%20const%20gradientSubtractShader%20%3D%20compileShader(%0A%20%20%20%20%20%20gl.FRAGMENT_SHADER%2C%0A%20%20%20%20%20%20%60%0A%20%20%20%20%20%20%20%20precision%20mediump%20float%3B%0A%20%20%20%20%20%20%20%20precision%20mediump%20sampler2D%3B%0A%20%20%20%20%20%20%20%20varying%20highp%20vec2%20vUv%3B%0A%20%20%20%20%20%20%20%20varying%20highp%20vec2%20vL%3B%0A%20%20%20%20%20%20%20%20varying%20highp%20vec2%20vR%3B%0A%20%20%20%20%20%20%20%20varying%20highp%20vec2%20vT%3B%0A%20%20%20%20%20%20%20%20varying%20highp%20vec2%20vB%3B%0A%20%20%20%20%20%20%20%20uniform%20sampler2D%20uPressure%3B%0A%20%20%20%20%20%20%20%20uniform%20sampler2D%20uVelocity%3B%0A%0A%20%20%20%20%20%20%20%20void%20main%20()%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20float%20L%20%3D%20texture2D(uPressure%2C%20vL).x%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20float%20R%20%3D%20texture2D(uPressure%2C%20vR).x%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20float%20T%20%3D%20texture2D(uPressure%2C%20vT).x%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20float%20B%20%3D%20texture2D(uPressure%2C%20vB).x%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20vec2%20velocity%20%3D%20texture2D(uVelocity%2C%20vUv).xy%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20velocity.xy%20-%3D%20vec2(R%20-%20L%2C%20T%20-%20B)%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20gl_FragColor%20%3D%20vec4(velocity%2C%200.0%2C%201.0)%3B%0A%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%60%0A%20%20%20%20)%3B%0A%0A%20%20%20%20const%20blit%20%3D%20(()%20%3D%3E%20%7B%0A%20%20%20%20%20%20gl.bindBuffer(gl.ARRAY_BUFFER%2C%20gl.createBuffer())%3B%0A%20%20%20%20%20%20gl.bufferData(gl.ARRAY_BUFFER%2C%20new%20Float32Array(%5B-1%2C%20-1%2C%20-1%2C%201%2C%201%2C%201%2C%201%2C%20-1%5D)%2C%20gl.STATIC_DRAW)%3B%0A%20%20%20%20%20%20gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER%2C%20gl.createBuffer())%3B%0A%20%20%20%20%20%20gl.bufferData(gl.ELEMENT_ARRAY_BUFFER%2C%20new%20Uint16Array(%5B0%2C%201%2C%202%2C%200%2C%202%2C%203%5D)%2C%20gl.STATIC_DRAW)%3B%0A%20%20%20%20%20%20gl.vertexAttribPointer(0%2C%202%2C%20gl.FLOAT%2C%20false%2C%200%2C%200)%3B%0A%20%20%20%20%20%20gl.enableVertexAttribArray(0)%3B%0A%20%20%20%20%20%20return%20(target%2C%20clear%20%3D%20false)%20%3D%3E%20%7B%0A%20%20%20%20%20%20%20%20if%20(target%20%3D%3D%20null)%20%7B%0A%20%20%20%20%20%20%20%20%20%20gl.viewport(0%2C%200%2C%20gl.drawingBufferWidth%2C%20gl.drawingBufferHeight)%3B%0A%20%20%20%20%20%20%20%20%20%20gl.bindFramebuffer(gl.FRAMEBUFFER%2C%20null)%3B%0A%20%20%20%20%20%20%20%20%7D%20else%20%7B%0A%20%20%20%20%20%20%20%20%20%20gl.viewport(0%2C%200%2C%20target.width%2C%20target.height)%3B%0A%20%20%20%20%20%20%20%20%20%20gl.bindFramebuffer(gl.FRAMEBUFFER%2C%20target.fbo)%3B%0A%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%20%20if%20(clear)%20%7B%0A%20%20%20%20%20%20%20%20%20%20gl.clearColor(0.0%2C%200.0%2C%200.0%2C%201.0)%3B%0A%20%20%20%20%20%20%20%20%20%20gl.clear(gl.COLOR_BUFFER_BIT)%3B%0A%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%20%20gl.drawElements(gl.TRIANGLES%2C%206%2C%20gl.UNSIGNED_SHORT%2C%200)%3B%0A%20%20%20%20%20%20%7D%3B%0A%20%20%20%20%7D)()%3B%0A%0A%20%20%20%20let%20dye%2C%20velocity%2C%20divergence%2C%20curl%2C%20pressure%3B%0A%0A%20%20%20%20const%20copyProgram%20%3D%20new%20Program(baseVertexShader%2C%20copyShader)%3B%0A%20%20%20%20const%20clearProgram%20%3D%20new%20Program(baseVertexShader%2C%20clearShader)%3B%0A%20%20%20%20const%20splatProgram%20%3D%20new%20Program(baseVertexShader%2C%20splatShader)%3B%0A%20%20%20%20const%20advectionProgram%20%3D%20new%20Program(baseVertexShader%2C%20advectionShader)%3B%0A%20%20%20%20const%20divergenceProgram%20%3D%20new%20Program(baseVertexShader%2C%20divergenceShader)%3B%0A%20%20%20%20const%20curlProgram%20%3D%20new%20Program(baseVertexShader%2C%20curlShader)%3B%0A%20%20%20%20const%20vorticityProgram%20%3D%20new%20Program(baseVertexShader%2C%20vorticityShader)%3B%0A%20%20%20%20const%20pressureProgram%20%3D%20new%20Program(baseVertexShader%2C%20pressureShader)%3B%0A%20%20%20%20const%20gradienSubtractProgram%20%3D%20new%20Program(baseVertexShader%2C%20gradientSubtractShader)%3B%0A%20%20%20%20const%20displayMaterial%20%3D%20new%20Material(baseVertexShader%2C%20displayShaderSource)%3B%0A%0A%20%20%20%20function%20initFramebuffers()%20%7B%0A%20%20%20%20%20%20let%20simRes%20%3D%20getResolution(config.SIM_RESOLUTION)%3B%0A%20%20%20%20%20%20let%20dyeRes%20%3D%20getResolution(config.DYE_RESOLUTION)%3B%0A%20%20%20%20%20%20const%20texType%20%3D%20ext.halfFloatTexType%3B%0A%20%20%20%20%20%20const%20rgba%20%3D%20ext.formatRGBA%3B%0A%20%20%20%20%20%20const%20rg%20%3D%20ext.formatRG%3B%0A%20%20%20%20%20%20const%20r%20%3D%20ext.formatR%3B%0A%20%20%20%20%20%20const%20filtering%20%3D%20ext.supportLinearFiltering%20%3F%20gl.LINEAR%20%3A%20gl.NEAREST%3B%0A%20%20%20%20%20%20gl.disable(gl.BLEND)%3B%0A%0A%20%20%20%20%20%20if%20(!dye)%0A%20%20%20%20%20%20%20%20dye%20%3D%20createDoubleFBO(dyeRes.width%2C%20dyeRes.height%2C%20rgba.internalFormat%2C%20rgba.format%2C%20texType%2C%20filtering)%3B%0A%20%20%20%20%20%20else%0A%20%20%20%20%20%20%20%20dye%20%3D%20resizeDoubleFBO(dye%2C%20dyeRes.width%2C%20dyeRes.height%2C%20rgba.internalFormat%2C%20rgba.format%2C%20texType%2C%20filtering)%3B%0A%0A%20%20%20%20%20%20if%20(!velocity)%0A%20%20%20%20%20%20%20%20velocity%20%3D%20createDoubleFBO(simRes.width%2C%20simRes.height%2C%20rg.internalFormat%2C%20rg.format%2C%20texType%2C%20filtering)%3B%0A%20%20%20%20%20%20else%0A%20%20%20%20%20%20%20%20velocity%20%3D%20resizeDoubleFBO(%0A%20%20%20%20%20%20%20%20%20%20velocity%2C%0A%20%20%20%20%20%20%20%20%20%20simRes.width%2C%0A%20%20%20%20%20%20%20%20%20%20simRes.height%2C%0A%20%20%20%20%20%20%20%20%20%20rg.internalFormat%2C%0A%20%20%20%20%20%20%20%20%20%20rg.format%2C%0A%20%20%20%20%20%20%20%20%20%20texType%2C%0A%20%20%20%20%20%20%20%20%20%20filtering%0A%20%20%20%20%20%20%20%20)%3B%0A%0A%20%20%20%20%20%20divergence%20%3D%20createFBO(simRes.width%2C%20simRes.height%2C%20r.internalFormat%2C%20r.format%2C%20texType%2C%20gl.NEAREST)%3B%0A%20%20%20%20%20%20curl%20%3D%20createFBO(simRes.width%2C%20simRes.height%2C%20r.internalFormat%2C%20r.format%2C%20texType%2C%20gl.NEAREST)%3B%0A%20%20%20%20%20%20pressure%20%3D%20createDoubleFBO(simRes.width%2C%20simRes.height%2C%20r.internalFormat%2C%20r.format%2C%20texType%2C%20gl.NEAREST)%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20function%20createFBO(w%2C%20h%2C%20internalFormat%2C%20format%2C%20type%2C%20param)%20%7B%0A%20%20%20%20%20%20gl.activeTexture(gl.TEXTURE0)%3B%0A%20%20%20%20%20%20let%20texture%20%3D%20gl.createTexture()%3B%0A%20%20%20%20%20%20gl.bindTexture(gl.TEXTURE_2D%2C%20texture)%3B%0A%20%20%20%20%20%20gl.texParameteri(gl.TEXTURE_2D%2C%20gl.TEXTURE_MIN_FILTER%2C%20param)%3B%0A%20%20%20%20%20%20gl.texParameteri(gl.TEXTURE_2D%2C%20gl.TEXTURE_MAG_FILTER%2C%20param)%3B%0A%20%20%20%20%20%20gl.texParameteri(gl.TEXTURE_2D%2C%20gl.TEXTURE_WRAP_S%2C%20gl.CLAMP_TO_EDGE)%3B%0A%20%20%20%20%20%20gl.texParameteri(gl.TEXTURE_2D%2C%20gl.TEXTURE_WRAP_T%2C%20gl.CLAMP_TO_EDGE)%3B%0A%20%20%20%20%20%20gl.texImage2D(gl.TEXTURE_2D%2C%200%2C%20internalFormat%2C%20w%2C%20h%2C%200%2C%20format%2C%20type%2C%20null)%3B%0A%0A%20%20%20%20%20%20let%20fbo%20%3D%20gl.createFramebuffer()%3B%0A%20%20%20%20%20%20gl.bindFramebuffer(gl.FRAMEBUFFER%2C%20fbo)%3B%0A%20%20%20%20%20%20gl.framebufferTexture2D(gl.FRAMEBUFFER%2C%20gl.COLOR_ATTACHMENT0%2C%20gl.TEXTURE_2D%2C%20texture%2C%200)%3B%0A%20%20%20%20%20%20gl.viewport(0%2C%200%2C%20w%2C%20h)%3B%0A%20%20%20%20%20%20gl.clear(gl.COLOR_BUFFER_BIT)%3B%0A%0A%20%20%20%20%20%20let%20texelSizeX%20%3D%201.0%20%2F%20w%3B%0A%20%20%20%20%20%20let%20texelSizeY%20%3D%201.0%20%2F%20h%3B%0A%20%20%20%20%20%20return%20%7B%0A%20%20%20%20%20%20%20%20texture%2C%0A%20%20%20%20%20%20%20%20fbo%2C%0A%20%20%20%20%20%20%20%20width%3A%20w%2C%0A%20%20%20%20%20%20%20%20height%3A%20h%2C%0A%20%20%20%20%20%20%20%20texelSizeX%2C%0A%20%20%20%20%20%20%20%20texelSizeY%2C%0A%20%20%20%20%20%20%20%20attach(id)%20%7B%0A%20%20%20%20%20%20%20%20%20%20gl.activeTexture(gl.TEXTURE0%20%2B%20id)%3B%0A%20%20%20%20%20%20%20%20%20%20gl.bindTexture(gl.TEXTURE_2D%2C%20texture)%3B%0A%20%20%20%20%20%20%20%20%20%20return%20id%3B%0A%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%7D%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20function%20createDoubleFBO(w%2C%20h%2C%20internalFormat%2C%20format%2C%20type%2C%20param)%20%7B%0A%20%20%20%20%20%20let%20fbo1%20%3D%20createFBO(w%2C%20h%2C%20internalFormat%2C%20format%2C%20type%2C%20param)%3B%0A%20%20%20%20%20%20let%20fbo2%20%3D%20createFBO(w%2C%20h%2C%20internalFormat%2C%20format%2C%20type%2C%20param)%3B%0A%20%20%20%20%20%20return%20%7B%0A%20%20%20%20%20%20%20%20width%3A%20w%2C%0A%20%20%20%20%20%20%20%20height%3A%20h%2C%0A%20%20%20%20%20%20%20%20texelSizeX%3A%20fbo1.texelSizeX%2C%0A%20%20%20%20%20%20%20%20texelSizeY%3A%20fbo1.texelSizeY%2C%0A%20%20%20%20%20%20%20%20get%20read()%20%7B%0A%20%20%20%20%20%20%20%20%20%20return%20fbo1%3B%0A%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20set%20read(value)%20%7B%0A%20%20%20%20%20%20%20%20%20%20fbo1%20%3D%20value%3B%0A%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20get%20write()%20%7B%0A%20%20%20%20%20%20%20%20%20%20return%20fbo2%3B%0A%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20set%20write(value)%20%7B%0A%20%20%20%20%20%20%20%20%20%20fbo2%20%3D%20value%3B%0A%20%20%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20%20%20swap()%20%7B%0A%20%20%20%20%20%20%20%20%20%20let%20temp%20%3D%20fbo1%3B%0A%20%20%20%20%20%20%20%20%20%20fbo1%20%3D%20fbo2%3B%0A%20%20%20%20%20%20%20%20%20%20fbo2%20%3D%20temp%3B%0A%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%7D%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20function%20resizeFBO(target%2C%20w%2C%20h%2C%20internalFormat%2C%20format%2C%20type%2C%20param)%20%7B%0A%20%20%20%20%20%20let%20newFBO%20%3D%20createFBO(w%2C%20h%2C%20internalFormat%2C%20format%2C%20type%2C%20param)%3B%0A%20%20%20%20%20%20copyProgram.bind()%3B%0A%20%20%20%20%20%20gl.uniform1i(copyProgram.uniforms.uTexture%2C%20target.attach(0))%3B%0A%20%20%20%20%20%20blit(newFBO)%3B%0A%20%20%20%20%20%20return%20newFBO%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20function%20resizeDoubleFBO(target%2C%20w%2C%20h%2C%20internalFormat%2C%20format%2C%20type%2C%20param)%20%7B%0A%20%20%20%20%20%20if%20(target.width%20%3D%3D%3D%20w%20%26%26%20target.height%20%3D%3D%3D%20h)%20return%20target%3B%0A%20%20%20%20%20%20target.read%20%3D%20resizeFBO(target.read%2C%20w%2C%20h%2C%20internalFormat%2C%20format%2C%20type%2C%20param)%3B%0A%20%20%20%20%20%20target.write%20%3D%20createFBO(w%2C%20h%2C%20internalFormat%2C%20format%2C%20type%2C%20param)%3B%0A%20%20%20%20%20%20target.width%20%3D%20w%3B%0A%20%20%20%20%20%20target.height%20%3D%20h%3B%0A%20%20%20%20%20%20target.texelSizeX%20%3D%201.0%20%2F%20w%3B%0A%20%20%20%20%20%20target.texelSizeY%20%3D%201.0%20%2F%20h%3B%0A%20%20%20%20%20%20return%20target%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20function%20updateKeywords()%20%7B%0A%20%20%20%20%20%20let%20displayKeywords%20%3D%20%5B%5D%3B%0A%20%20%20%20%20%20if%20(config.SHADING)%20displayKeywords.push('SHADING')%3B%0A%20%20%20%20%20%20displayMaterial.setKeywords(displayKeywords)%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20updateKeywords()%3B%0A%20%20%20%20initFramebuffers()%3B%0A%20%20%20%20let%20lastUpdateTime%20%3D%20Date.now()%3B%0A%20%20%20%20let%20colorUpdateTimer%20%3D%200.0%3B%0A%0A%20%20%20%20function%20updateFrame()%20%7B%0A%20%20%20%20%20%20const%20dt%20%3D%20calcDeltaTime()%3B%0A%20%20%20%20%20%20if%20(resizeCanvas())%20initFramebuffers()%3B%0A%20%20%20%20%20%20updateColors(dt)%3B%0A%20%20%20%20%20%20applyInputs()%3B%0A%20%20%20%20%20%20step(dt)%3B%0A%20%20%20%20%20%20render(null)%3B%0A%20%20%20%20%20%20requestAnimationFrame(updateFrame)%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20function%20calcDeltaTime()%20%7B%0A%20%20%20%20%20%20let%20now%20%3D%20Date.now()%3B%0A%20%20%20%20%20%20let%20dt%20%3D%20(now%20-%20lastUpdateTime)%20%2F%201000%3B%0A%20%20%20%20%20%20dt%20%3D%20Math.min(dt%2C%200.016666)%3B%0A%20%20%20%20%20%20lastUpdateTime%20%3D%20now%3B%0A%20%20%20%20%20%20return%20dt%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20function%20resizeCanvas()%20%7B%0A%20%20%20%20%20%20let%20width%20%3D%20scaleByPixelRatio(canvas.clientWidth)%3B%0A%20%20%20%20%20%20let%20height%20%3D%20scaleByPixelRatio(canvas.clientHeight)%3B%0A%20%20%20%20%20%20if%20(canvas.width%20!%3D%3D%20width%20%7C%7C%20canvas.height%20!%3D%3D%20height)%20%7B%0A%20%20%20%20%20%20%20%20canvas.width%20%3D%20width%3B%0A%20%20%20%20%20%20%20%20canvas.height%20%3D%20height%3B%0A%20%20%20%20%20%20%20%20return%20true%3B%0A%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20return%20false%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20function%20updateColors(dt)%20%7B%0A%20%20%20%20%20%20colorUpdateTimer%20%2B%3D%20dt%20*%20config.COLOR_UPDATE_SPEED%3B%0A%20%20%20%20%20%20if%20(colorUpdateTimer%20%3E%3D%201)%20%7B%0A%20%20%20%20%20%20%20%20colorUpdateTimer%20%3D%20wrap(colorUpdateTimer%2C%200%2C%201)%3B%0A%20%20%20%20%20%20%20%20pointers.forEach(p%20%3D%3E%20%7B%0A%20%20%20%20%20%20%20%20%20%20p.color%20%3D%20generateColor()%3B%0A%20%20%20%20%20%20%20%20%7D)%3B%0A%20%20%20%20%20%20%7D%0A%20%20%20%20%7D%0A%0A%20%20%20%20function%20applyInputs()%20%7B%0A%20%20%20%20%20%20pointers.forEach(p%20%3D%3E%20%7B%0A%20%20%20%20%20%20%20%20if%20(p.moved)%20%7B%0A%20%20%20%20%20%20%20%20%20%20p.moved%20%3D%20false%3B%0A%20%20%20%20%20%20%20%20%20%20splatPointer(p)%3B%0A%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%7D)%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20function%20step(dt)%20%7B%0A%20%20%20%20%20%20gl.disable(gl.BLEND)%3B%0A%20%20%20%20%20%20curlProgram.bind()%3B%0A%20%20%20%20%20%20gl.uniform2f(curlProgram.uniforms.texelSize%2C%20velocity.texelSizeX%2C%20velocity.texelSizeY)%3B%0A%20%20%20%20%20%20gl.uniform1i(curlProgram.uniforms.uVelocity%2C%20velocity.read.attach(0))%3B%0A%20%20%20%20%20%20blit(curl)%3B%0A%0A%20%20%20%20%20%20vorticityProgram.bind()%3B%0A%20%20%20%20%20%20gl.uniform2f(vorticityProgram.uniforms.texelSize%2C%20velocity.texelSizeX%2C%20velocity.texelSizeY)%3B%0A%20%20%20%20%20%20gl.uniform1i(vorticityProgram.uniforms.uVelocity%2C%20velocity.read.attach(0))%3B%0A%20%20%20%20%20%20gl.uniform1i(vorticityProgram.uniforms.uCurl%2C%20curl.attach(1))%3B%0A%20%20%20%20%20%20gl.uniform1f(vorticityProgram.uniforms.curl%2C%20config.CURL)%3B%0A%20%20%20%20%20%20gl.uniform1f(vorticityProgram.uniforms.dt%2C%20dt)%3B%0A%20%20%20%20%20%20blit(velocity.write)%3B%0A%20%20%20%20%20%20velocity.swap()%3B%0A%0A%20%20%20%20%20%20divergenceProgram.bind()%3B%0A%20%20%20%20%20%20gl.uniform2f(divergenceProgram.uniforms.texelSize%2C%20velocity.texelSizeX%2C%20velocity.texelSizeY)%3B%0A%20%20%20%20%20%20gl.uniform1i(divergenceProgram.uniforms.uVelocity%2C%20velocity.read.attach(0))%3B%0A%20%20%20%20%20%20blit(divergence)%3B%0A%0A%20%20%20%20%20%20clearProgram.bind()%3B%0A%20%20%20%20%20%20gl.uniform1i(clearProgram.uniforms.uTexture%2C%20pressure.read.attach(0))%3B%0A%20%20%20%20%20%20gl.uniform1f(clearProgram.uniforms.value%2C%20config.PRESSURE)%3B%0A%20%20%20%20%20%20blit(pressure.write)%3B%0A%20%20%20%20%20%20pressure.swap()%3B%0A%0A%20%20%20%20%20%20pressureProgram.bind()%3B%0A%20%20%20%20%20%20gl.uniform2f(pressureProgram.uniforms.texelSize%2C%20velocity.texelSizeX%2C%20velocity.texelSizeY)%3B%0A%20%20%20%20%20%20gl.uniform1i(pressureProgram.uniforms.uDivergence%2C%20divergence.attach(0))%3B%0A%20%20%20%20%20%20for%20(let%20i%20%3D%200%3B%20i%20%3C%20config.PRESSURE_ITERATIONS%3B%20i%2B%2B)%20%7B%0A%20%20%20%20%20%20%20%20gl.uniform1i(pressureProgram.uniforms.uPressure%2C%20pressure.read.attach(1))%3B%0A%20%20%20%20%20%20%20%20blit(pressure.write)%3B%0A%20%20%20%20%20%20%20%20pressure.swap()%3B%0A%20%20%20%20%20%20%7D%0A%0A%20%20%20%20%20%20gradienSubtractProgram.bind()%3B%0A%20%20%20%20%20%20gl.uniform2f(gradienSubtractProgram.uniforms.texelSize%2C%20velocity.texelSizeX%2C%20velocity.texelSizeY)%3B%0A%20%20%20%20%20%20gl.uniform1i(gradienSubtractProgram.uniforms.uPressure%2C%20pressure.read.attach(0))%3B%0A%20%20%20%20%20%20gl.uniform1i(gradienSubtractProgram.uniforms.uVelocity%2C%20velocity.read.attach(1))%3B%0A%20%20%20%20%20%20blit(velocity.write)%3B%0A%20%20%20%20%20%20velocity.swap()%3B%0A%0A%20%20%20%20%20%20advectionProgram.bind()%3B%0A%20%20%20%20%20%20gl.uniform2f(advectionProgram.uniforms.texelSize%2C%20velocity.texelSizeX%2C%20velocity.texelSizeY)%3B%0A%20%20%20%20%20%20if%20(!ext.supportLinearFiltering)%0A%20%20%20%20%20%20%20%20gl.uniform2f(advectionProgram.uniforms.dyeTexelSize%2C%20velocity.texelSizeX%2C%20velocity.texelSizeY)%3B%0A%20%20%20%20%20%20let%20velocityId%20%3D%20velocity.read.attach(0)%3B%0A%20%20%20%20%20%20gl.uniform1i(advectionProgram.uniforms.uVelocity%2C%20velocityId)%3B%0A%20%20%20%20%20%20gl.uniform1i(advectionProgram.uniforms.uSource%2C%20velocityId)%3B%0A%20%20%20%20%20%20gl.uniform1f(advectionProgram.uniforms.dt%2C%20dt)%3B%0A%20%20%20%20%20%20gl.uniform1f(advectionProgram.uniforms.dissipation%2C%20config.VELOCITY_DISSIPATION)%3B%0A%20%20%20%20%20%20blit(velocity.write)%3B%0A%20%20%20%20%20%20velocity.swap()%3B%0A%0A%20%20%20%20%20%20if%20(!ext.supportLinearFiltering)%0A%20%20%20%20%20%20%20%20gl.uniform2f(advectionProgram.uniforms.dyeTexelSize%2C%20dye.texelSizeX%2C%20dye.texelSizeY)%3B%0A%20%20%20%20%20%20gl.uniform1i(advectionProgram.uniforms.uVelocity%2C%20velocity.read.attach(0))%3B%0A%20%20%20%20%20%20gl.uniform1i(advectionProgram.uniforms.uSource%2C%20dye.read.attach(1))%3B%0A%20%20%20%20%20%20gl.uniform1f(advectionProgram.uniforms.dissipation%2C%20config.DENSITY_DISSIPATION)%3B%0A%20%20%20%20%20%20blit(dye.write)%3B%0A%20%20%20%20%20%20dye.swap()%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20function%20render(target)%20%7B%0A%20%20%20%20%20%20gl.blendFunc(gl.ONE%2C%20gl.ONE_MINUS_SRC_ALPHA)%3B%0A%20%20%20%20%20%20gl.enable(gl.BLEND)%3B%0A%20%20%20%20%20%20drawDisplay(target)%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20function%20drawDisplay(target)%20%7B%0A%20%20%20%20%20%20let%20width%20%3D%20target%20%3D%3D%20null%20%3F%20gl.drawingBufferWidth%20%3A%20target.width%3B%0A%20%20%20%20%20%20let%20height%20%3D%20target%20%3D%3D%20null%20%3F%20gl.drawingBufferHeight%20%3A%20target.height%3B%0A%20%20%20%20%20%20displayMaterial.bind()%3B%0A%20%20%20%20%20%20if%20(config.SHADING)%20gl.uniform2f(displayMaterial.uniforms.texelSize%2C%201.0%20%2F%20width%2C%201.0%20%2F%20height)%3B%0A%20%20%20%20%20%20gl.uniform1i(displayMaterial.uniforms.uTexture%2C%20dye.read.attach(0))%3B%0A%20%20%20%20%20%20blit(target)%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20function%20splatPointer(pointer)%20%7B%0A%20%20%20%20%20%20let%20dx%20%3D%20pointer.deltaX%20*%20config.SPLAT_FORCE%3B%0A%20%20%20%20%20%20let%20dy%20%3D%20pointer.deltaY%20*%20config.SPLAT_FORCE%3B%0A%20%20%20%20%20%20splat(pointer.texcoordX%2C%20pointer.texcoordY%2C%20dx%2C%20dy%2C%20pointer.color)%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20function%20clickSplat(pointer)%20%7B%0A%20%20%20%20%20%20const%20color%20%3D%20generateColor()%3B%0A%20%20%20%20%20%20color.r%20*%3D%2010.0%3B%0A%20%20%20%20%20%20color.g%20*%3D%2010.0%3B%0A%20%20%20%20%20%20color.b%20*%3D%2010.0%3B%0A%20%20%20%20%20%20let%20dx%20%3D%2010%20*%20(Math.random()%20-%200.5)%3B%0A%20%20%20%20%20%20let%20dy%20%3D%2030%20*%20(Math.random()%20-%200.5)%3B%0A%20%20%20%20%20%20splat(pointer.texcoordX%2C%20pointer.texcoordY%2C%20dx%2C%20dy%2C%20color)%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20function%20splat(x%2C%20y%2C%20dx%2C%20dy%2C%20color)%20%7B%0A%20%20%20%20%20%20splatProgram.bind()%3B%0A%20%20%20%20%20%20gl.uniform1i(splatProgram.uniforms.uTarget%2C%20velocity.read.attach(0))%3B%0A%20%20%20%20%20%20gl.uniform1f(splatProgram.uniforms.aspectRatio%2C%20canvas.width%20%2F%20canvas.height)%3B%0A%20%20%20%20%20%20gl.uniform2f(splatProgram.uniforms.point%2C%20x%2C%20y)%3B%0A%20%20%20%20%20%20gl.uniform3f(splatProgram.uniforms.color%2C%20dx%2C%20dy%2C%200.0)%3B%0A%20%20%20%20%20%20gl.uniform1f(splatProgram.uniforms.radius%2C%20correctRadius(config.SPLAT_RADIUS%20%2F%20100.0))%3B%0A%20%20%20%20%20%20blit(velocity.write)%3B%0A%20%20%20%20%20%20velocity.swap()%3B%0A%0A%20%20%20%20%20%20gl.uniform1i(splatProgram.uniforms.uTarget%2C%20dye.read.attach(0))%3B%0A%20%20%20%20%20%20gl.uniform3f(splatProgram.uniforms.color%2C%20color.r%2C%20color.g%2C%20color.b)%3B%0A%20%20%20%20%20%20blit(dye.write)%3B%0A%20%20%20%20%20%20dye.swap()%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20function%20correctRadius(radius)%20%7B%0A%20%20%20%20%20%20let%20aspectRatio%20%3D%20canvas.width%20%2F%20canvas.height%3B%0A%20%20%20%20%20%20if%20(aspectRatio%20%3E%201)%20radius%20*%3D%20aspectRatio%3B%0A%20%20%20%20%20%20return%20radius%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20function%20updatePointerDownData(pointer%2C%20id%2C%20posX%2C%20posY)%20%7B%0A%20%20%20%20%20%20pointer.id%20%3D%20id%3B%0A%20%20%20%20%20%20pointer.down%20%3D%20true%3B%0A%20%20%20%20%20%20pointer.moved%20%3D%20false%3B%0A%20%20%20%20%20%20pointer.texcoordX%20%3D%20posX%20%2F%20canvas.width%3B%0A%20%20%20%20%20%20pointer.texcoordY%20%3D%201.0%20-%20posY%20%2F%20canvas.height%3B%0A%20%20%20%20%20%20pointer.prevTexcoordX%20%3D%20pointer.texcoordX%3B%0A%20%20%20%20%20%20pointer.prevTexcoordY%20%3D%20pointer.texcoordY%3B%0A%20%20%20%20%20%20pointer.deltaX%20%3D%200%3B%0A%20%20%20%20%20%20pointer.deltaY%20%3D%200%3B%0A%20%20%20%20%20%20pointer.color%20%3D%20generateColor()%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20function%20updatePointerMoveData(pointer%2C%20posX%2C%20posY%2C%20color)%20%7B%0A%20%20%20%20%20%20pointer.prevTexcoordX%20%3D%20pointer.texcoordX%3B%0A%20%20%20%20%20%20pointer.prevTexcoordY%20%3D%20pointer.texcoordY%3B%0A%20%20%20%20%20%20pointer.texcoordX%20%3D%20posX%20%2F%20canvas.width%3B%0A%20%20%20%20%20%20pointer.texcoordY%20%3D%201.0%20-%20posY%20%2F%20canvas.height%3B%0A%20%20%20%20%20%20pointer.deltaX%20%3D%20correctDeltaX(pointer.texcoordX%20-%20pointer.prevTexcoordX)%3B%0A%20%20%20%20%20%20pointer.deltaY%20%3D%20correctDeltaY(pointer.texcoordY%20-%20pointer.prevTexcoordY)%3B%0A%20%20%20%20%20%20pointer.moved%20%3D%20Math.abs(pointer.deltaX)%20%3E%200%20%7C%7C%20Math.abs(pointer.deltaY)%20%3E%200%3B%0A%20%20%20%20%20%20pointer.color%20%3D%20color%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20function%20updatePointerUpData(pointer)%20%7B%0A%20%20%20%20%20%20pointer.down%20%3D%20false%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20function%20correctDeltaX(delta)%20%7B%0A%20%20%20%20%20%20let%20aspectRatio%20%3D%20canvas.width%20%2F%20canvas.height%3B%0A%20%20%20%20%20%20if%20(aspectRatio%20%3C%201)%20delta%20*%3D%20aspectRatio%3B%0A%20%20%20%20%20%20return%20delta%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20function%20correctDeltaY(delta)%20%7B%0A%20%20%20%20%20%20let%20aspectRatio%20%3D%20canvas.width%20%2F%20canvas.height%3B%0A%20%20%20%20%20%20if%20(aspectRatio%20%3E%201)%20delta%20%2F%3D%20aspectRatio%3B%0A%20%20%20%20%20%20return%20delta%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20function%20generateColor()%20%7B%0A%20%20%20%20%20%20let%20c%20%3D%20HSVtoRGB(Math.random()%2C%201.0%2C%201.0)%3B%0A%20%20%20%20%20%20c.r%20*%3D%200.15%3B%0A%20%20%20%20%20%20c.g%20*%3D%200.15%3B%0A%20%20%20%20%20%20c.b%20*%3D%200.15%3B%0A%20%20%20%20%20%20return%20c%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20function%20HSVtoRGB(h%2C%20s%2C%20v)%20%7B%0A%20%20%20%20%20%20let%20r%2C%20g%2C%20b%2C%20i%2C%20f%2C%20p%2C%20q%2C%20t%3B%0A%20%20%20%20%20%20i%20%3D%20Math.floor(h%20*%206)%3B%0A%20%20%20%20%20%20f%20%3D%20h%20*%206%20-%20i%3B%0A%20%20%20%20%20%20p%20%3D%20v%20*%20(1%20-%20s)%3B%0A%20%20%20%20%20%20q%20%3D%20v%20*%20(1%20-%20f%20*%20s)%3B%0A%20%20%20%20%20%20t%20%3D%20v%20*%20(1%20-%20(1%20-%20f)%20*%20s)%3B%0A%20%20%20%20%20%20switch%20(i%20%25%206)%20%7B%0A%20%20%20%20%20%20%20%20case%200%3A%0A%20%20%20%20%20%20%20%20%20%20r%20%3D%20v%3B%0A%20%20%20%20%20%20%20%20%20%20g%20%3D%20t%3B%0A%20%20%20%20%20%20%20%20%20%20b%20%3D%20p%3B%0A%20%20%20%20%20%20%20%20%20%20break%3B%0A%20%20%20%20%20%20%20%20case%201%3A%0A%20%20%20%20%20%20%20%20%20%20r%20%3D%20q%3B%0A%20%20%20%20%20%20%20%20%20%20g%20%3D%20v%3B%0A%20%20%20%20%20%20%20%20%20%20b%20%3D%20p%3B%0A%20%20%20%20%20%20%20%20%20%20break%3B%0A%20%20%20%20%20%20%20%20case%202%3A%0A%20%20%20%20%20%20%20%20%20%20r%20%3D%20p%3B%0A%20%20%20%20%20%20%20%20%20%20g%20%3D%20v%3B%0A%20%20%20%20%20%20%20%20%20%20b%20%3D%20t%3B%0A%20%20%20%20%20%20%20%20%20%20break%3B%0A%20%20%20%20%20%20%20%20case%203%3A%0A%20%20%20%20%20%20%20%20%20%20r%20%3D%20p%3B%0A%20%20%20%20%20%20%20%20%20%20g%20%3D%20q%3B%0A%20%20%20%20%20%20%20%20%20%20b%20%3D%20v%3B%0A%20%20%20%20%20%20%20%20%20%20break%3B%0A%20%20%20%20%20%20%20%20case%204%3A%0A%20%20%20%20%20%20%20%20%20%20r%20%3D%20t%3B%0A%20%20%20%20%20%20%20%20%20%20g%20%3D%20p%3B%0A%20%20%20%20%20%20%20%20%20%20b%20%3D%20v%3B%0A%20%20%20%20%20%20%20%20%20%20break%3B%0A%20%20%20%20%20%20%20%20case%205%3A%0A%20%20%20%20%20%20%20%20%20%20r%20%3D%20v%3B%0A%20%20%20%20%20%20%20%20%20%20g%20%3D%20p%3B%0A%20%20%20%20%20%20%20%20%20%20b%20%3D%20q%3B%0A%20%20%20%20%20%20%20%20%20%20break%3B%0A%20%20%20%20%20%20%20%20default%3A%0A%20%20%20%20%20%20%20%20%20%20break%3B%0A%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20return%20%7B%20r%2C%20g%2C%20b%20%7D%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20function%20wrap(value%2C%20min%2C%20max)%20%7B%0A%20%20%20%20%20%20const%20range%20%3D%20max%20-%20min%3B%0A%20%20%20%20%20%20if%20(range%20%3D%3D%3D%200)%20return%20min%3B%0A%20%20%20%20%20%20return%20((value%20-%20min)%20%25%20range)%20%2B%20min%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20function%20getResolution(resolution)%20%7B%0A%20%20%20%20%20%20let%20aspectRatio%20%3D%20gl.drawingBufferWidth%20%2F%20gl.drawingBufferHeight%3B%0A%20%20%20%20%20%20if%20(aspectRatio%20%3C%201)%20aspectRatio%20%3D%201.0%20%2F%20aspectRatio%3B%0A%20%20%20%20%20%20const%20min%20%3D%20Math.round(resolution)%3B%0A%20%20%20%20%20%20const%20max%20%3D%20Math.round(resolution%20*%20aspectRatio)%3B%0A%20%20%20%20%20%20if%20(gl.drawingBufferWidth%20%3E%20gl.drawingBufferHeight)%20return%20%7B%20width%3A%20max%2C%20height%3A%20min%20%7D%3B%0A%20%20%20%20%20%20else%20return%20%7B%20width%3A%20min%2C%20height%3A%20max%20%7D%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20function%20scaleByPixelRatio(input)%20%7B%0A%20%20%20%20%20%20const%20pixelRatio%20%3D%20window.devicePixelRatio%20%7C%7C%201%3B%0A%20%20%20%20%20%20return%20Math.floor(input%20*%20pixelRatio)%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20function%20hashCode(s)%20%7B%0A%20%20%20%20%20%20if%20(s.length%20%3D%3D%3D%200)%20return%200%3B%0A%20%20%20%20%20%20let%20hash%20%3D%200%3B%0A%20%20%20%20%20%20for%20(let%20i%20%3D%200%3B%20i%20%3C%20s.length%3B%20i%2B%2B)%20%7B%0A%20%20%20%20%20%20%20%20hash%20%3D%20(hash%20%3C%3C%205)%20-%20hash%20%2B%20s.charCodeAt(i)%3B%0A%20%20%20%20%20%20%20%20hash%20%7C%3D%200%3B%0A%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20return%20hash%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20window.addEventListener('mousedown'%2C%20e%20%3D%3E%20%7B%0A%20%20%20%20%20%20let%20pointer%20%3D%20pointers%5B0%5D%3B%0A%20%20%20%20%20%20let%20posX%20%3D%20scaleByPixelRatio(e.clientX)%3B%0A%20%20%20%20%20%20let%20posY%20%3D%20scaleByPixelRatio(e.clientY)%3B%0A%20%20%20%20%20%20updatePointerDownData(pointer%2C%20-1%2C%20posX%2C%20posY)%3B%0A%20%20%20%20%20%20clickSplat(pointer)%3B%0A%20%20%20%20%7D)%3B%0A%0A%20%20%20%20document.body.addEventListener('mousemove'%2C%20function%20handleFirstMouseMove(e)%20%7B%0A%20%20%20%20%20%20let%20pointer%20%3D%20pointers%5B0%5D%3B%0A%20%20%20%20%20%20let%20posX%20%3D%20scaleByPixelRatio(e.clientX)%3B%0A%20%20%20%20%20%20let%20posY%20%3D%20scaleByPixelRatio(e.clientY)%3B%0A%20%20%20%20%20%20let%20color%20%3D%20generateColor()%3B%0A%20%20%20%20%20%20updateFrame()%3B%0A%20%20%20%20%20%20updatePointerMoveData(pointer%2C%20posX%2C%20posY%2C%20color)%3B%0A%20%20%20%20%20%20document.body.removeEventListener('mousemove'%2C%20handleFirstMouseMove)%3B%0A%20%20%20%20%7D)%3B%0A%0A%20%20%20%20window.addEventListener('mousemove'%2C%20e%20%3D%3E%20%7B%0A%20%20%20%20%20%20let%20pointer%20%3D%20pointers%5B0%5D%3B%0A%20%20%20%20%20%20let%20posX%20%3D%20scaleByPixelRatio(e.clientX)%3B%0A%20%20%20%20%20%20let%20posY%20%3D%20scaleByPixelRatio(e.clientY)%3B%0A%20%20%20%20%20%20let%20color%20%3D%20pointer.color%3B%0A%20%20%20%20%20%20updatePointerMoveData(pointer%2C%20posX%2C%20posY%2C%20color)%3B%0A%20%20%20%20%7D)%3B%0A%0A%20%20%20%20document.body.addEventListener('touchstart'%2C%20function%20handleFirstTouchStart(e)%20%7B%0A%20%20%20%20%20%20const%20touches%20%3D%20e.targetTouches%3B%0A%20%20%20%20%20%20let%20pointer%20%3D%20pointers%5B0%5D%3B%0A%20%20%20%20%20%20for%20(let%20i%20%3D%200%3B%20i%20%3C%20touches.length%3B%20i%2B%2B)%20%7B%0A%20%20%20%20%20%20%20%20let%20posX%20%3D%20scaleByPixelRatio(touches%5Bi%5D.clientX)%3B%0A%20%20%20%20%20%20%20%20let%20posY%20%3D%20scaleByPixelRatio(touches%5Bi%5D.clientY)%3B%0A%20%20%20%20%20%20%20%20updateFrame()%3B%0A%20%20%20%20%20%20%20%20updatePointerDownData(pointer%2C%20touches%5Bi%5D.identifier%2C%20posX%2C%20posY)%3B%0A%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20document.body.removeEventListener('touchstart'%2C%20handleFirstTouchStart)%3B%0A%20%20%20%20%7D)%3B%0A%0A%20%20%20%20window.addEventListener('touchstart'%2C%20e%20%3D%3E%20%7B%0A%20%20%20%20%20%20const%20touches%20%3D%20e.targetTouches%3B%0A%20%20%20%20%20%20let%20pointer%20%3D%20pointers%5B0%5D%3B%0A%20%20%20%20%20%20for%20(let%20i%20%3D%200%3B%20i%20%3C%20touches.length%3B%20i%2B%2B)%20%7B%0A%20%20%20%20%20%20%20%20let%20posX%20%3D%20scaleByPixelRatio(touches%5Bi%5D.clientX)%3B%0A%20%20%20%20%20%20%20%20let%20posY%20%3D%20scaleByPixelRatio(touches%5Bi%5D.clientY)%3B%0A%20%20%20%20%20%20%20%20updatePointerDownData(pointer%2C%20touches%5Bi%5D.identifier%2C%20posX%2C%20posY)%3B%0A%20%20%20%20%20%20%7D%0A%20%20%20%20%7D)%3B%0A%0A%20%20%20%20window.addEventListener(%0A%20%20%20%20%20%20'touchmove'%2C%0A%20%20%20%20%20%20e%20%3D%3E%20%7B%0A%20%20%20%20%20%20%20%20const%20touches%20%3D%20e.targetTouches%3B%0A%20%20%20%20%20%20%20%20let%20pointer%20%3D%20pointers%5B0%5D%3B%0A%20%20%20%20%20%20%20%20for%20(let%20i%20%3D%200%3B%20i%20%3C%20touches.length%3B%20i%2B%2B)%20%7B%0A%20%20%20%20%20%20%20%20%20%20let%20posX%20%3D%20scaleByPixelRatio(touches%5Bi%5D.clientX)%3B%0A%20%20%20%20%20%20%20%20%20%20let%20posY%20%3D%20scaleByPixelRatio(touches%5Bi%5D.clientY)%3B%0A%20%20%20%20%20%20%20%20%20%20updatePointerMoveData(pointer%2C%20posX%2C%20posY%2C%20pointer.color)%3B%0A%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%7D%2C%0A%20%20%20%20%20%20false%0A%20%20%20%20)%3B%0A%0A%20%20%20%20window.addEventListener('touchend'%2C%20e%20%3D%3E%20%7B%0A%20%20%20%20%20%20const%20touches%20%3D%20e.changedTouches%3B%0A%20%20%20%20%20%20let%20pointer%20%3D%20pointers%5B0%5D%3B%0A%20%20%20%20%20%20for%20(let%20i%20%3D%200%3B%20i%20%3C%20touches.length%3B%20i%2B%2B)%20%7B%0A%20%20%20%20%20%20%20%20updatePointerUpData(pointer)%3B%0A%20%20%20%20%20%20%7D%0A%20%20%20%20%7D)%3B%0A%0A%20%20%20%20updateFrame()%3B%0A%20%20%20%20%2F%2F%20eslint-disable-next-line%20react-hooks%2Fexhaustive-deps%0A%20%20%7D%2C%20%5B%0A%20%20%20%20SIM_RESOLUTION%2C%0A%20%20%20%20DYE_RESOLUTION%2C%0A%20%20%20%20CAPTURE_RESOLUTION%2C%0A%20%20%20%20DENSITY_DISSIPATION%2C%0A%20%20%20%20VELOCITY_DISSIPATION%2C%0A%20%20%20%20PRESSURE%2C%0A%20%20%20%20PRESSURE_ITERATIONS%2C%0A%20%20%20%20CURL%2C%0A%20%20%20%20SPLAT_RADIUS%2C%0A%20%20%20%20SPLAT_FORCE%2C%0A%20%20%20%20SHADING%2C%0A%20%20%20%20COLOR_UPDATE_SPEED%2C%0A%20%20%20%20BACK_COLOR%2C%0A%20%20%20%20TRANSPARENT%0A%20%20%5D)%3B%0A%0A%20%20return%20(%0A%20%20%20%20%3Cdiv%0A%20%20%20%20%20%20style%3D%7B%7B%0A%20%20%20%20%20%20%20%20position%3A%20'fixed'%2C%0A%20%20%20%20%20%20%20%20top%3A%200%2C%0A%20%20%20%20%20%20%20%20left%3A%200%2C%0A%20%20%20%20%20%20%20%20zIndex%3A%2050%2C%0A%20%20%20%20%20%20%20%20pointerEvents%3A%20'none'%2C%0A%20%20%20%20%20%20%20%20width%3A%20'100%25'%2C%0A%20%20%20%20%20%20%20%20height%3A%20'100%25'%0A%20%20%20%20%20%20%7D%7D%0A%20%20%20%20%3E%0A%20%20%20%20%20%20%3Ccanvas%0A%20%20%20%20%20%20%20%20ref%3D%7BcanvasRef%7D%0A%20%20%20%20%20%20%20%20id%3D%22fluid%22%0A%20%20%20%20%20%20%20%20style%3D%7B%7B%0A%20%20%20%20%20%20%20%20%20%20width%3A%20'100vw'%2C%0A%20%20%20%20%20%20%20%20%20%20height%3A%20'100vh'%2C%0A%20%20%20%20%20%20%20%20%20%20display%3A%20'block'%0A%20%20%20%20%20%20%20%20%7D%7D%0A%20%20%20%20%20%20%2F%3E%0A%20%20%20%20%3C%2Fdiv%3E%0A%20%20)%3B%0A%7D%0A%0Aexport%20default%20SplashCursor%3B%0A" data-react-props="%7B%0A%20%20%22text%22%3A%20%22Hello%20from%20React!%22%2C%0A%20%20%22textColor%22%3A%20%22%23ffffff%22%2C%0A%20%20%22bgColor%22%3A%20%22%234f46e5%22%2C%0A%20%20%22fontSize%22%3A%2032%2C%0A%20%20%22borderRadius%22%3A%208%2C%0A%20%20%22showBorder%22%3A%20true%0A%7D"></div><div style="position: absolute; left: 144.5px; top: 199px; width: 671px; height: 142px; transform: rotate(0deg);"><div style="color: #ffffff; font-size: 40px; width: 100%; height: 100%;"><p><strong>Use fancy web components in your slide deck with...</strong></p></div></div></section>
+<section ><div class='absolute inset-0' style='width: 100%; height: 100%;' data-react-code="import%20%7B%20useEffect%2C%20useState%2C%20useRef%20%7D%20from%20'react'%3B%0Aimport%20%7B%20motion%20%7D%20from%20'motion%2Freact'%3B%0A%0Aconst%20styles%20%3D%20%7B%0A%20%20wrapper%3A%20%7B%0A%20%20%20%20display%3A%20'inline-block'%2C%0A%20%20%20%20whiteSpace%3A%20'pre-wrap'%0A%20%20%7D%2C%0A%20%20srOnly%3A%20%7B%0A%20%20%20%20position%3A%20'absolute'%2C%0A%20%20%20%20width%3A%20'1px'%2C%0A%20%20%20%20height%3A%20'1px'%2C%0A%20%20%20%20padding%3A%200%2C%0A%20%20%20%20margin%3A%20'-1px'%2C%0A%20%20%20%20overflow%3A%20'hidden'%2C%0A%20%20%20%20clip%3A%20'rect(0%2C0%2C0%2C0)'%2C%0A%20%20%20%20border%3A%200%0A%20%20%7D%0A%7D%3B%0A%0Aexport%20default%20function%20DecryptedText(%7B%0A%20%20text%2C%0A%20%20speed%20%3D%2050%2C%0A%20%20maxIterations%20%3D%2010%2C%0A%20%20sequential%20%3D%20false%2C%0A%20%20revealDirection%20%3D%20'start'%2C%0A%20%20useOriginalCharsOnly%20%3D%20false%2C%0A%20%20characters%20%3D%20'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!%40%23%24%25%5E%26*()_%2B'%2C%0A%20%20className%20%3D%20''%2C%0A%20%20parentClassName%20%3D%20''%2C%0A%20%20encryptedClassName%20%3D%20''%2C%0A%20%20animateOn%20%3D%20'hover'%2C%0A%20%20...props%0A%7D)%20%7B%0A%20%20const%20%5BdisplayText%2C%20setDisplayText%5D%20%3D%20useState(text)%3B%0A%20%20const%20%5BisHovering%2C%20setIsHovering%5D%20%3D%20useState(false)%3B%0A%20%20const%20%5BisScrambling%2C%20setIsScrambling%5D%20%3D%20useState(false)%3B%0A%20%20const%20%5BrevealedIndices%2C%20setRevealedIndices%5D%20%3D%20useState(new%20Set())%3B%0A%20%20const%20%5BhasAnimated%2C%20setHasAnimated%5D%20%3D%20useState(false)%3B%0A%20%20const%20containerRef%20%3D%20useRef(null)%3B%0A%0A%20%20useEffect(()%20%3D%3E%20%7B%0A%20%20%20%20let%20interval%3B%0A%20%20%20%20let%20currentIteration%20%3D%200%3B%0A%0A%20%20%20%20const%20getNextIndex%20%3D%20revealedSet%20%3D%3E%20%7B%0A%20%20%20%20%20%20const%20textLength%20%3D%20text.length%3B%0A%20%20%20%20%20%20switch%20(revealDirection)%20%7B%0A%20%20%20%20%20%20%20%20case%20'start'%3A%0A%20%20%20%20%20%20%20%20%20%20return%20revealedSet.size%3B%0A%20%20%20%20%20%20%20%20case%20'end'%3A%0A%20%20%20%20%20%20%20%20%20%20return%20textLength%20-%201%20-%20revealedSet.size%3B%0A%20%20%20%20%20%20%20%20case%20'center'%3A%20%7B%0A%20%20%20%20%20%20%20%20%20%20const%20middle%20%3D%20Math.floor(textLength%20%2F%202)%3B%0A%20%20%20%20%20%20%20%20%20%20const%20offset%20%3D%20Math.floor(revealedSet.size%20%2F%202)%3B%0A%20%20%20%20%20%20%20%20%20%20const%20nextIndex%20%3D%20revealedSet.size%20%25%202%20%3D%3D%3D%200%20%3F%20middle%20%2B%20offset%20%3A%20middle%20-%20offset%20-%201%3B%0A%0A%20%20%20%20%20%20%20%20%20%20if%20(nextIndex%20%3E%3D%200%20%26%26%20nextIndex%20%3C%20textLength%20%26%26%20!revealedSet.has(nextIndex))%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20return%20nextIndex%3B%0A%20%20%20%20%20%20%20%20%20%20%7D%0A%0A%20%20%20%20%20%20%20%20%20%20for%20(let%20i%20%3D%200%3B%20i%20%3C%20textLength%3B%20i%2B%2B)%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20if%20(!revealedSet.has(i))%20return%20i%3B%0A%20%20%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%20%20%20%20return%200%3B%0A%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%20%20default%3A%0A%20%20%20%20%20%20%20%20%20%20return%20revealedSet.size%3B%0A%20%20%20%20%20%20%7D%0A%20%20%20%20%7D%3B%0A%0A%20%20%20%20const%20availableChars%20%3D%20useOriginalCharsOnly%0A%20%20%20%20%20%20%3F%20Array.from(new%20Set(text.split(''))).filter(char%20%3D%3E%20char%20!%3D%3D%20'%20')%0A%20%20%20%20%20%20%3A%20characters.split('')%3B%0A%0A%20%20%20%20const%20shuffleText%20%3D%20(originalText%2C%20currentRevealed)%20%3D%3E%20%7B%0A%20%20%20%20%20%20if%20(useOriginalCharsOnly)%20%7B%0A%20%20%20%20%20%20%20%20const%20positions%20%3D%20originalText.split('').map((char%2C%20i)%20%3D%3E%20(%7B%0A%20%20%20%20%20%20%20%20%20%20char%2C%0A%20%20%20%20%20%20%20%20%20%20isSpace%3A%20char%20%3D%3D%3D%20'%20'%2C%0A%20%20%20%20%20%20%20%20%20%20index%3A%20i%2C%0A%20%20%20%20%20%20%20%20%20%20isRevealed%3A%20currentRevealed.has(i)%0A%20%20%20%20%20%20%20%20%7D))%3B%0A%0A%20%20%20%20%20%20%20%20const%20nonSpaceChars%20%3D%20positions.filter(p%20%3D%3E%20!p.isSpace%20%26%26%20!p.isRevealed).map(p%20%3D%3E%20p.char)%3B%0A%0A%20%20%20%20%20%20%20%20for%20(let%20i%20%3D%20nonSpaceChars.length%20-%201%3B%20i%20%3E%200%3B%20i--)%20%7B%0A%20%20%20%20%20%20%20%20%20%20const%20j%20%3D%20Math.floor(Math.random()%20*%20(i%20%2B%201))%3B%0A%20%20%20%20%20%20%20%20%20%20%5BnonSpaceChars%5Bi%5D%2C%20nonSpaceChars%5Bj%5D%5D%20%3D%20%5BnonSpaceChars%5Bj%5D%2C%20nonSpaceChars%5Bi%5D%5D%3B%0A%20%20%20%20%20%20%20%20%7D%0A%0A%20%20%20%20%20%20%20%20let%20charIndex%20%3D%200%3B%0A%20%20%20%20%20%20%20%20return%20positions%0A%20%20%20%20%20%20%20%20%20%20.map(p%20%3D%3E%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20if%20(p.isSpace)%20return%20'%20'%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20if%20(p.isRevealed)%20return%20originalText%5Bp.index%5D%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20return%20nonSpaceChars%5BcharIndex%2B%2B%5D%3B%0A%20%20%20%20%20%20%20%20%20%20%7D)%0A%20%20%20%20%20%20%20%20%20%20.join('')%3B%0A%20%20%20%20%20%20%7D%20else%20%7B%0A%20%20%20%20%20%20%20%20return%20originalText%0A%20%20%20%20%20%20%20%20%20%20.split('')%0A%20%20%20%20%20%20%20%20%20%20.map((char%2C%20i)%20%3D%3E%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20if%20(char%20%3D%3D%3D%20'%20')%20return%20'%20'%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20if%20(currentRevealed.has(i))%20return%20originalText%5Bi%5D%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20return%20availableChars%5BMath.floor(Math.random()%20*%20availableChars.length)%5D%3B%0A%20%20%20%20%20%20%20%20%20%20%7D)%0A%20%20%20%20%20%20%20%20%20%20.join('')%3B%0A%20%20%20%20%20%20%7D%0A%20%20%20%20%7D%3B%0A%0A%20%20%20%20if%20(isHovering)%20%7B%0A%20%20%20%20%20%20setIsScrambling(true)%3B%0A%20%20%20%20%20%20interval%20%3D%20setInterval(()%20%3D%3E%20%7B%0A%20%20%20%20%20%20%20%20setRevealedIndices(prevRevealed%20%3D%3E%20%7B%0A%20%20%20%20%20%20%20%20%20%20if%20(sequential)%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20if%20(prevRevealed.size%20%3C%20text.length)%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20const%20nextIndex%20%3D%20getNextIndex(prevRevealed)%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20const%20newRevealed%20%3D%20new%20Set(prevRevealed)%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20newRevealed.add(nextIndex)%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20setDisplayText(shuffleText(text%2C%20newRevealed))%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20return%20newRevealed%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%7D%20else%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20clearInterval(interval)%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20setIsScrambling(false)%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20return%20prevRevealed%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%20%20%20%20%7D%20else%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20setDisplayText(shuffleText(text%2C%20prevRevealed))%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20currentIteration%2B%2B%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20if%20(currentIteration%20%3E%3D%20maxIterations)%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20clearInterval(interval)%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20setIsScrambling(false)%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20setDisplayText(text)%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%20%20%20%20%20%20return%20prevRevealed%3B%0A%20%20%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%20%20%7D)%3B%0A%20%20%20%20%20%20%7D%2C%20speed)%3B%0A%20%20%20%20%7D%20else%20%7B%0A%20%20%20%20%20%20setDisplayText(text)%3B%0A%20%20%20%20%20%20setRevealedIndices(new%20Set())%3B%0A%20%20%20%20%20%20setIsScrambling(false)%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20return%20()%20%3D%3E%20%7B%0A%20%20%20%20%20%20if%20(interval)%20clearInterval(interval)%3B%0A%20%20%20%20%7D%3B%0A%20%20%7D%2C%20%5BisHovering%2C%20text%2C%20speed%2C%20maxIterations%2C%20sequential%2C%20revealDirection%2C%20characters%2C%20useOriginalCharsOnly%5D)%3B%0A%0A%20%20useEffect(()%20%3D%3E%20%7B%0A%20%20%20%20if%20(animateOn%20!%3D%3D%20'view'%20%26%26%20animateOn%20!%3D%3D%20'both')%20return%3B%0A%0A%20%20%20%20const%20observerCallback%20%3D%20entries%20%3D%3E%20%7B%0A%20%20%20%20%20%20entries.forEach(entry%20%3D%3E%20%7B%0A%20%20%20%20%20%20%20%20if%20(entry.isIntersecting%20%26%26%20!hasAnimated)%20%7B%0A%20%20%20%20%20%20%20%20%20%20setIsHovering(true)%3B%0A%20%20%20%20%20%20%20%20%20%20setHasAnimated(true)%3B%0A%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%7D)%3B%0A%20%20%20%20%7D%3B%0A%0A%20%20%20%20const%20observerOptions%20%3D%20%7B%0A%20%20%20%20%20%20root%3A%20null%2C%0A%20%20%20%20%20%20rootMargin%3A%20'0px'%2C%0A%20%20%20%20%20%20threshold%3A%200.1%0A%20%20%20%20%7D%3B%0A%0A%20%20%20%20const%20observer%20%3D%20new%20IntersectionObserver(observerCallback%2C%20observerOptions)%3B%0A%20%20%20%20const%20currentRef%20%3D%20containerRef.current%3B%0A%20%20%20%20if%20(currentRef)%20%7B%0A%20%20%20%20%20%20observer.observe(currentRef)%3B%0A%20%20%20%20%7D%0A%0A%20%20%20%20return%20()%20%3D%3E%20%7B%0A%20%20%20%20%20%20if%20(currentRef)%20%7B%0A%20%20%20%20%20%20%20%20observer.unobserve(currentRef)%3B%0A%20%20%20%20%20%20%7D%0A%20%20%20%20%7D%3B%0A%20%20%7D%2C%20%5BanimateOn%2C%20hasAnimated%5D)%3B%0A%0A%20%20const%20hoverProps%20%3D%0A%20%20%20%20animateOn%20%3D%3D%3D%20'hover'%20%7C%7C%20animateOn%20%3D%3D%3D%20'both'%0A%20%20%20%20%20%20%3F%20%7B%0A%20%20%20%20%20%20%20%20%20%20onMouseEnter%3A%20()%20%3D%3E%20setIsHovering(true)%2C%0A%20%20%20%20%20%20%20%20%20%20onMouseLeave%3A%20()%20%3D%3E%20setIsHovering(false)%0A%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%3A%20%7B%7D%3B%0A%0A%20%20return%20(%0A%20%20%20%20%3Cmotion.span%20className%3D%7BparentClassName%7D%20ref%3D%7BcontainerRef%7D%20style%3D%7Bstyles.wrapper%7D%20%7B...hoverProps%7D%20%7B...props%7D%3E%0A%20%20%20%20%20%20%3Cspan%20style%3D%7Bstyles.srOnly%7D%3E%7BdisplayText%7D%3C%2Fspan%3E%0A%0A%20%20%20%20%20%20%3Cspan%20aria-hidden%3D%22true%22%3E%0A%20%20%20%20%20%20%20%20%7BdisplayText.split('').map((char%2C%20index)%20%3D%3E%20%7B%0A%20%20%20%20%20%20%20%20%20%20const%20isRevealedOrDone%20%3D%20revealedIndices.has(index)%20%7C%7C%20!isScrambling%20%7C%7C%20!isHovering%3B%0A%0A%20%20%20%20%20%20%20%20%20%20return%20(%0A%20%20%20%20%20%20%20%20%20%20%20%20%3Cspan%20key%3D%7Bindex%7D%20className%3D%7BisRevealedOrDone%20%3F%20className%20%3A%20encryptedClassName%7D%3E%0A%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7Bchar%7D%0A%20%20%20%20%20%20%20%20%20%20%20%20%3C%2Fspan%3E%0A%20%20%20%20%20%20%20%20%20%20)%3B%0A%20%20%20%20%20%20%20%20%7D)%7D%0A%20%20%20%20%20%20%3C%2Fspan%3E%0A%20%20%20%20%3C%2Fmotion.span%3E%0A%20%20)%3B%0A%7D%0A" data-react-props="%7B%0A%20%20%22speed%22%3A%2050%2C%0A%20%20%22maxIterations%22%3A%2010%2C%0A%20%20%22sequential%22%3A%20false%2C%0A%20%20%22revealDirection%22%3A%20%22start%22%2C%0A%20%20%22useOriginalCharsOnly%22%3A%20false%2C%0A%20%20%22characters%22%3A%20%22ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!%40%23%24%25%5E%26*()_%2B%22%2C%0A%20%20%22className%22%3A%20%22%22%2C%0A%20%20%22parentClassName%22%3A%20%22%22%2C%0A%20%20%22encryptedClassName%22%3A%20%22%22%2C%0A%20%20%22animateOn%22%3A%20%22hover%22%2C%0A%20%20%22text%22%3A%20%22SlideWindr%22%2C%0A%20%20%22_containerStyle%22%3A%20%7B%0A%20%20%20%20%22display%22%3A%20%22flex%22%2C%0A%20%20%20%20%22flexDirection%22%3A%20%22column%22%2C%0A%20%20%20%20%22alignItems%22%3A%20%22center%22%2C%0A%20%20%20%20%22justifyContent%22%3A%20%22center%22%2C%0A%20%20%20%20%22fontSize%22%3A%20%2275px%22%0A%20%20%7D%0A%7D"></div></section>
+        </div>
+    </div>
+    <script src="https://unpkg.com/reveal.js@4.6.1/dist/reveal.js"></script>
+    <script src="https://unpkg.com/react@18.2.0/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://unpkg.com/postprocessing@6.23.5/build/postprocessing.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://unpkg.com/ogl@0.0.76/dist/ogl.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/framer-motion@10.16.4/dist/framer-motion.js"></script>
+    <script>
+        Reveal.initialize({
+  "transition": "slide",
+  "backgroundTransition": "fade",
+  "controls": true,
+  "progress": true,
+  "slideNumber": false,
+  "center": true,
+  "loop": false,
+  "autoSlide": 0,
+  "mouseWheel": false,
+  "width": 960,
+  "height": 540,
+  "hash": true,
+  "embedded": false,
+  "plugins": []
+});
+
+        // Add custom method to handle Reveal.js scaling transparency
+        window._getUnscaledRect = function(element) {
+            if (!element || typeof element.getBoundingClientRect !== 'function') {
+                return { top: 0, left: 0, width: 0, height: 0, bottom: 0, right: 0, x: 0, y: 0 };
+            }
+            const rect = element.getBoundingClientRect();
+            // Calculate scale based on the element's own dimensions (most robust)
+            // This handles nested transforms, zoom, and Reveal.js scaling accurately
+            let scaleX = 1;
+            let scaleY = 1;
+            
+            if (element.offsetWidth > 0 && element.offsetHeight > 0) {
+                 scaleX = rect.width / element.offsetWidth;
+                 scaleY = rect.height / element.offsetHeight;
+            } else if (window.Reveal && Reveal.getScale) {
+                 scaleX = Reveal.getScale();
+                 scaleY = Reveal.getScale();
+            }
+
+            return {
+                top: rect.top / scaleY,
+                left: rect.left / scaleX,
+                width: rect.width / scaleX,
+                height: rect.height / scaleY,
+                bottom: rect.bottom / scaleY,
+                right: rect.right / scaleX,
+                x: rect.x / scaleX,
+                y: rect.y / scaleY
+            };
+        };
+
+        const dependencyResolver = (dep) => {
+            if (dep === 'react') return React;
+            if (dep === 'three') return THREE;
+            if (dep === 'postprocessing') return POSTPROCESSING;
+            if (dep === 'gsap') return gsap;
+            if (dep === 'ogl') return ogl;
+            if (dep === 'framer-motion' || dep === 'motion/react') return { motion: Motion.motion, AnimatePresence: Motion.AnimatePresence };
+            // Allow relative path imports for CSS by ignoring them
+            if (dep.startsWith('./') && dep.endsWith('.css')) return {};
+            console.warn('Unknown dependency:', dep);
+            return {};
+        };
+
+        // Track which containers have been rendered to prevent re-renders
+        const renderedContainers = new Set();
+
+        // Render all React components once on load
+        Reveal.on('ready', event => {
+            const containers = document.querySelectorAll('[data-react-code]');
+            console.log('Found', containers.length, 'React component(s) to render');
+
+            containers.forEach((container, index) => {
+                // Skip if already rendered
+                if (renderedContainers.has(container)) {
+                    console.log('Skipping already rendered container', index);
+                    return;
+                }
+
+                const code = decodeURIComponent(container.dataset.reactCode);
+                const propsString = decodeURIComponent(container.dataset.reactProps);
+
+                console.log('Rendering React component', index);
+
+                try {
+                    // AUTO-PATCH: Handle Reveal.js scaling for getBoundingClientRect
+                    // We replace the standard call with our global unscaled version
+                    // Regex find "object.getBoundingClientRect()" and turns it into "window._getUnscaledRect(object)"
+                    // NOTE: we use new RegExp with quad-escaped backslashes and move ']' to the start of the class to avoid excessive escaping
+                    // Unescaped quote " in the source caused a syntax error in the output, so we use \"
+                    let codeToRun = code.replace(new RegExp("([]\\w\\.$[\"']+)\\.getBoundingClientRect\\(\\)", "g"), 'window._getUnscaledRect($1)');
+
+                    // AUTO-PATCH: Fix SplashCursor/Fluid coordinate mapping
+                    // The component uses window.addEventListener but the canvas is inside a scaled slide.
+                    // We need to subtract the canvas offset from the global mouse coordinates.
+                    // Matches: scaleByPixelRatio(e.clientX) -> scaleByPixelRatio(e.clientX - (typeof canvas !== 'undefined' ? canvas.getBoundingClientRect().left : 0))
+                    codeToRun = codeToRun.replace(new RegExp("scaleByPixelRatio\\(([^)]+)\\.clientX\\)", "g"), "scaleByPixelRatio($1.clientX - (typeof canvas !== 'undefined' ? canvas.getBoundingClientRect().left : 0))");
+                    codeToRun = codeToRun.replace(new RegExp("scaleByPixelRatio\\(([^)]+)\\.clientY\\)", "g"), "scaleByPixelRatio($1.clientY - (typeof canvas !== 'undefined' ? canvas.getBoundingClientRect().top : 0))");
+
+                    // AUTO-PATCH: Fix SplashCursor sizing (100vw -> 100%)
+                    // Canvas using 100vw inside a scaled slide will likely overflow the slide.
+                    // We replace '100vw' and '100vh' with '100%' to constrain it to the container (which is already set to slide size).
+                    codeToRun = codeToRun.replace(new RegExp("['"]100vw['"]", "g"), "'100%'");
+                    codeToRun = codeToRun.replace(new RegExp("['"]100vh['"]", "g"), "'100%'");
+
+                    const transformed = Babel.transform(codeToRun, {
+                        presets: ['react'],
+                        plugins: [ ["transform-modules-commonjs", { "loose": true }] ]
+                    }).code;
+
+                    const exports = {};
+                    new Function(
+                        'exports',
+                        'require',
+                        'React',
+                        'useState',
+                        'useEffect',
+                        'useLayoutEffect',
+                        'useRef',
+                        'useMemo',
+                        'useCallback',
+                        'useContext',
+                        'useReducer',
+                        'useImperativeHandle',
+                        'useDebugValue',
+                        'useId',
+                        'useDeferredValue',
+                        'useTransition',
+                        'useInsertionEffect',
+                        'useSyncExternalStore',
+                        'THREE',
+                        'POSTPROCESSING',
+                        'gsap',
+                        'ogl',
+                        'motion',
+                        'AnimatePresence',
+                        transformed
+                    )(
+                        exports,
+                        dependencyResolver,
+                        React,
+                        React.useState,
+                        React.useEffect,
+                        React.useLayoutEffect,
+                        React.useRef,
+                        React.useMemo,
+                        React.useCallback,
+                        React.useContext,
+                        React.useReducer,
+                        React.useImperativeHandle,
+                        React.useDebugValue,
+                        React.useId,
+                        React.useDeferredValue,
+                        React.useTransition,
+                        React.useInsertionEffect,
+                        React.useSyncExternalStore,
+                        typeof THREE !== 'undefined' ? THREE : {},
+                        typeof POSTPROCESSING !== 'undefined' ? POSTPROCESSING : {},
+                        typeof gsap !== 'undefined' ? gsap : {},
+                        typeof ogl !== 'undefined' ? ogl : {},
+                        (typeof Motion !== 'undefined' && Motion.motion) ? Motion.motion : {},
+                        (typeof Motion !== 'undefined' && Motion.AnimatePresence) ? Motion.AnimatePresence : {}
+                    );
+
+                    const Component = exports.default;
+                    if (!Component) throw new Error("Component must have a default export.");
+
+                    const props = JSON.parse(propsString);
+
+                    // Replicate ComponentContainer logic for styling and alignment
+                    const cssVars = {};
+                    let containerStyle = {};
+
+                    // Extract CSS variables and container styles from props
+                    Object.entries(props).forEach(([key, value]) => {
+                        if (typeof value === 'string' || typeof value === 'number') {
+                            // Convert camelCase to kebab-case for CSS vars
+                            const cssVarName = '--' + key.replace(/([A-Z])/g, '-$1').toLowerCase();
+                            cssVars[cssVarName] = value;
+                        }
+                    });
+
+                    if (props._containerStyle) {
+                        containerStyle = props._containerStyle;
+                    }
+
+                    // Create a wrapper component to apply styles
+                    const Wrapper = () => {
+                        return React.createElement('div', {
+                            style: {
+                                display: 'flex',
+                                flexDirection: 'column',
+                                width: '100%',
+                                height: '100%',
+                                boxSizing: 'border-box',
+                                margin: 0,
+                                ...containerStyle,
+                                ...cssVars
+                            }
+                        }, React.createElement(Component, props));
+                    };
+
+                    const root = ReactDOM.createRoot(container);
+                    root.render(React.createElement(Wrapper));
+                    renderedContainers.add(container);
+                    console.log('Successfully rendered React component', index);
+                } catch (e) {
+                    console.error("Failed to render React component", index, ":", e);
+                    container.innerHTML = '<div style="color:red; background: #fee; padding: 10px; font-size: 12px; text-align: left;">Error: ' + e.message + '</div>';
+                }
+            });
+        });
+
+        // Detect WebGL context loss
+        window.addEventListener('webglcontextlost', (e) => {
+            console.error('WebGL context lost detected on element:', e.target);
+            e.preventDefault(); // Prevent default behavior
+        }, true);
+
+        window.addEventListener('webglcontextrestored', (e) => {
+            console.log('WebGL context restored on element:', e.target);
+        }, true);
+    </script>
+</body>
+</html>

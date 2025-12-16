@@ -573,7 +573,24 @@ export function generateRevealHTML(presentation) {
                     // AUTO-PATCH: Handle Reveal.js scaling for getBoundingClientRect
                     // We replace the standard call with our global unscaled version
                     // Regex find "object.getBoundingClientRect()" and turns it into "window._getUnscaledRect(object)"
-                    const codeToRun = code.replace(/([\\w\\.$[\\]"']+)\\.getBoundingClientRect\\(\\)/g, 'window._getUnscaledRect($1)');
+                    // NOTE: We use new RegExp with quad-escaped backslashes. 
+                    // We must escape double quotes (\\\" -> \" -> ") and backslashes (\\\\ -> \\ -> \).
+                    // This creates a regex that matches identifiers including brackets, quotes, dots, dollar signs.
+                    let codeToRun = code.replace(new RegExp("([\\\\w\\\\.$[\\\\]\\\"']+)\\\\.getBoundingClientRect\\\\(\\\\)", "g"), 'window._getUnscaledRect($1)');
+
+                    // AUTO-PATCH: Fix SplashCursor/Fluid coordinate mapping
+                    // The component uses window.addEventListener but the canvas is inside a scaled slide.
+                    // We need to subtract the canvas offset from the global mouse coordinates.
+                    // Matches: scaleByPixelRatio(e.clientX) -> scaleByPixelRatio(e.clientX - (typeof canvas !== 'undefined' ? canvas.getBoundingClientRect().left : 0))
+                    codeToRun = codeToRun.replace(new RegExp("scaleByPixelRatio\\\\(([^)]+)\\\\.clientX\\\\)", "g"), "scaleByPixelRatio($1.clientX - (typeof canvas !== 'undefined' ? canvas.getBoundingClientRect().left : 0))");
+                    codeToRun = codeToRun.replace(new RegExp("scaleByPixelRatio\\\\(([^)]+)\\\\.clientY\\\\)", "g"), "scaleByPixelRatio($1.clientY - (typeof canvas !== 'undefined' ? canvas.getBoundingClientRect().top : 0))");
+
+                    // AUTO-PATCH: Fix SplashCursor sizing (100vw -> 100%)
+                    // Canvas using 100vw inside a scaled slide will likely overflow the slide.
+                    // We replace '100vw' and '100vh' with '100%' to constrain it to the container (which is already set to slide size).
+                    // We must escape the double quote in the character class: ['\\\"'] matches ' or "
+                    codeToRun = codeToRun.replace(new RegExp("['\\\"]100vw['\\\"]", "g"), "'100%'");
+                    codeToRun = codeToRun.replace(new RegExp("['\\\"]100vh['\\\"]", "g"), "'100%'");
 
                     const transformed = Babel.transform(codeToRun, {
                         presets: ['react'],
